@@ -3,20 +3,34 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ChartLogs Trading Journal API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: trades
+    description: Trade management
+  - name: journal
+    description: Journal entries
+  - name: dashboard
+    description: Dashboard stats
+  - name: analytics
+    description: Performance analytics
+  - name: market
+    description: Market calendar
+  - name: tools
+    description: Trading tools
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +38,564 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me/settings:
+    patch:
+      operationId: updateSettings
+      tags: [auth]
+      summary: Update user settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSettingsUpdate"
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # TRADES
+  /trades:
+    get:
+      operationId: listTrades
+      tags: [trades]
+      summary: List trades with filters
+      parameters:
+        - name: symbol
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [long, short]
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [win, loss, breakeven]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of trades
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradeListResponse"
+
+    post:
+      operationId: createTrade
+      tags: [trades]
+      summary: Create a new trade
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradeInput"
+      responses:
+        "201":
+          description: Trade created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /trades/{id}:
+    get:
+      operationId: getTrade
+      tags: [trades]
+      summary: Get a trade by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Trade found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateTrade
+      tags: [trades]
+      summary: Update a trade
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradeUpdate"
+      responses:
+        "200":
+          description: Trade updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteTrade
+      tags: [trades]
+      summary: Delete a trade
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # JOURNAL
+  /journal:
+    get:
+      operationId: listJournalEntries
+      tags: [journal]
+      summary: List journal entries
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, journaled, pending]
+      responses:
+        "200":
+          description: List of journal entries with trade data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JournalEntry"
+
+  /journal/{tradeId}:
+    get:
+      operationId: getJournalEntry
+      tags: [journal]
+      summary: Get journal entry for a trade
+      parameters:
+        - name: tradeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Journal entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JournalEntry"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      operationId: upsertJournalEntry
+      tags: [journal]
+      summary: Create or update a journal entry
+      parameters:
+        - name: tradeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JournalInput"
+      responses:
+        "200":
+          description: Journal entry saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JournalEntry"
+
+  # DASHBOARD
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard statistics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [1d, 1w, 1m, 3m, all]
+            default: 1m
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/equity-curve:
+    get:
+      operationId: getEquityCurve
+      tags: [dashboard]
+      summary: Get equity curve data points
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [1d, 1w, 1m, 3m, all]
+            default: 1m
+      responses:
+        "200":
+          description: Equity curve data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EquityPoint"
+
+  /dashboard/calendar:
+    get:
+      operationId: getDashboardCalendar
+      tags: [dashboard]
+      summary: Get monthly P&L calendar heatmap
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Calendar heatmap
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CalendarDay"
+
+  /dashboard/recent-trades:
+    get:
+      operationId: getRecentTrades
+      tags: [dashboard]
+      summary: Get last 5 trades for dashboard
+      responses:
+        "200":
+          description: Recent trades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Trade"
+
+  # ANALYTICS
+  /analytics/performance:
+    get:
+      operationId: getPerformance
+      tags: [analytics]
+      summary: Get performance analytics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, 7d, 30d, 3m, 1y, all]
+            default: 30d
+        - name: filter
+          in: query
+          schema:
+            type: string
+            enum: [all, winners, losers]
+            default: all
+      responses:
+        "200":
+          description: Performance analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerformanceAnalytics"
+
+  /analytics/by-symbol:
+    get:
+      operationId: getAnalyticsBySymbol
+      tags: [analytics]
+      summary: Get performance grouped by symbol
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 3m, 1y, all]
+            default: all
+      responses:
+        "200":
+          description: Symbol analytics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SymbolPerformance"
+
+  /analytics/by-day:
+    get:
+      operationId: getAnalyticsByDay
+      tags: [analytics]
+      summary: Get performance grouped by day of week
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 3m, 1y, all]
+            default: all
+      responses:
+        "200":
+          description: Day-of-week analytics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DayPerformance"
+
+  /analytics/by-tag:
+    get:
+      operationId: getAnalyticsByTag
+      tags: [analytics]
+      summary: Get performance grouped by tag
+      responses:
+        "200":
+          description: Tag analytics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TagPerformance"
+
+  /analytics/by-emotion:
+    get:
+      operationId: getAnalyticsByEmotion
+      tags: [analytics]
+      summary: Get performance grouped by emotion
+      responses:
+        "200":
+          description: Emotion analytics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmotionPerformance"
+
+  # MARKET
+  /market/calendar:
+    get:
+      operationId: getMarketCalendar
+      tags: [market]
+      summary: Get economic calendar events
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, tomorrow, this_week, all]
+            default: today
+        - name: impact
+          in: query
+          schema:
+            type: string
+            enum: [high, medium, low, all]
+            default: all
+        - name: currency
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Economic calendar events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EconomicEvent"
+
+  # TOOLS
+  /tools/position-size:
+    post:
+      operationId: calculatePositionSize
+      tags: [tools]
+      summary: Calculate position size
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PositionSizeInput"
+      responses:
+        "200":
+          description: Position size calculation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PositionSizeResult"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +606,483 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    # AUTH
+    RegisterInput:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [user, token]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+
+    User:
+      type: object
+      required: [id, email, name, plan, timezone, currency, createdAt]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        plan:
+          type: string
+          enum: [free, pro, elite]
+        timezone:
+          type: string
+        currency:
+          type: string
+        defaultLotSize:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+
+    UserSettingsUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        timezone:
+          type: string
+        currency:
+          type: string
+        defaultLotSize:
+          type: ["number", "null"]
+
+    # TRADES
+    Trade:
+      type: object
+      required: [id, userId, symbol, type, entryPrice, positionSize, openTime, source, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        symbol:
+          type: string
+        type:
+          type: string
+          enum: [long, short]
+        entryPrice:
+          type: number
+        exitPrice:
+          type: ["number", "null"]
+        positionSize:
+          type: number
+        stopLoss:
+          type: ["number", "null"]
+        takeProfit:
+          type: ["number", "null"]
+        openTime:
+          type: string
+        closeTime:
+          type: ["string", "null"]
+        pnl:
+          type: ["number", "null"]
+        pips:
+          type: ["number", "null"]
+        rrRatio:
+          type: ["number", "null"]
+        fees:
+          type: ["number", "null"]
+        source:
+          type: string
+          enum: [manual, mt4, mt5, csv]
+        tags:
+          type: array
+          items:
+            type: string
+        emotion:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        screenshots:
+          type: array
+          items:
+            type: string
+        outcome:
+          type: ["string", "null"]
+          enum: [win, loss, breakeven, null]
+        createdAt:
+          type: string
+
+    TradeInput:
+      type: object
+      required: [symbol, type, entryPrice, positionSize, openTime, source]
+      properties:
+        symbol:
+          type: string
+        type:
+          type: string
+          enum: [long, short]
+        entryPrice:
+          type: number
+        exitPrice:
+          type: ["number", "null"]
+        positionSize:
+          type: number
+        stopLoss:
+          type: ["number", "null"]
+        takeProfit:
+          type: ["number", "null"]
+        openTime:
+          type: string
+        closeTime:
+          type: ["string", "null"]
+        fees:
+          type: ["number", "null"]
+        source:
+          type: string
+          enum: [manual, mt4, mt5, csv]
+        tags:
+          type: array
+          items:
+            type: string
+        emotion:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        screenshots:
+          type: array
+          items:
+            type: string
+
+    TradeUpdate:
+      type: object
+      properties:
+        symbol:
+          type: string
+        type:
+          type: string
+          enum: [long, short]
+        entryPrice:
+          type: number
+        exitPrice:
+          type: ["number", "null"]
+        positionSize:
+          type: number
+        stopLoss:
+          type: ["number", "null"]
+        takeProfit:
+          type: ["number", "null"]
+        openTime:
+          type: string
+        closeTime:
+          type: ["string", "null"]
+        fees:
+          type: ["number", "null"]
+        source:
+          type: string
+          enum: [manual, mt4, mt5, csv]
+        tags:
+          type: array
+          items:
+            type: string
+        emotion:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        screenshots:
+          type: array
+          items:
+            type: string
+
+    TradeListResponse:
+      type: object
+      required: [trades, total]
+      properties:
+        trades:
+          type: array
+          items:
+            $ref: "#/components/schemas/Trade"
+        total:
+          type: integer
+
+    # JOURNAL
+    JournalEntry:
+      type: object
+      required: [id, tradeId, userId, createdAt]
+      properties:
+        id:
+          type: integer
+        tradeId:
+          type: integer
+        userId:
+          type: integer
+        notes:
+          type: ["string", "null"]
+        mood:
+          type: ["string", "null"]
+        screenshots:
+          type: array
+          items:
+            type: string
+        trade:
+          $ref: "#/components/schemas/Trade"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    JournalInput:
+      type: object
+      properties:
+        notes:
+          type: ["string", "null"]
+        mood:
+          type: ["string", "null"]
+        screenshots:
+          type: array
+          items:
+            type: string
+
+    # DASHBOARD
+    DashboardStats:
+      type: object
+      required: [totalPnl, realizedPnl, unrealizedPnl, winRate, totalTrades, openTrades, avgWinner, avgLoser, bestTrade, worstTrade, winStreak, lossStreak, avgRR, profitFactor, expectancy]
+      properties:
+        totalPnl:
+          type: number
+        realizedPnl:
+          type: number
+        unrealizedPnl:
+          type: number
+        winRate:
+          type: number
+        totalTrades:
+          type: integer
+        openTrades:
+          type: integer
+        avgWinner:
+          type: number
+        avgLoser:
+          type: number
+        bestTrade:
+          type: number
+        worstTrade:
+          type: number
+        winStreak:
+          type: integer
+        lossStreak:
+          type: integer
+        avgRR:
+          type: number
+        profitFactor:
+          type: number
+        expectancy:
+          type: number
+
+    EquityPoint:
+      type: object
+      required: [date, equity, pnl]
+      properties:
+        date:
+          type: string
+        equity:
+          type: number
+        pnl:
+          type: number
+
+    CalendarDay:
+      type: object
+      required: [date, pnl, tradeCount]
+      properties:
+        date:
+          type: string
+        pnl:
+          type: number
+        tradeCount:
+          type: integer
+
+    # ANALYTICS
+    PerformanceAnalytics:
+      type: object
+      required: [totalPnl, winRate, profitFactor, expectancy, totalTrades, winners, losers, longTrades, shortTrades, equityCurve, drawdown]
+      properties:
+        totalPnl:
+          type: number
+        winRate:
+          type: number
+        profitFactor:
+          type: number
+        expectancy:
+          type: number
+        totalTrades:
+          type: integer
+        winners:
+          type: integer
+        losers:
+          type: integer
+        longTrades:
+          type: integer
+        shortTrades:
+          type: integer
+        longPnl:
+          type: number
+        shortPnl:
+          type: number
+        longWinRate:
+          type: number
+        shortWinRate:
+          type: number
+        equityCurve:
+          type: array
+          items:
+            $ref: "#/components/schemas/EquityPoint"
+        drawdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/DrawdownPoint"
+
+    DrawdownPoint:
+      type: object
+      required: [date, drawdown]
+      properties:
+        date:
+          type: string
+        drawdown:
+          type: number
+
+    SymbolPerformance:
+      type: object
+      required: [symbol, trades, pnl, winRate]
+      properties:
+        symbol:
+          type: string
+        trades:
+          type: integer
+        pnl:
+          type: number
+        winRate:
+          type: number
+
+    DayPerformance:
+      type: object
+      required: [day, trades, pnl, winRate]
+      properties:
+        day:
+          type: string
+        trades:
+          type: integer
+        pnl:
+          type: number
+        winRate:
+          type: number
+
+    TagPerformance:
+      type: object
+      required: [tag, trades, pnl, winRate]
+      properties:
+        tag:
+          type: string
+        trades:
+          type: integer
+        pnl:
+          type: number
+        winRate:
+          type: number
+
+    EmotionPerformance:
+      type: object
+      required: [emotion, trades, pnl, winRate]
+      properties:
+        emotion:
+          type: string
+        trades:
+          type: integer
+        pnl:
+          type: number
+        winRate:
+          type: number
+
+    # MARKET
+    EconomicEvent:
+      type: object
+      required: [id, time, country, currency, impact, event]
+      properties:
+        id:
+          type: string
+        time:
+          type: string
+        country:
+          type: string
+        currency:
+          type: string
+        impact:
+          type: string
+          enum: [high, medium, low]
+        event:
+          type: string
+        actual:
+          type: ["string", "null"]
+        forecast:
+          type: ["string", "null"]
+        previous:
+          type: ["string", "null"]
+
+    # TOOLS
+    PositionSizeInput:
+      type: object
+      required: [accountBalance, riskPercent, stopLossPips, pair]
+      properties:
+        accountBalance:
+          type: number
+        riskPercent:
+          type: number
+        stopLossPips:
+          type: number
+        pair:
+          type: string
+
+    PositionSizeResult:
+      type: object
+      required: [lotSize, units, dollarRisk, pipValue]
+      properties:
+        lotSize:
+          type: number
+        units:
+          type: number
+        dollarRisk:
+          type: number
+        pipValue:
+          type: number

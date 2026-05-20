@@ -1,0 +1,278 @@
+Build a full-stack trading journal web app called "ChartLogs.com" using React (frontend) + Node.js/Express (backend) + PostgreSQL or SQLite (database). The app should be production-ready, visually stunning, and focused on forex/stock traders.
+
+---
+
+## 🎨 DESIGN SYSTEM
+
+App name: ChartLogs
+Tagline: "Log it. Learn it. Level up."
+
+Color Palette (dark theme, professional trading aesthetic):
+- Background: #0A0D14 (deep navy-black)
+- Surface cards: #111827
+- Border: #1F2937
+- Primary accent: #3B82F6 (electric blue)
+- Green (profit): #10B981
+- Red (loss): #EF4444
+- Yellow (neutral/pending): #F59E0B
+- Text primary: #F9FAFB
+- Text muted: #6B7280
+
+Typography:
+- Display font: "Cabinet Grotesk" or "Clash Display" (bold headings)
+- Body font: "DM Sans" or "Plus Jakarta Sans"
+- Monospace (for prices/numbers): "JetBrains Mono"
+
+UI style: Dark, refined, data-dense but clean. Think Bloomberg terminal meets modern SaaS. Glassmorphism cards, subtle glow effects on profitable trades, smooth page transitions.
+
+---
+
+## 📁 APP STRUCTURE & PAGES
+
+### 1. AUTH PAGES
+- Landing page with hero section ("Your Trading Edge Starts Here"), feature highlights, pricing table
+- Sign Up / Login (email + password, Google OAuth optional)
+- Forgot password
+
+### 2. DASHBOARD (Home)
+- Top stat cards: Total P&L, Unrealized P&L, Realized P&L, Win Rate
+- Performance chart (line chart — equity curve) with time filters: 1D, 1W, 1M, 3M, ALL
+- Monthly P&L heatmap calendar (green = profit days, red = loss days)
+- Recent trades table (last 5 trades)
+- Quick stats: Avg Winner, Avg Loser, Best Trade, Worst Trade, Win Streak, Loss Streak, Risk:Reward, Open Trades
+- News ticker at bottom (fetch from free economic calendar API or mock data)
+
+### 3. TRADES PAGE
+- Full trade history table with columns: Open/Close Date, Symbol, Type (Long/Short), Entry, Exit, Size/Lots, P&L, Source, Tags
+- Filters: date range, symbol, type (long/short), win/loss, tag
+- Sort by any column
+- "Add Trade" button → modal/drawer form
+- "Connect MT4/MT5" button (show instructions modal, store broker connection)
+- Import trades via CSV upload
+- Free plan: last 15 trades visible; Pro: unlimited
+- Inline edit + delete trades
+
+### 4. ADD / EDIT TRADE FORM (Modal or Drawer)
+Fields:
+- Symbol (e.g., EURUSD, XAUUSD, BTC/USD)
+- Trade Type: Long / Short
+- Entry Price
+- Exit Price
+- Position Size / Lots
+- Stop Loss price
+- Take Profit price
+- Open Date & Time
+- Close Date & Time
+- Commission/Fees
+- Trade Source: Manual / MT4 / MT5 / CSV Import
+- Tags (multi-select: Breakout, Trend Follow, Reversal, News Trade, Scalp, Swing, etc.)
+- Emotion tag: Confident / Neutral / FOMO / Revenge Trade / Hesitant
+- Screenshots (upload up to 3 images)
+- Notes (rich text or markdown textarea)
+- Auto-calculate: P&L, R:R ratio, pips gained/lost
+
+### 5. JOURNAL PAGE
+- Left panel: list of all journaled trades (filterable: All / Journaled / Pending)
+- Right panel: when trade selected, show:
+  - Trade summary (symbol, P&L, date, type)
+  - Screenshots viewer
+  - Rich text journal notes editor
+  - Mood/emotion selector
+  - Tags
+  - Save Journal Entry button
+- "Pending" tab: trades not yet journaled
+
+### 6. PERFORMANCE ANALYTICS PAGE
+
+Sub-pages:
+a) **Performance Overview**
+- Time filter: Today / 7D / 30D / 3M / 1Y / All Time
+- Filter by: All Trades / Winners / Losers
+- Stat cards: Total P&L, Win Rate, Profit Factor, Expectancy
+- Quick Stats grid
+- Equity Curve chart (line)
+- Drawdown chart
+- Long vs Short breakdown (trades count, P&L, win%)
+- Day Performance (Mon–Sun heatmap, best trading days)
+- Top Symbols (best performing assets bar chart)
+- Trading Calendar heatmap (daily P&L, clickable days)
+
+b) **Trade Analysis**
+- List all trades (All / Winners / Losers tabs)
+- Sort: By Date / By P&L / By Symbol
+- Click a trade → right panel shows:
+  - Full trade details
+  - Risk:Reward visualization
+  - Screenshots
+  - Journal notes
+  - AI Trade Insight (call OpenAI API with trade data, return pattern/suggestion)
+
+### 7. MARKET PAGE (Economic Calendar)
+- Fetch live economic calendar data (use Forex Factory RSS, Trading Economics API, or mock)
+- Show: Time, Country flag, Currency, Impact (High/Med/Low colored dots), Event name, Actual, Forecast, Previous
+- Filter tabs: Upcoming / Today / Tomorrow / This Week / All
+- Filter by impact: High / Medium / Low
+- Filter by currency
+- "AI Ready" badge on events (Free plan: today US events only; Pro: all countries/all week)
+- Auto-refresh every 5 mins
+
+### 8. AI REPORT PAGE (Pro feature)
+- Generate AI-powered trading performance report
+- Input: date range selector
+- Output sections:
+  - Executive Summary
+  - Strengths & Weaknesses
+  - Most profitable setups
+  - Emotional patterns (based on emotion tags)
+  - Recommendations to improve
+  - Risk management score
+- Use OpenAI GPT-4o API
+- Show "Upgrade to Pro" gate on Free plan
+
+### 9. TOOLS PAGE
+Available tools (3 active, rest "Coming Soon"):
+
+a) **Position Size Calculator** (active)
+- Inputs: Account balance, Risk %, Stop Loss in pips, Currency pair
+- Output: Lot size, Units, Dollar risk
+- Live calculation as user types
+
+b) **Forex Market Hours** (active)
+- Show 4 sessions: Sydney, Tokyo, London, New York
+- Real-time clock showing which sessions are LIVE
+- Color-coded open/closed status
+- Overlap zones highlighted
+
+c) **Trader POV** (active)
+- Share a public read-only link of your dashboard
+- Toggle: Enable/Disable public sharing
+- Copy shareable link
+
+Coming Soon (grayed out):
+- AI Trade Analyser
+- Demo Trading (paper trading with virtual funds)
+- Risk of Ruin Calculator
+
+### 10. TRADERS LOUNGE (Community)
+- Feed of shared trade setups (public posts)
+- Post a trade: Symbol, Direction, Entry/SL/TP, Chart screenshot, Notes
+- Like / Comment on posts
+- Follow other traders
+- Leaderboard (by win rate, by profit this month)
+- "Coming Soon" overlay on most features, with waitlist button
+
+### 11. BACKTESTING PAGE (Elite feature)
+- Select symbol + date range
+- Upload or use historical CSV data
+- Define strategy rules (simple: MA crossover, RSI levels)
+- Run backtest → show results: total trades, win rate, P&L, max drawdown, equity curve
+- Show "Elite plan required" gate
+
+### 12. SETTINGS PAGE
+- Profile: Name, Email, Password change, Profile photo
+- Account: Timezone, Currency (USD/EUR/GBP/INR etc.), Default lot size
+- Notifications: Email alerts for news events, weekly performance summary
+- Connected Brokers: MT4/MT5 connection status
+- Data: Export all trades as CSV, Delete account
+- Appearance: Dark/Light mode toggle (Dark default)
+
+### 13. SUBSCRIPTION / PRICING PAGE
+Plans:
+- **Free**: $0/month — 15 trades/month, 1 month chart data, today's US news only
+- **Pro**: $12.99/month — Unlimited trades, AI insights, full reports, complete news, 3 MT4/MT5 accounts, advanced analytics
+- **Elite**: $22.99/month — Everything in Pro + unlimited MT4/MT5 accounts, backtesting, VIP access, mentor support, priority support
+- Monthly/Yearly toggle (17% discount on yearly)
+- Stripe integration for payments
+
+---
+
+## ⚙️ BACKEND & DATABASE
+
+### Database Schema (key tables):
+- users (id, email, name, password_hash, plan, timezone, currency, created_at)
+- trades (id, user_id, symbol, type, entry, exit, size, sl, tp, open_time, close_time, pnl, fees, source, tags, emotion, notes, screenshots, created_at)
+- journal_entries (id, trade_id, user_id, notes, screenshots, mood, created_at)
+- broker_connections (id, user_id, broker_type, credentials_encrypted, status)
+- subscriptions (id, user_id, plan, stripe_customer_id, stripe_subscription_id, status, ends_at)
+
+### API Endpoints:
+- POST /api/auth/register, /login, /logout, /refresh
+- GET/POST/PUT/DELETE /api/trades
+- GET/POST/PUT /api/journal/:tradeId
+- GET /api/dashboard/stats
+- GET /api/analytics/performance?period=30d
+- GET /api/market/calendar
+- POST /api/ai/report (Pro only)
+- POST /api/tools/position-size
+- GET /api/subscription/plans
+- POST /api/subscription/checkout (Stripe)
+
+### Auto-calculations on trade save:
+- P&L = (Exit - Entry) × Size × ContractSize - Fees
+- R:R = (TP - Entry) / (Entry - SL)
+- Pips = (Exit - Entry) / pip size for that symbol
+- Win = P&L > 0
+
+---
+
+## 🔌 INTEGRATIONS
+
+- **Stripe** — subscription billing
+- **OpenAI API** — AI Report + Trade Insights
+- **Economic Calendar** — Forex Factory RSS feed or TradingEconomics API (mock if needed)
+- **MT4/MT5** — show connection instructions (copy EA script) + receive trade data via webhook
+- **CSV Import** — parse MT4/MT5 exported CSV format
+- **Cloudinary or local storage** — trade screenshot uploads
+
+---
+
+## 💡 EXTRA FEATURES (add these — missing from TradeFXBook)
+
+1. **Trade Replay Mode** — step through trade bar by bar using uploaded chart screenshot sequence
+2. **Daily Goal Tracker** — set daily pip/dollar target, show progress bar on dashboard
+3. **Streak Tracker** — "You're on a 5-trade win streak 🔥" gamification badge
+4. **Risk of Ruin Calculator** (in Tools)
+5. **Trade Tags with Analytics** — see which tags (Breakout, Scalp, etc.) are most profitable
+6. **Emotion Analytics** — chart: FOMO trades vs Confident trades P&L comparison
+7. **Weekly Email Digest** — auto-send performance summary every Sunday
+8. **Multi-Account Support** (Pro) — switch between different broker accounts
+9. **Dark/Light mode** with smooth transition
+10. **Onboarding flow** — 3-step wizard for new users: Set timezone → Add first trade → Tour the dashboard
+11. **Mobile responsive** — fully usable on phone/tablet
+12. **Keyboard shortcuts** — (N = new trade, J = journal, D = dashboard)
+13. **Trade Notes AI Assistant** — in journal, click "Suggest Improvement" → AI analyzes trade and gives feedback
+14. **Global search** (Cmd+K) — search trades by symbol, date, tags
+15. **Notification center** — in-app alerts for upcoming high-impact news events
+
+---
+
+## 🚦 FREE vs PRO GATING
+
+Enforce in middleware:
+- Free: max 15 trades, today US news only, no AI features
+- Pro: all above + AI report, full news calendar
+- Elite: all above + backtesting, unlimited MT4/MT5
+
+Show tasteful upgrade prompts (not annoying banners) — use a subtle "🔒 Pro feature" lock icon with tooltip.
+
+---
+
+## 📱 RESPONSIVE DESIGN
+
+- Desktop-first but fully responsive
+- Collapsible sidebar on mobile
+- Bottom navigation bar on mobile (Dashboard, Trades, Journal, Add Trade)
+- Touch-friendly trade cards
+
+---
+
+## 🏁 LAUNCH CHECKLIST
+
+- [ ] .env file with: DATABASE_URL, JWT_SECRET, STRIPE_SECRET_KEY, OPENAI_API_KEY, CLOUDINARY_URL
+- [ ] Seed file with 20 demo trades for testing
+- [ ] Error boundary + loading skeletons on all data fetches
+- [ ] Rate limiting on API
+- [ ] Input validation (Zod or Joi)
+- [ ] README with setup instructions
+
+Start by building: Auth → Dashboard → Add Trade → Trades page → Journal. Then layer in Analytics, Market, AI, and Tools.
