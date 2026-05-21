@@ -38,7 +38,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
+        localStorage.removeItem("chartlogs_token");
         queryClient.setQueryData(getGetMeQueryKey(), null);
+        queryClient.clear();
         setLocation("/login");
       },
     });

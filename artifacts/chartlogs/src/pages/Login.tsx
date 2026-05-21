@@ -22,6 +22,7 @@ export default function Login() {
       { data: { email, password } },
       {
         onSuccess: (data) => {
+          localStorage.setItem("chartlogs_token", data.token);
           queryClient.setQueryData(getGetMeQueryKey(), data.user);
           setLocation("/dashboard");
         },
