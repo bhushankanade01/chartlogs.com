@@ -397,6 +397,17 @@ export const RequestUploadUrlResponse = zod.object({
 
 
 /**
+ * @summary Set ownership ACL after client PUT to presigned URL
+ */
+
+
+
+export const FinalizeUploadBody = zod.object({
+  "objectPath": zod.string().min(1)
+})
+
+
+/**
  * @summary Delete an uploaded object from storage
  */
 

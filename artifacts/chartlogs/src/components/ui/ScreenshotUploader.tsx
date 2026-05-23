@@ -1,5 +1,9 @@
 import { useState, useCallback, useRef } from "react";
-import { useRequestUploadUrl, useDeleteStorageObject } from "@workspace/api-client-react";
+import {
+  useRequestUploadUrl,
+  useFinalizeUpload,
+  useDeleteStorageObject,
+} from "@workspace/api-client-react";
 import { ImageIcon, X, Upload, ZoomIn, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 const MAX_FILES = 5;
@@ -31,6 +35,7 @@ interface ScreenshotUploaderProps {
 
 export function ScreenshotUploader({ value, onChange, disabled }: ScreenshotUploaderProps) {
   const requestUploadUrl = useRequestUploadUrl();
+  const finalizeUpload = useFinalizeUpload();
   const deleteObject = useDeleteStorageObject();
   const [uploading, setUploading] = useState<UploadingFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -49,6 +54,7 @@ export function ScreenshotUploader({ value, onChange, disabled }: ScreenshotUplo
     setUploading((prev) => [...prev, { id: uid, name: file.name, progress: 10 }]);
 
     try {
+      // Step 1: Request presigned URL from our API
       const { uploadURL, objectPath } = await new Promise<{ uploadURL: string; objectPath: string }>(
         (resolve, reject) => {
           requestUploadUrl.mutate(
@@ -61,8 +67,9 @@ export function ScreenshotUploader({ value, onChange, disabled }: ScreenshotUplo
         }
       );
 
-      setUploading((prev) => prev.map((u) => (u.id === uid ? { ...u, progress: 40 } : u)));
+      setUploading((prev) => prev.map((u) => (u.id === uid ? { ...u, progress: 35 } : u)));
 
+      // Step 2: PUT file directly to GCS via presigned URL
       const putRes = await fetch(uploadURL, {
         method: "PUT",
         body: file,
@@ -70,6 +77,19 @@ export function ScreenshotUploader({ value, onChange, disabled }: ScreenshotUplo
       });
 
       if (!putRes.ok) throw new Error("Upload to storage failed");
+
+      setUploading((prev) => prev.map((u) => (u.id === uid ? { ...u, progress: 75 } : u)));
+
+      // Step 3: Finalize — set ownership ACL so only this user can read/delete the object
+      await new Promise<void>((resolve, reject) => {
+        finalizeUpload.mutate(
+          { data: { objectPath } },
+          {
+            onSuccess: () => resolve(),
+            onError: (err) => reject(err),
+          }
+        );
+      });
 
       setUploading((prev) => prev.map((u) => (u.id === uid ? { ...u, progress: 100 } : u)));
 
@@ -85,7 +105,7 @@ export function ScreenshotUploader({ value, onChange, disabled }: ScreenshotUplo
         setUploading((prev) => prev.filter((u) => u.id !== uid));
       }, 800);
     }
-  }, [onChange, requestUploadUrl]);
+  }, [onChange, requestUploadUrl, finalizeUpload]);
 
   const handleFiles = useCallback((files: File[]) => {
     setValidationError(null);
@@ -129,7 +149,7 @@ export function ScreenshotUploader({ value, onChange, disabled }: ScreenshotUplo
     const objectPath = value[index];
     const next = value.filter((_, i) => i !== index);
     onChange(next);
-    // Fire-and-forget: delete from GCS. Ignore errors (stale refs are acceptable)
+    // Fire-and-forget: delete from GCS (ownership verified server-side via ACL)
     deleteObject.mutate({ data: { objectPath } });
   };
 

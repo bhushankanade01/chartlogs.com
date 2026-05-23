@@ -4,8 +4,10 @@ import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
   DeleteStorageObjectBody,
+  FinalizeUploadBody,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
+import { ObjectPermission } from "../lib/objectAcl";
 import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -16,7 +18,8 @@ const objectStorageService = new ObjectStorageService();
  *
  * Request a presigned URL for file upload.
  * The client sends JSON metadata (name, size, contentType) — NOT the file.
- * Then uploads the file directly to the returned presigned URL.
+ * After PUT-ing to the returned presigned URL, call POST /storage/uploads/finalize
+ * to set the ownership ACL so the object becomes accessible.
  */
 router.post("/storage/uploads/request-url", requireAuth, async (req: Request, res: Response) => {
   const parsed = RequestUploadUrlBody.safeParse(req.body);
@@ -45,10 +48,44 @@ router.post("/storage/uploads/request-url", requireAuth, async (req: Request, re
 });
 
 /**
+ * POST /storage/uploads/finalize
+ *
+ * Called by the client after successfully PUT-ing to the presigned URL.
+ * Sets the ownership ACL (owner: userId) so the object can be served and deleted
+ * only by the uploading user. Requires authentication.
+ */
+router.post("/storage/uploads/finalize", requireAuth, async (req: Request, res: Response) => {
+  const parsed = FinalizeUploadBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Missing or invalid objectPath" });
+    return;
+  }
+
+  try {
+    const { objectPath } = parsed.data;
+    const userId = String(req.user!.id);
+
+    await objectStorageService.trySetObjectEntityAclPolicy(objectPath, {
+      owner: userId,
+      visibility: "private",
+    });
+
+    res.status(204).end();
+  } catch (error) {
+    if (error instanceof ObjectNotFoundError) {
+      res.status(404).json({ error: "Object not found — upload may not have completed yet" });
+      return;
+    }
+    req.log.error({ err: error }, "Error finalizing upload");
+    res.status(500).json({ error: "Failed to finalize upload" });
+  }
+});
+
+/**
  * DELETE /storage/objects
  *
  * Delete an uploaded object from storage.
- * Requires authentication — only the uploader (authenticated user) may delete.
+ * Requires authentication and ownership (ACL verified via canAccessObjectEntity).
  */
 router.delete("/storage/objects", requireAuth, async (req: Request, res: Response) => {
   const parsed = DeleteStorageObjectBody.safeParse(req.body);
@@ -59,7 +96,20 @@ router.delete("/storage/objects", requireAuth, async (req: Request, res: Respons
 
   try {
     const { objectPath } = parsed.data;
+    const userId = String(req.user!.id);
+
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+
+    const canAccess = await objectStorageService.canAccessObjectEntity({
+      userId,
+      objectFile,
+      requestedPermission: ObjectPermission.WRITE,
+    });
+    if (!canAccess) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+
     await objectFile.delete();
     res.status(204).end();
   } catch (error) {
@@ -110,14 +160,26 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
  * GET /storage/objects/*
  *
  * Serve object entities from PRIVATE_OBJECT_DIR.
- * Requires authentication — prevents unauthorized access to private uploads.
+ * Requires authentication. ACL is checked — only the uploading user (owner) may read.
  */
 router.get("/storage/objects/*path", requireAuth, async (req: Request, res: Response) => {
   try {
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
+    const userId = String(req.user!.id);
+
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+
+    const canAccess = await objectStorageService.canAccessObjectEntity({
+      userId,
+      objectFile,
+      requestedPermission: ObjectPermission.READ,
+    });
+    if (!canAccess) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
 
     const response = await objectStorageService.downloadObject(objectFile);
 

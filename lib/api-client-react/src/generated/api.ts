@@ -29,6 +29,7 @@ import type {
   EmotionPerformance,
   EquityPoint,
   ErrorResponse,
+  FinalizeUploadRequest,
   ForgotPasswordInput,
   GetAnalyticsByDayParams,
   GetAnalyticsByEmotionParams,
@@ -1397,6 +1398,77 @@ export const useRequestUploadUrl = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getRequestUploadUrlMutationOptions(options));
+    }
+
+export const getFinalizeUploadUrl = () => {
+
+
+
+
+  return `/api/storage/uploads/finalize`
+}
+
+/**
+ * @summary Set ownership ACL after client PUT to presigned URL
+ */
+export const finalizeUpload = async (finalizeUploadRequest: FinalizeUploadRequest, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getFinalizeUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      finalizeUploadRequest,)
+  }
+);}
+
+
+
+
+export const getFinalizeUploadMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finalizeUpload>>, TError,{data: BodyType<FinalizeUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof finalizeUpload>>, TError,{data: BodyType<FinalizeUploadRequest>}, TContext> => {
+
+const mutationKey = ['finalizeUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof finalizeUpload>>, {data: BodyType<FinalizeUploadRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  finalizeUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FinalizeUploadMutationResult = NonNullable<Awaited<ReturnType<typeof finalizeUpload>>>
+    export type FinalizeUploadMutationBody = BodyType<FinalizeUploadRequest>
+    export type FinalizeUploadMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Set ownership ACL after client PUT to presigned URL
+ */
+export const useFinalizeUpload = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finalizeUpload>>, TError,{data: BodyType<FinalizeUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof finalizeUpload>>,
+        TError,
+        {data: BodyType<FinalizeUploadRequest>},
+        TContext
+      > => {
+      return useMutation(getFinalizeUploadMutationOptions(options));
     }
 
 export const getDeleteStorageObjectUrl = () => {

@@ -522,6 +522,11 @@ export interface DeleteObjectRequest {
   objectPath: string;
 }
 
+export interface FinalizeUploadRequest {
+  /** @minLength 1 */
+  objectPath: string;
+}
+
 export interface PositionSizeInput {
   accountBalance: number;
   riskPercent: number;
