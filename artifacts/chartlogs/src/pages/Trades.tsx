@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListTrades, getListTradesQueryKey, Trade } from "@workspace/api-client-react";
+import { useListTrades, getListTradesQueryKey } from "@workspace/api-client-react";
 import { useAccount } from "@/contexts/AccountContext";
 import { formatMoney, formatDate, cnClass } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -7,76 +7,54 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
-import { Search, Plus, Upload, ImageIcon, X, ChevronDown } from "lucide-react";
+import { Search, Plus, Upload } from "lucide-react";
 import { AddTradeDrawer } from "@/components/trades/AddTradeDrawer";
 import { ImportTradesModal } from "@/components/trades/ImportTradesModal";
-
-function getStorageUrl(objectPath: string): string {
-  return `/api/storage${objectPath}`;
-}
+import { getStorageUrl, Lightbox } from "@/components/ui/ScreenshotUploader";
 
 function ScreenshotPreviewCell({ screenshots }: { screenshots?: string[] | null }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  if (!screenshots || screenshots.length === 0) return <td className="py-3 px-4 text-right text-muted-foreground/40">—</td>;
+
+  if (!screenshots || screenshots.length === 0) {
+    return <td className="py-3 px-4 text-right text-muted-foreground/40">—</td>;
+  }
+
+  const previewUrls = screenshots.slice(0, 3).map(getStorageUrl);
+  const overflow = screenshots.length - previewUrls.length;
 
   return (
     <td className="py-3 px-4 text-right">
       <button
         type="button"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="inline-flex items-center gap-1 group"
         onClick={() => setLightboxIndex(0)}
+        title={`${screenshots.length} screenshot${screenshots.length !== 1 ? "s" : ""} — click to view`}
       >
-        <ImageIcon className="h-3.5 w-3.5" />
-        {screenshots.length}
-      </button>
-      {lightboxIndex !== null && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
-          onClick={() => setLightboxIndex(null)}
-        >
-          <div className="relative max-w-5xl max-h-[90vh] px-12" onClick={(e) => e.stopPropagation()}>
+        {/* Stacked thumbnail strip — up to 3 images */}
+        <div className="flex -space-x-1.5">
+          {previewUrls.map((url, i) => (
             <img
-              src={getStorageUrl(screenshots[lightboxIndex])}
-              alt=""
-              className="max-h-[85vh] max-w-full object-contain rounded-md"
+              key={url}
+              src={url}
+              alt={`Shot ${i + 1}`}
+              className="w-7 h-7 rounded object-cover border border-border group-hover:border-primary/50 transition-colors"
+              style={{ zIndex: previewUrls.length - i }}
             />
-            <button
-              type="button"
-              className="absolute top-2 right-2 text-white/70 hover:text-white bg-black/40 rounded-full p-1"
-              onClick={() => setLightboxIndex(null)}
-            >
-              <X className="h-5 w-5" />
-            </button>
-            {screenshots.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-black/40 rounded-full p-1.5"
-                  onClick={() => setLightboxIndex((i) => ((i ?? 0) - 1 + screenshots.length) % screenshots.length)}
-                >
-                  <ChevronDown className="h-5 w-5 rotate-90" />
-                </button>
-                <button
-                  type="button"
-                  className="absolute right-0 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-black/40 rounded-full p-1.5"
-                  onClick={() => setLightboxIndex((i) => ((i ?? 0) + 1) % screenshots.length)}
-                >
-                  <ChevronDown className="h-5 w-5 -rotate-90" />
-                </button>
-              </>
-            )}
-            <div className="flex justify-center gap-1.5 mt-3">
-              {screenshots.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setLightboxIndex(i)}
-                  className={`w-1.5 h-1.5 rounded-full transition-colors ${i === lightboxIndex ? "bg-white" : "bg-white/30"}`}
-                />
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
+        {overflow > 0 && (
+          <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors">
+            +{overflow}
+          </span>
+        )}
+      </button>
+
+      {lightboxIndex !== null && (
+        <Lightbox
+          urls={screenshots.map(getStorageUrl)}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
     </td>
   );
@@ -140,7 +118,7 @@ export default function Trades() {
                     <th className="py-3 px-4 text-right font-medium">Exit</th>
                     <th className="py-3 px-4 text-right font-medium">P&L</th>
                     <th className="py-3 px-4 text-right font-medium">Tags</th>
-                    <th className="py-3 px-4 text-right font-medium">Shots</th>
+                    <th className="py-3 px-4 text-right font-medium">Charts</th>
                   </tr>
                 </thead>
                 <tbody>

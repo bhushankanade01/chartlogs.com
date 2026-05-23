@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef } from "react";
-import { useRequestUploadUrl } from "@workspace/api-client-react";
+import { useRequestUploadUrl, useDeleteStorageObject } from "@workspace/api-client-react";
 import { ImageIcon, X, Upload, ZoomIn, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const MAX_FILES = 5;
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -13,7 +12,7 @@ function formatBytes(b: number): string {
   return `${(b / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getStorageUrl(objectPath: string): string {
+export function getStorageUrl(objectPath: string): string {
   return `/api/storage${objectPath}`;
 }
 
@@ -32,11 +31,17 @@ interface ScreenshotUploaderProps {
 
 export function ScreenshotUploader({ value, onChange, disabled }: ScreenshotUploaderProps) {
   const requestUploadUrl = useRequestUploadUrl();
+  const deleteObject = useDeleteStorageObject();
   const [uploading, setUploading] = useState<UploadingFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Always hold the latest value in a ref so async upload callbacks
+  // never close over stale state (fixes concurrent-upload race condition).
+  const latestValueRef = useRef<string[]>(value);
+  latestValueRef.current = value;
 
   const uploadFile = useCallback(async (file: File) => {
     const uid = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -68,7 +73,9 @@ export function ScreenshotUploader({ value, onChange, disabled }: ScreenshotUplo
 
       setUploading((prev) => prev.map((u) => (u.id === uid ? { ...u, progress: 100 } : u)));
 
-      onChange([...value, objectPath]);
+      // Use latestValueRef.current (not the closed-over `value`) so that
+      // concurrent uploads accumulate correctly even if React hasn't re-rendered yet.
+      onChange([...latestValueRef.current, objectPath]);
     } catch {
       setUploading((prev) =>
         prev.map((u) => (u.id === uid ? { ...u, error: "Upload failed" } : u))
@@ -78,11 +85,11 @@ export function ScreenshotUploader({ value, onChange, disabled }: ScreenshotUplo
         setUploading((prev) => prev.filter((u) => u.id !== uid));
       }, 800);
     }
-  }, [value, onChange, requestUploadUrl]);
+  }, [onChange, requestUploadUrl]);
 
   const handleFiles = useCallback((files: File[]) => {
     setValidationError(null);
-    const remaining = MAX_FILES - value.length - uploading.filter((u) => !u.error).length;
+    const remaining = MAX_FILES - latestValueRef.current.length - uploading.filter((u) => !u.error).length;
     if (remaining <= 0) {
       setValidationError(`Maximum ${MAX_FILES} screenshots per trade.`);
       return;
@@ -102,7 +109,7 @@ export function ScreenshotUploader({ value, onChange, disabled }: ScreenshotUplo
     }
     if (errors.length > 0) setValidationError(errors[0]);
     valid.forEach(uploadFile);
-  }, [value.length, uploading, uploadFile]);
+  }, [uploading, uploadFile]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -119,8 +126,11 @@ export function ScreenshotUploader({ value, onChange, disabled }: ScreenshotUplo
   }, [handleFiles]);
 
   const removeScreenshot = (index: number) => {
+    const objectPath = value[index];
     const next = value.filter((_, i) => i !== index);
     onChange(next);
+    // Fire-and-forget: delete from GCS. Ignore errors (stale refs are acceptable)
+    deleteObject.mutate({ data: { objectPath } });
   };
 
   const canAdd = value.length + uploading.filter((u) => !u.error).length < MAX_FILES && !disabled;
@@ -223,7 +233,7 @@ interface LightboxProps {
   onClose: () => void;
 }
 
-function Lightbox({ urls, initialIndex, onClose }: LightboxProps) {
+export function Lightbox({ urls, initialIndex, onClose }: LightboxProps) {
   const [index, setIndex] = useState(initialIndex);
 
   const prev = () => setIndex((i) => (i - 1 + urls.length) % urls.length);

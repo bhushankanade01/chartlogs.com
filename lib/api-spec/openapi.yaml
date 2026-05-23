@@ -454,11 +454,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /storage/objects:
+    delete:
+      tags: [storage]
+      operationId: deleteStorageObject
+      summary: Delete an uploaded object from storage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteObjectRequest"
+      responses:
+        "204":
+          description: Object deleted
+        "400":
+          description: Missing or invalid objectPath
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /storage/objects/{objectPath}:
     get:
       tags: [storage]
       operationId: getStorageObject
-      summary: Serve an uploaded object
+      summary: Serve an uploaded object (requires authentication)
+      security:
+        - bearerAuth: []
       parameters:
         - name: objectPath
           in: path
@@ -473,6 +502,12 @@ paths:
               schema:
                 type: string
                 format: binary
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Not found
           content:
@@ -1564,6 +1599,14 @@ components:
           format: uri
         objectPath:
           type: string
+
+    DeleteObjectRequest:
+      type: object
+      required: [objectPath]
+      properties:
+        objectPath:
+          type: string
+          minLength: 1
 
     # TOOLS
     PositionSizeInput:

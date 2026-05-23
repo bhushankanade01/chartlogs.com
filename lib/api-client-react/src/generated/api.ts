@@ -24,6 +24,7 @@ import type {
   CalendarDay,
   DashboardStats,
   DayPerformance,
+  DeleteObjectRequest,
   EconomicEvent,
   EmotionPerformance,
   EquityPoint,
@@ -1398,6 +1399,77 @@ export const useRequestUploadUrl = <TError = ErrorType<ErrorResponse>,
       return useMutation(getRequestUploadUrlMutationOptions(options));
     }
 
+export const getDeleteStorageObjectUrl = () => {
+
+
+
+
+  return `/api/storage/objects`
+}
+
+/**
+ * @summary Delete an uploaded object from storage
+ */
+export const deleteStorageObject = async (deleteObjectRequest: DeleteObjectRequest, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteStorageObjectUrl(),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      deleteObjectRequest,)
+  }
+);}
+
+
+
+
+export const getDeleteStorageObjectMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStorageObject>>, TError,{data: BodyType<DeleteObjectRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteStorageObject>>, TError,{data: BodyType<DeleteObjectRequest>}, TContext> => {
+
+const mutationKey = ['deleteStorageObject'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteStorageObject>>, {data: BodyType<DeleteObjectRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  deleteStorageObject(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteStorageObjectMutationResult = NonNullable<Awaited<ReturnType<typeof deleteStorageObject>>>
+    export type DeleteStorageObjectMutationBody = BodyType<DeleteObjectRequest>
+    export type DeleteStorageObjectMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Delete an uploaded object from storage
+ */
+export const useDeleteStorageObject = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStorageObject>>, TError,{data: BodyType<DeleteObjectRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteStorageObject>>,
+        TError,
+        {data: BodyType<DeleteObjectRequest>},
+        TContext
+      > => {
+      return useMutation(getDeleteStorageObjectMutationOptions(options));
+    }
+
 export const getGetStorageObjectUrl = (objectPath: string,) => {
 
 
@@ -1407,7 +1479,7 @@ export const getGetStorageObjectUrl = (objectPath: string,) => {
 }
 
 /**
- * @summary Serve an uploaded object
+ * @summary Serve an uploaded object (requires authentication)
  */
 export const getStorageObject = async (objectPath: string, options?: RequestInit): Promise<Blob> => {
 
@@ -1454,7 +1526,7 @@ export type GetStorageObjectQueryError = ErrorType<ErrorResponse>
 
 
 /**
- * @summary Serve an uploaded object
+ * @summary Serve an uploaded object (requires authentication)
  */
 
 export function useGetStorageObject<TData = Awaited<ReturnType<typeof getStorageObject>>, TError = ErrorType<ErrorResponse>>(

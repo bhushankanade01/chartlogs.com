@@ -397,7 +397,18 @@ export const RequestUploadUrlResponse = zod.object({
 
 
 /**
- * @summary Serve an uploaded object
+ * @summary Delete an uploaded object from storage
+ */
+
+
+
+export const DeleteStorageObjectBody = zod.object({
+  "objectPath": zod.string().min(1)
+})
+
+
+/**
+ * @summary Serve an uploaded object (requires authentication)
  */
 export const GetStorageObjectParams = zod.object({
   "objectPath": zod.coerce.string()

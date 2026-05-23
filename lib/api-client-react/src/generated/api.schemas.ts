@@ -517,6 +517,11 @@ export interface UploadUrlResponse {
   objectPath: string;
 }
 
+export interface DeleteObjectRequest {
+  /** @minLength 1 */
+  objectPath: string;
+}
+
 export interface PositionSizeInput {
   accountBalance: number;
   riskPercent: number;

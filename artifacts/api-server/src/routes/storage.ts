@@ -3,9 +3,9 @@ import { Readable } from "stream";
 import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
+  DeleteStorageObjectBody,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { ObjectPermission } from "../lib/objectAcl";
 import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -41,6 +41,34 @@ router.post("/storage/uploads/request-url", requireAuth, async (req: Request, re
   } catch (error) {
     req.log.error({ err: error }, "Error generating upload URL");
     res.status(500).json({ error: "Failed to generate upload URL" });
+  }
+});
+
+/**
+ * DELETE /storage/objects
+ *
+ * Delete an uploaded object from storage.
+ * Requires authentication — only the uploader (authenticated user) may delete.
+ */
+router.delete("/storage/objects", requireAuth, async (req: Request, res: Response) => {
+  const parsed = DeleteStorageObjectBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Missing or invalid objectPath" });
+    return;
+  }
+
+  try {
+    const { objectPath } = parsed.data;
+    const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+    await objectFile.delete();
+    res.status(204).end();
+  } catch (error) {
+    if (error instanceof ObjectNotFoundError) {
+      res.status(404).json({ error: "Object not found" });
+      return;
+    }
+    req.log.error({ err: error }, "Error deleting object");
+    res.status(500).json({ error: "Failed to delete object" });
   }
 });
 
@@ -82,30 +110,14 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
  * GET /storage/objects/*
  *
  * Serve object entities from PRIVATE_OBJECT_DIR.
- * These are served from a separate path from /public-objects and can optionally
- * be protected with authentication or ACL checks based on the use case.
+ * Requires authentication — prevents unauthorized access to private uploads.
  */
-router.get("/storage/objects/*path", async (req: Request, res: Response) => {
+router.get("/storage/objects/*path", requireAuth, async (req: Request, res: Response) => {
   try {
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-
-    // --- Protected route example (uncomment when using replit-auth) ---
-    // if (!req.isAuthenticated()) {
-    //   res.status(401).json({ error: "Unauthorized" });
-    //   return;
-    // }
-    // const canAccess = await objectStorageService.canAccessObjectEntity({
-    //   userId: req.user.id,
-    //   objectFile,
-    //   requestedPermission: ObjectPermission.READ,
-    // });
-    // if (!canAccess) {
-    //   res.status(403).json({ error: "Forbidden" });
-    //   return;
-    // }
 
     const response = await objectStorageService.downloadObject(objectFile);
 
