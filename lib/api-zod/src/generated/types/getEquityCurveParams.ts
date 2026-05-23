@@ -9,4 +9,5 @@ import type { GetEquityCurvePeriod } from './getEquityCurvePeriod';
 
 export type GetEquityCurveParams = {
 period?: GetEquityCurvePeriod;
+accountId?: number;
 };

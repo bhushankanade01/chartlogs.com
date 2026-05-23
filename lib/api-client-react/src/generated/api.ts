@@ -30,12 +30,15 @@ import type {
   ErrorResponse,
   ForgotPasswordInput,
   GetAnalyticsByDayParams,
+  GetAnalyticsByEmotionParams,
   GetAnalyticsBySymbolParams,
+  GetAnalyticsByTagParams,
   GetDashboardCalendarParams,
   GetDashboardStatsParams,
   GetEquityCurveParams,
   GetMarketCalendarParams,
   GetPerformanceParams,
+  GetRecentTradesParams,
   HealthStatus,
   JournalEntry,
   JournalInput,
@@ -1801,20 +1804,27 @@ export function useGetDashboardCalendar<TData = Awaited<ReturnType<typeof getDas
 
 
 
-export const getGetRecentTradesUrl = () => {
+export const getGetRecentTradesUrl = (params?: GetRecentTradesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/dashboard/recent-trades`
+  return stringifiedParams.length > 0 ? `/api/dashboard/recent-trades?${stringifiedParams}` : `/api/dashboard/recent-trades`
 }
 
 /**
  * @summary Get last 5 trades for dashboard
  */
-export const getRecentTrades = async ( options?: RequestInit): Promise<Trade[]> => {
+export const getRecentTrades = async (params?: GetRecentTradesParams, options?: RequestInit): Promise<Trade[]> => {
 
-  return customFetch<Trade[]>(getGetRecentTradesUrl(),
+  return customFetch<Trade[]>(getGetRecentTradesUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1827,23 +1837,23 @@ export const getRecentTrades = async ( options?: RequestInit): Promise<Trade[]> 
 
 
 
-export const getGetRecentTradesQueryKey = () => {
+export const getGetRecentTradesQueryKey = (params?: GetRecentTradesParams,) => {
     return [
-    `/api/dashboard/recent-trades`
+    `/api/dashboard/recent-trades`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetRecentTradesQueryOptions = <TData = Awaited<ReturnType<typeof getRecentTrades>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRecentTrades>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetRecentTradesQueryOptions = <TData = Awaited<ReturnType<typeof getRecentTrades>>, TError = ErrorType<unknown>>(params?: GetRecentTradesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRecentTrades>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetRecentTradesQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetRecentTradesQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRecentTrades>>> = ({ signal }) => getRecentTrades({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRecentTrades>>> = ({ signal }) => getRecentTrades(params, { signal, ...requestOptions });
 
 
 
@@ -1861,11 +1871,11 @@ export type GetRecentTradesQueryError = ErrorType<unknown>
  */
 
 export function useGetRecentTrades<TData = Awaited<ReturnType<typeof getRecentTrades>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRecentTrades>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetRecentTradesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRecentTrades>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetRecentTradesQueryOptions(options)
+  const queryOptions = getGetRecentTradesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -2130,20 +2140,27 @@ export function useGetAnalyticsByDay<TData = Awaited<ReturnType<typeof getAnalyt
 
 
 
-export const getGetAnalyticsByTagUrl = () => {
+export const getGetAnalyticsByTagUrl = (params?: GetAnalyticsByTagParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/analytics/by-tag`
+  return stringifiedParams.length > 0 ? `/api/analytics/by-tag?${stringifiedParams}` : `/api/analytics/by-tag`
 }
 
 /**
  * @summary Get performance grouped by tag
  */
-export const getAnalyticsByTag = async ( options?: RequestInit): Promise<TagPerformance[]> => {
+export const getAnalyticsByTag = async (params?: GetAnalyticsByTagParams, options?: RequestInit): Promise<TagPerformance[]> => {
 
-  return customFetch<TagPerformance[]>(getGetAnalyticsByTagUrl(),
+  return customFetch<TagPerformance[]>(getGetAnalyticsByTagUrl(params),
   {
     ...options,
     method: 'GET'
@@ -2156,23 +2173,23 @@ export const getAnalyticsByTag = async ( options?: RequestInit): Promise<TagPerf
 
 
 
-export const getGetAnalyticsByTagQueryKey = () => {
+export const getGetAnalyticsByTagQueryKey = (params?: GetAnalyticsByTagParams,) => {
     return [
-    `/api/analytics/by-tag`
+    `/api/analytics/by-tag`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetAnalyticsByTagQueryOptions = <TData = Awaited<ReturnType<typeof getAnalyticsByTag>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsByTag>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAnalyticsByTagQueryOptions = <TData = Awaited<ReturnType<typeof getAnalyticsByTag>>, TError = ErrorType<unknown>>(params?: GetAnalyticsByTagParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsByTag>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAnalyticsByTagQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetAnalyticsByTagQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAnalyticsByTag>>> = ({ signal }) => getAnalyticsByTag({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAnalyticsByTag>>> = ({ signal }) => getAnalyticsByTag(params, { signal, ...requestOptions });
 
 
 
@@ -2190,11 +2207,11 @@ export type GetAnalyticsByTagQueryError = ErrorType<unknown>
  */
 
 export function useGetAnalyticsByTag<TData = Awaited<ReturnType<typeof getAnalyticsByTag>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsByTag>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetAnalyticsByTagParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsByTag>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetAnalyticsByTagQueryOptions(options)
+  const queryOptions = getGetAnalyticsByTagQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -2207,20 +2224,27 @@ export function useGetAnalyticsByTag<TData = Awaited<ReturnType<typeof getAnalyt
 
 
 
-export const getGetAnalyticsByEmotionUrl = () => {
+export const getGetAnalyticsByEmotionUrl = (params?: GetAnalyticsByEmotionParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/analytics/by-emotion`
+  return stringifiedParams.length > 0 ? `/api/analytics/by-emotion?${stringifiedParams}` : `/api/analytics/by-emotion`
 }
 
 /**
  * @summary Get performance grouped by emotion
  */
-export const getAnalyticsByEmotion = async ( options?: RequestInit): Promise<EmotionPerformance[]> => {
+export const getAnalyticsByEmotion = async (params?: GetAnalyticsByEmotionParams, options?: RequestInit): Promise<EmotionPerformance[]> => {
 
-  return customFetch<EmotionPerformance[]>(getGetAnalyticsByEmotionUrl(),
+  return customFetch<EmotionPerformance[]>(getGetAnalyticsByEmotionUrl(params),
   {
     ...options,
     method: 'GET'
@@ -2233,23 +2257,23 @@ export const getAnalyticsByEmotion = async ( options?: RequestInit): Promise<Emo
 
 
 
-export const getGetAnalyticsByEmotionQueryKey = () => {
+export const getGetAnalyticsByEmotionQueryKey = (params?: GetAnalyticsByEmotionParams,) => {
     return [
-    `/api/analytics/by-emotion`
+    `/api/analytics/by-emotion`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetAnalyticsByEmotionQueryOptions = <TData = Awaited<ReturnType<typeof getAnalyticsByEmotion>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsByEmotion>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAnalyticsByEmotionQueryOptions = <TData = Awaited<ReturnType<typeof getAnalyticsByEmotion>>, TError = ErrorType<unknown>>(params?: GetAnalyticsByEmotionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsByEmotion>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAnalyticsByEmotionQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetAnalyticsByEmotionQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAnalyticsByEmotion>>> = ({ signal }) => getAnalyticsByEmotion({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAnalyticsByEmotion>>> = ({ signal }) => getAnalyticsByEmotion(params, { signal, ...requestOptions });
 
 
 
@@ -2267,11 +2291,11 @@ export type GetAnalyticsByEmotionQueryError = ErrorType<unknown>
  */
 
 export function useGetAnalyticsByEmotion<TData = Awaited<ReturnType<typeof getAnalyticsByEmotion>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsByEmotion>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetAnalyticsByEmotionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsByEmotion>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetAnalyticsByEmotionQueryOptions(options)
+  const queryOptions = getGetAnalyticsByEmotionQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

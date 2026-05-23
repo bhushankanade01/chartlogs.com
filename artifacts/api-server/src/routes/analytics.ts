@@ -29,11 +29,13 @@ router.get("/analytics/performance", requireAuth, async (req, res): Promise<void
   const params = GetPerformanceQueryParams.safeParse(req.query);
   const period = params.success ? (params.data.period ?? "30d") : "30d";
   const filter = params.success ? (params.data.filter ?? "all") : "all";
+  const accountId = params.success ? params.data.accountId : undefined;
   const userId = req.user!.id;
   const periodStart = getPeriodStart(period);
 
   const conditions = [eq(tradesTable.userId, userId)];
   if (periodStart) conditions.push(gte(tradesTable.openTime, periodStart));
+  if (accountId) conditions.push(eq(tradesTable.accountId, accountId));
 
   let allTrades = await db.select().from(tradesTable).where(and(...conditions)).orderBy(tradesTable.openTime);
   const closedTrades = allTrades.filter(t => t.pnl !== null);
@@ -59,7 +61,6 @@ router.get("/analytics/performance", requireAuth, async (req, res): Promise<void
   const longWinRate = longTrades.length > 0 ? (longTrades.filter(t => t.outcome === "win").length / longTrades.length) * 100 : 0;
   const shortWinRate = shortTrades.length > 0 ? (shortTrades.filter(t => t.outcome === "win").length / shortTrades.length) * 100 : 0;
 
-  // Equity curve
   let equity = 0;
   const equityCurve = filtered.map(t => {
     equity += parseFloat(t.pnl!);
@@ -70,7 +71,6 @@ router.get("/analytics/performance", requireAuth, async (req, res): Promise<void
     };
   });
 
-  // Drawdown
   let peak = 0;
   const drawdown = equityCurve.map(p => {
     if (p.equity > peak) peak = p.equity;
@@ -100,11 +100,13 @@ router.get("/analytics/performance", requireAuth, async (req, res): Promise<void
 router.get("/analytics/by-symbol", requireAuth, async (req, res): Promise<void> => {
   const params = GetAnalyticsBySymbolQueryParams.safeParse(req.query);
   const period = params.success ? (params.data.period ?? "all") : "all";
+  const accountId = params.success ? params.data.accountId : undefined;
   const userId = req.user!.id;
   const periodStart = getPeriodStart(period);
 
   const conditions = [eq(tradesTable.userId, userId)];
   if (periodStart) conditions.push(gte(tradesTable.openTime, periodStart));
+  if (accountId) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
   const closed = trades.filter(t => t.pnl !== null);
@@ -135,11 +137,13 @@ router.get("/analytics/by-symbol", requireAuth, async (req, res): Promise<void> 
 router.get("/analytics/by-day", requireAuth, async (req, res): Promise<void> => {
   const params = GetAnalyticsByDayQueryParams.safeParse(req.query);
   const period = params.success ? (params.data.period ?? "all") : "all";
+  const accountId = params.success ? params.data.accountId : undefined;
   const userId = req.user!.id;
   const periodStart = getPeriodStart(period);
 
   const conditions = [eq(tradesTable.userId, userId)];
   if (periodStart) conditions.push(gte(tradesTable.openTime, periodStart));
+  if (accountId) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
   const closed = trades.filter(t => t.pnl !== null);
@@ -170,7 +174,12 @@ router.get("/analytics/by-day", requireAuth, async (req, res): Promise<void> => 
 
 router.get("/analytics/by-tag", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.id;
-  const trades = await db.select().from(tradesTable).where(eq(tradesTable.userId, userId));
+  const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
+
+  const conditions = [eq(tradesTable.userId, userId)];
+  if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
+
+  const trades = await db.select().from(tradesTable).where(and(...conditions));
   const closed = trades.filter(t => t.pnl !== null);
 
   const byTag = new Map<string, { pnl: number; count: number; wins: number }>();
@@ -199,7 +208,12 @@ router.get("/analytics/by-tag", requireAuth, async (req, res): Promise<void> => 
 
 router.get("/analytics/by-emotion", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.id;
-  const trades = await db.select().from(tradesTable).where(eq(tradesTable.userId, userId));
+  const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
+
+  const conditions = [eq(tradesTable.userId, userId)];
+  if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
+
+  const trades = await db.select().from(tradesTable).where(and(...conditions));
   const closed = trades.filter(t => t.pnl !== null && t.emotion);
 
   const byEmotion = new Map<string, { pnl: number; count: number; wins: number }>();

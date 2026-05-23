@@ -9,4 +9,5 @@
 export type GetDashboardCalendarParams = {
 year?: number;
 month?: number;
+accountId?: number;
 };

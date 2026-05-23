@@ -11,4 +11,5 @@ import type { GetPerformancePeriod } from './getPerformancePeriod';
 export type GetPerformanceParams = {
 period?: GetPerformancePeriod;
 filter?: GetPerformanceFilter;
+accountId?: number;
 };

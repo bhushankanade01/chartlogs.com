@@ -9,4 +9,5 @@ import type { GetDashboardStatsPeriod } from './getDashboardStatsPeriod';
 
 export type GetDashboardStatsParams = {
 period?: GetDashboardStatsPeriod;
+accountId?: number;
 };

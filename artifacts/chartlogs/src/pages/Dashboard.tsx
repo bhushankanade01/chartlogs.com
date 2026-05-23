@@ -10,6 +10,7 @@ import {
   getGetRecentTradesQueryKey,
   GetDashboardStatsPeriod
 } from "@workspace/api-client-react";
+import { useAccount } from "@/contexts/AccountContext";
 import { formatMoney, formatPips, formatDate, cnClass } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,24 +20,27 @@ import { Badge } from "@/components/ui/badge";
 
 export default function Dashboard() {
   const [period, setPeriod] = useState<GetDashboardStatsPeriod>("1m");
-  
+  const { activeAccountId } = useAccount();
+  const acctParam = activeAccountId ?? undefined;
+
   const { data: stats, isLoading: statsLoading } = useGetDashboardStats(
-    { period },
-    { query: { queryKey: getGetDashboardStatsQueryKey({ period }) } }
+    { period, accountId: acctParam },
+    { query: { queryKey: getGetDashboardStatsQueryKey({ period, accountId: acctParam }) } }
   );
 
   const { data: equityCurve, isLoading: equityLoading } = useGetEquityCurve(
-    { period },
-    { query: { queryKey: getGetEquityCurveQueryKey({ period }) } }
+    { period, accountId: acctParam },
+    { query: { queryKey: getGetEquityCurveQueryKey({ period, accountId: acctParam }) } }
   );
 
   const { data: calendar, isLoading: calendarLoading } = useGetDashboardCalendar(
-    undefined,
-    { query: { queryKey: getGetDashboardCalendarQueryKey() } }
+    { accountId: acctParam },
+    { query: { queryKey: getGetDashboardCalendarQueryKey({ accountId: acctParam }) } }
   );
 
   const { data: recentTrades, isLoading: tradesLoading } = useGetRecentTrades(
-    { query: { queryKey: getGetRecentTradesQueryKey() } }
+    { accountId: acctParam },
+    { query: { queryKey: getGetRecentTradesQueryKey({ accountId: acctParam }) } }
   );
 
   return (

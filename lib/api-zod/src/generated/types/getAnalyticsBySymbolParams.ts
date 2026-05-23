@@ -9,4 +9,5 @@ import type { GetAnalyticsBySymbolPeriod } from './getAnalyticsBySymbolPeriod';
 
 export type GetAnalyticsBySymbolParams = {
 period?: GetAnalyticsBySymbolPeriod;
+accountId?: number;
 };

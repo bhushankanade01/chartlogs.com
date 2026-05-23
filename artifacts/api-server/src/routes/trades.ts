@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, tradesTable } from "@workspace/db";
+import { db, tradesTable, tradingAccountsTable } from "@workspace/db";
 import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import {
@@ -106,6 +106,17 @@ router.post("/trades", requireAuth, async (req, res): Promise<void> => {
     outcome = determineOutcome(pnl);
   }
   rrRatio = calculateRR(d.type as "long" | "short", entry, tp, sl);
+
+  // Validate account ownership if accountId is provided
+  if (d.accountId) {
+    const [acct] = await db.select({ id: tradingAccountsTable.id })
+      .from(tradingAccountsTable)
+      .where(and(eq(tradingAccountsTable.id, d.accountId), eq(tradingAccountsTable.userId, userId)));
+    if (!acct) {
+      res.status(400).json({ error: "Invalid account" });
+      return;
+    }
+  }
 
   const [trade] = await db.insert(tradesTable).values({
     userId,

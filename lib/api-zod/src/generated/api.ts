@@ -154,6 +154,8 @@ export const ListAccountsResponseItem = zod.object({
   "startingBalance": zod.number(),
   "currency": zod.string(),
   "isDefault": zod.boolean(),
+  "totalPnl": zod.number().optional(),
+  "tradeCount": zod.number().optional(),
   "createdAt": zod.string()
 })
 export const ListAccountsResponse = zod.array(ListAccountsResponseItem)
@@ -197,6 +199,8 @@ export const UpdateAccountResponse = zod.object({
   "startingBalance": zod.number(),
   "currency": zod.string(),
   "isDefault": zod.boolean(),
+  "totalPnl": zod.number().optional(),
+  "tradeCount": zod.number().optional(),
   "createdAt": zod.string()
 })
 
@@ -376,7 +380,8 @@ export const DeleteTradeParams = zod.object({
  * @summary List journal entries
  */
 export const ListJournalEntriesQueryParams = zod.object({
-  "status": zod.enum(['all', 'journaled', 'pending']).optional()
+  "status": zod.enum(['all', 'journaled', 'pending']).optional(),
+  "accountId": zod.coerce.number().optional()
 })
 
 export const ListJournalEntriesResponseItem = zod.object({
@@ -517,7 +522,8 @@ export const UpsertJournalEntryResponse = zod.object({
 export const getDashboardStatsQueryPeriodDefault = `1m`;
 
 export const GetDashboardStatsQueryParams = zod.object({
-  "period": zod.enum(['1d', '1w', '1m', '3m', 'all']).default(getDashboardStatsQueryPeriodDefault)
+  "period": zod.enum(['1d', '1w', '1m', '3m', 'all']).default(getDashboardStatsQueryPeriodDefault),
+  "accountId": zod.coerce.number().optional()
 })
 
 export const GetDashboardStatsResponse = zod.object({
@@ -545,7 +551,8 @@ export const GetDashboardStatsResponse = zod.object({
 export const getEquityCurveQueryPeriodDefault = `1m`;
 
 export const GetEquityCurveQueryParams = zod.object({
-  "period": zod.enum(['1d', '1w', '1m', '3m', 'all']).default(getEquityCurveQueryPeriodDefault)
+  "period": zod.enum(['1d', '1w', '1m', '3m', 'all']).default(getEquityCurveQueryPeriodDefault),
+  "accountId": zod.coerce.number().optional()
 })
 
 export const GetEquityCurveResponseItem = zod.object({
@@ -561,7 +568,8 @@ export const GetEquityCurveResponse = zod.array(GetEquityCurveResponseItem)
  */
 export const GetDashboardCalendarQueryParams = zod.object({
   "year": zod.coerce.number().optional(),
-  "month": zod.coerce.number().optional()
+  "month": zod.coerce.number().optional(),
+  "accountId": zod.coerce.number().optional()
 })
 
 export const GetDashboardCalendarResponseItem = zod.object({
@@ -575,6 +583,10 @@ export const GetDashboardCalendarResponse = zod.array(GetDashboardCalendarRespon
 /**
  * @summary Get last 5 trades for dashboard
  */
+export const GetRecentTradesQueryParams = zod.object({
+  "accountId": zod.coerce.number().optional()
+})
+
 export const GetRecentTradesResponseItem = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
@@ -611,7 +623,8 @@ export const getPerformanceQueryFilterDefault = `all`;
 
 export const GetPerformanceQueryParams = zod.object({
   "period": zod.enum(['today', '7d', '30d', '3m', '1y', 'all']).default(getPerformanceQueryPeriodDefault),
-  "filter": zod.enum(['all', 'winners', 'losers']).default(getPerformanceQueryFilterDefault)
+  "filter": zod.enum(['all', 'winners', 'losers']).default(getPerformanceQueryFilterDefault),
+  "accountId": zod.coerce.number().optional()
 })
 
 export const GetPerformanceResponse = zod.object({
@@ -646,7 +659,8 @@ export const GetPerformanceResponse = zod.object({
 export const getAnalyticsBySymbolQueryPeriodDefault = `all`;
 
 export const GetAnalyticsBySymbolQueryParams = zod.object({
-  "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsBySymbolQueryPeriodDefault)
+  "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsBySymbolQueryPeriodDefault),
+  "accountId": zod.coerce.number().optional()
 })
 
 export const GetAnalyticsBySymbolResponseItem = zod.object({
@@ -664,7 +678,8 @@ export const GetAnalyticsBySymbolResponse = zod.array(GetAnalyticsBySymbolRespon
 export const getAnalyticsByDayQueryPeriodDefault = `all`;
 
 export const GetAnalyticsByDayQueryParams = zod.object({
-  "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsByDayQueryPeriodDefault)
+  "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsByDayQueryPeriodDefault),
+  "accountId": zod.coerce.number().optional()
 })
 
 export const GetAnalyticsByDayResponseItem = zod.object({
@@ -679,6 +694,10 @@ export const GetAnalyticsByDayResponse = zod.array(GetAnalyticsByDayResponseItem
 /**
  * @summary Get performance grouped by tag
  */
+export const GetAnalyticsByTagQueryParams = zod.object({
+  "accountId": zod.coerce.number().optional()
+})
+
 export const GetAnalyticsByTagResponseItem = zod.object({
   "tag": zod.string(),
   "trades": zod.number(),
@@ -691,6 +710,10 @@ export const GetAnalyticsByTagResponse = zod.array(GetAnalyticsByTagResponseItem
 /**
  * @summary Get performance grouped by emotion
  */
+export const GetAnalyticsByEmotionQueryParams = zod.object({
+  "accountId": zod.coerce.number().optional()
+})
+
 export const GetAnalyticsByEmotionResponseItem = zod.object({
   "emotion": zod.string(),
   "trades": zod.number(),

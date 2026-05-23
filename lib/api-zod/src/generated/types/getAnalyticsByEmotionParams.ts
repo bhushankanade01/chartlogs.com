@@ -5,9 +5,7 @@
  * ChartLogs Trading Journal API
  * OpenAPI spec version: 0.1.0
  */
-import type { ListJournalEntriesStatus } from './listJournalEntriesStatus';
 
-export type ListJournalEntriesParams = {
-status?: ListJournalEntriesStatus;
+export type GetAnalyticsByEmotionParams = {
 accountId?: number;
 };

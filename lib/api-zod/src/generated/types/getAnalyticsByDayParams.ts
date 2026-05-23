@@ -9,4 +9,5 @@ import type { GetAnalyticsByDayPeriod } from './getAnalyticsByDayPeriod';
 
 export type GetAnalyticsByDayParams = {
 period?: GetAnalyticsByDayPeriod;
+accountId?: number;
 };

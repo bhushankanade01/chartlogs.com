@@ -47,13 +47,17 @@ router.get("/journal", requireAuth, async (req, res): Promise<void> => {
 
   const userId = req.user!.id;
   const status = params.data.status ?? "all";
+  const accountId = params.data.accountId;
 
   if (status === "journaled") {
+    const journaledConditions = [eq(journalEntriesTable.userId, userId)];
+    if (accountId) journaledConditions.push(eq(tradesTable.accountId, accountId));
+
     const entries = await db
       .select({ entry: journalEntriesTable, trade: tradesTable })
       .from(journalEntriesTable)
       .innerJoin(tradesTable, eq(journalEntriesTable.tradeId, tradesTable.id))
-      .where(eq(journalEntriesTable.userId, userId));
+      .where(and(...journaledConditions));
 
     res.json(entries.map(({ entry, trade }) => ({
       id: entry.id,
@@ -71,7 +75,9 @@ router.get("/journal", requireAuth, async (req, res): Promise<void> => {
 
   if (status === "pending") {
     // Trades without journal entries
-    const trades = await db.select().from(tradesTable).where(eq(tradesTable.userId, userId));
+    const tradeConditions = [eq(tradesTable.userId, userId)];
+    if (accountId) tradeConditions.push(eq(tradesTable.accountId, accountId));
+    const trades = await db.select().from(tradesTable).where(and(...tradeConditions));
     const journaled = await db.select({ tradeId: journalEntriesTable.tradeId }).from(journalEntriesTable).where(eq(journalEntriesTable.userId, userId));
     const journaledIds = new Set(journaled.map(j => j.tradeId));
     const pendingTrades = trades.filter(t => !journaledIds.has(t.id));
@@ -91,7 +97,9 @@ router.get("/journal", requireAuth, async (req, res): Promise<void> => {
   }
 
   // all: return all trades with or without journal entries
-  const trades = await db.select().from(tradesTable).where(eq(tradesTable.userId, userId));
+  const allTradeConditions = [eq(tradesTable.userId, userId)];
+  if (accountId) allTradeConditions.push(eq(tradesTable.accountId, accountId));
+  const trades = await db.select().from(tradesTable).where(and(...allTradeConditions));
   const entries = await db.select().from(journalEntriesTable).where(eq(journalEntriesTable.userId, userId));
   const entriesMap = new Map(entries.map(e => [e.tradeId, e]));
 

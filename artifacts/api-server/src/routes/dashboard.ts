@@ -22,6 +22,7 @@ function formatTrade(t: typeof tradesTable.$inferSelect) {
   return {
     id: t.id,
     userId: t.userId,
+    accountId: t.accountId ?? null,
     symbol: t.symbol,
     type: t.type,
     entryPrice: t.entryPrice ? parseFloat(t.entryPrice) : 0,
@@ -48,11 +49,13 @@ function formatTrade(t: typeof tradesTable.$inferSelect) {
 router.get("/dashboard/stats", requireAuth, async (req, res): Promise<void> => {
   const params = GetDashboardStatsQueryParams.safeParse(req.query);
   const period = params.success ? (params.data.period ?? "1m") : "1m";
+  const accountId = params.success ? params.data.accountId : undefined;
   const userId = req.user!.id;
   const periodStart = getPeriodStart(period);
 
   const conditions = [eq(tradesTable.userId, userId)];
   if (periodStart) conditions.push(gte(tradesTable.openTime, periodStart));
+  if (accountId) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
   const closedTrades = trades.filter(t => t.pnl !== null);
@@ -77,7 +80,6 @@ router.get("/dashboard/stats", requireAuth, async (req, res): Promise<void> => {
   const bestTrade = pnls.length > 0 ? Math.max(...pnls) : 0;
   const worstTrade = pnls.length > 0 ? Math.min(...pnls) : 0;
 
-  // Win/loss streaks
   const sorted = [...closedTrades].sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
   let winStreak = 0, lossStreak = 0, curWin = 0, curLoss = 0;
   for (const t of sorted) {
@@ -116,11 +118,13 @@ router.get("/dashboard/stats", requireAuth, async (req, res): Promise<void> => {
 router.get("/dashboard/equity-curve", requireAuth, async (req, res): Promise<void> => {
   const params = GetEquityCurveQueryParams.safeParse(req.query);
   const period = params.success ? (params.data.period ?? "1m") : "1m";
+  const accountId = params.success ? params.data.accountId : undefined;
   const userId = req.user!.id;
   const periodStart = getPeriodStart(period);
 
   const conditions = [eq(tradesTable.userId, userId)];
   if (periodStart) conditions.push(gte(tradesTable.openTime, periodStart));
+  if (accountId) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable)
     .where(and(...conditions))
@@ -144,6 +148,7 @@ router.get("/dashboard/equity-curve", requireAuth, async (req, res): Promise<voi
 router.get("/dashboard/calendar", requireAuth, async (req, res): Promise<void> => {
   const params = GetDashboardCalendarQueryParams.safeParse(req.query);
   const userId = req.user!.id;
+  const accountId = params.success ? params.data.accountId : undefined;
   const now = new Date();
   const year = params.success && params.data.year ? params.data.year : now.getFullYear();
   const month = params.success && params.data.month ? params.data.month : now.getMonth() + 1;
@@ -151,12 +156,10 @@ router.get("/dashboard/calendar", requireAuth, async (req, res): Promise<void> =
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 1);
 
-  const trades = await db.select().from(tradesTable)
-    .where(and(
-      eq(tradesTable.userId, userId),
-      gte(tradesTable.openTime, startDate),
-      gte(tradesTable.openTime, new Date(0))
-    ));
+  const conditions = [eq(tradesTable.userId, userId), gte(tradesTable.openTime, startDate)];
+  if (accountId) conditions.push(eq(tradesTable.accountId, accountId));
+
+  const trades = await db.select().from(tradesTable).where(and(...conditions));
 
   const filtered = trades.filter(t => {
     const d = t.closeTime ?? t.openTime;
@@ -181,8 +184,13 @@ router.get("/dashboard/calendar", requireAuth, async (req, res): Promise<void> =
 
 router.get("/dashboard/recent-trades", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.id;
+  const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
+
+  const conditions = [eq(tradesTable.userId, userId)];
+  if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
+
   const trades = await db.select().from(tradesTable)
-    .where(eq(tradesTable.userId, userId))
+    .where(and(...conditions))
     .orderBy(desc(tradesTable.openTime))
     .limit(5);
 

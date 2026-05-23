@@ -107,6 +107,8 @@ export interface TradingAccount {
   startingBalance: number;
   currency: string;
   isDefault: boolean;
+  totalPnl?: number;
+  tradeCount?: number;
   createdAt: string;
 }
 
@@ -483,6 +485,7 @@ export const ListTradesOutcome = {
 
 export type ListJournalEntriesParams = {
 status?: ListJournalEntriesStatus;
+accountId?: number;
 };
 
 export type ListJournalEntriesStatus = typeof ListJournalEntriesStatus[keyof typeof ListJournalEntriesStatus];
@@ -496,6 +499,7 @@ export const ListJournalEntriesStatus = {
 
 export type GetDashboardStatsParams = {
 period?: GetDashboardStatsPeriod;
+accountId?: number;
 };
 
 export type GetDashboardStatsPeriod = typeof GetDashboardStatsPeriod[keyof typeof GetDashboardStatsPeriod];
@@ -511,6 +515,7 @@ export const GetDashboardStatsPeriod = {
 
 export type GetEquityCurveParams = {
 period?: GetEquityCurvePeriod;
+accountId?: number;
 };
 
 export type GetEquityCurvePeriod = typeof GetEquityCurvePeriod[keyof typeof GetEquityCurvePeriod];
@@ -527,11 +532,17 @@ export const GetEquityCurvePeriod = {
 export type GetDashboardCalendarParams = {
 year?: number;
 month?: number;
+accountId?: number;
+};
+
+export type GetRecentTradesParams = {
+accountId?: number;
 };
 
 export type GetPerformanceParams = {
 period?: GetPerformancePeriod;
 filter?: GetPerformanceFilter;
+accountId?: number;
 };
 
 export type GetPerformancePeriod = typeof GetPerformancePeriod[keyof typeof GetPerformancePeriod];
@@ -557,6 +568,7 @@ export const GetPerformanceFilter = {
 
 export type GetAnalyticsBySymbolParams = {
 period?: GetAnalyticsBySymbolPeriod;
+accountId?: number;
 };
 
 export type GetAnalyticsBySymbolPeriod = typeof GetAnalyticsBySymbolPeriod[keyof typeof GetAnalyticsBySymbolPeriod];
@@ -572,6 +584,7 @@ export const GetAnalyticsBySymbolPeriod = {
 
 export type GetAnalyticsByDayParams = {
 period?: GetAnalyticsByDayPeriod;
+accountId?: number;
 };
 
 export type GetAnalyticsByDayPeriod = typeof GetAnalyticsByDayPeriod[keyof typeof GetAnalyticsByDayPeriod];
@@ -584,6 +597,14 @@ export const GetAnalyticsByDayPeriod = {
   '1y': '1y',
   all: 'all',
 } as const;
+
+export type GetAnalyticsByTagParams = {
+accountId?: number;
+};
+
+export type GetAnalyticsByEmotionParams = {
+accountId?: number;
+};
 
 export type GetMarketCalendarParams = {
 period?: GetMarketCalendarPeriod;

@@ -17,5 +17,7 @@ export interface TradingAccount {
   startingBalance: number;
   currency: string;
   isDefault: boolean;
+  totalPnl?: number;
+  tradeCount?: number;
   createdAt: string;
 }

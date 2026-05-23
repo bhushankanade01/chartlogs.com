@@ -438,6 +438,10 @@ paths:
           schema:
             type: string
             enum: [all, journaled, pending]
+        - name: accountId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: List of journal entries with trade data
@@ -510,6 +514,10 @@ paths:
             type: string
             enum: [1d, 1w, 1m, 3m, all]
             default: 1m
+        - name: accountId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Dashboard stats
@@ -530,6 +538,10 @@ paths:
             type: string
             enum: [1d, 1w, 1m, 3m, all]
             default: 1m
+        - name: accountId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Equity curve data
@@ -554,6 +566,10 @@ paths:
           in: query
           schema:
             type: integer
+        - name: accountId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Calendar heatmap
@@ -569,6 +585,11 @@ paths:
       operationId: getRecentTrades
       tags: [dashboard]
       summary: Get last 5 trades for dashboard
+      parameters:
+        - name: accountId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Recent trades
@@ -598,6 +619,10 @@ paths:
             type: string
             enum: [all, winners, losers]
             default: all
+        - name: accountId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Performance analytics
@@ -618,6 +643,10 @@ paths:
             type: string
             enum: [7d, 30d, 3m, 1y, all]
             default: all
+        - name: accountId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Symbol analytics
@@ -640,6 +669,10 @@ paths:
             type: string
             enum: [7d, 30d, 3m, 1y, all]
             default: all
+        - name: accountId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Day-of-week analytics
@@ -655,6 +688,11 @@ paths:
       operationId: getAnalyticsByTag
       tags: [analytics]
       summary: Get performance grouped by tag
+      parameters:
+        - name: accountId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Tag analytics
@@ -670,6 +708,11 @@ paths:
       operationId: getAnalyticsByEmotion
       tags: [analytics]
       summary: Get performance grouped by emotion
+      parameters:
+        - name: accountId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Emotion analytics
@@ -877,6 +920,10 @@ components:
           type: string
         isDefault:
           type: boolean
+        totalPnl:
+          type: number
+        tradeCount:
+          type: integer
         createdAt:
           type: string
 

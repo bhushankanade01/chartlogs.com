@@ -14,6 +14,7 @@ import {
   GetAnalyticsByDayPeriod,
   GetAnalyticsBySymbolPeriod,
 } from "@workspace/api-client-react";
+import { useAccount } from "@/contexts/AccountContext";
 import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -41,24 +42,28 @@ export default function Analytics() {
   const [period, setPeriod] = useState<GetPerformancePeriod>("30d");
   const [dayPeriod] = useState<GetAnalyticsByDayPeriod>("30d");
   const [symPeriod] = useState<GetAnalyticsBySymbolPeriod>("30d");
+  const { activeAccountId } = useAccount();
+  const acctParam = activeAccountId ?? undefined;
 
   const { data: perf, isLoading: perfLoading } = useGetPerformance(
-    { period },
-    { query: { queryKey: getGetPerformanceQueryKey({ period }) } }
+    { period, accountId: acctParam },
+    { query: { queryKey: getGetPerformanceQueryKey({ period, accountId: acctParam }) } }
   );
   const { data: bySymbol } = useGetAnalyticsBySymbol(
-    { period: symPeriod },
-    { query: { queryKey: getGetAnalyticsBySymbolQueryKey({ period: symPeriod }) } }
+    { period: symPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsBySymbolQueryKey({ period: symPeriod, accountId: acctParam }) } }
   );
   const { data: byDay } = useGetAnalyticsByDay(
-    { period: dayPeriod },
-    { query: { queryKey: getGetAnalyticsByDayQueryKey({ period: dayPeriod }) } }
+    { period: dayPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByDayQueryKey({ period: dayPeriod, accountId: acctParam }) } }
   );
   const { data: byTag } = useGetAnalyticsByTag(
-    { query: { queryKey: getGetAnalyticsByTagQueryKey() } }
+    { accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByTagQueryKey({ accountId: acctParam }) } }
   );
   const { data: byEmotion } = useGetAnalyticsByEmotion(
-    { query: { queryKey: getGetAnalyticsByEmotionQueryKey() } }
+    { accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByEmotionQueryKey({ accountId: acctParam }) } }
   );
 
   return (

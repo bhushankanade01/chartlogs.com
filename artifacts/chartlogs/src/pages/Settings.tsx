@@ -397,11 +397,11 @@ export default function Settings() {
                             </span>
                           </div>
                           <div className="flex items-center gap-3 mt-0.5">
-                            <span className={`text-xs font-mono ${(acc as any).totalPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                              P&L: {(acc as any).totalPnl >= 0 ? "+" : ""}{Number((acc as any).totalPnl ?? 0).toFixed(2)}
+                            <span className={`text-xs font-mono ${(acc.totalPnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              P&L: {(acc.totalPnl ?? 0) >= 0 ? "+" : ""}{Number(acc.totalPnl ?? 0).toFixed(2)}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {(acc as any).tradeCount ?? 0} trades
+                              {acc.tradeCount ?? 0} trades
                             </span>
                           </div>
                         </div>

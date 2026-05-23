@@ -4,6 +4,7 @@ import {
   getListJournalEntriesQueryKey,
   JournalEntry,
 } from "@workspace/api-client-react";
+import { useAccount } from "@/contexts/AccountContext";
 import { formatDate } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -90,9 +91,12 @@ function EntryCard({ entry }: { entry: JournalEntry }) {
 }
 
 export default function Journal() {
+  const { activeAccountId } = useAccount();
+  const acctParam = activeAccountId ?? undefined;
+
   const { data: entries, isLoading } = useListJournalEntries(
-    undefined,
-    { query: { queryKey: getListJournalEntriesQueryKey() } }
+    { accountId: acctParam },
+    { query: { queryKey: getListJournalEntriesQueryKey({ accountId: acctParam }) } }
   );
 
   const list = entries ?? [];
