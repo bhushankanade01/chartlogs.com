@@ -32,6 +32,21 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   }
 
+  if (!user.isActive) {
+    res.status(403).json({ error: "Account disabled" });
+    return;
+  }
+
   req.user = user;
   next();
+}
+
+export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  await requireAuth(req, res, () => {
+    if (req.user?.role !== "admin") {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+    next();
+  });
 }

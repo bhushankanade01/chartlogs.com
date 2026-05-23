@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { db, usersTable, sessionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, usersTable, sessionsTable, passwordResetTokensTable, loginHistoryTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
-import { RegisterBody, LoginBody } from "@workspace/api-zod";
+import rateLimit from "express-rate-limit";
+import { RegisterBody, LoginBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -14,7 +15,63 @@ function generateToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-router.post("/auth/register", async (req, res): Promise<void> => {
+function formatUser(user: typeof usersTable.$inferSelect) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    plan: user.plan,
+    role: user.role,
+    isActive: user.isActive,
+    emailVerified: user.emailVerified,
+    lastLogin: user.lastLogin ? user.lastLogin.toISOString() : null,
+    subscriptionExpiresAt: user.subscriptionExpiresAt ? user.subscriptionExpiresAt.toISOString() : null,
+    timezone: user.timezone,
+    currency: user.currency,
+    defaultLotSize: user.defaultLotSize ? parseFloat(user.defaultLotSize) : null,
+    createdAt: user.createdAt.toISOString(),
+  };
+}
+
+async function logLoginAttempt(opts: {
+  userId?: number;
+  email: string;
+  ipAddress?: string;
+  userAgent?: string;
+  success: boolean;
+  failReason?: string;
+}) {
+  try {
+    await db.insert(loginHistoryTable).values({
+      userId: opts.userId ?? null,
+      email: opts.email,
+      ipAddress: opts.ipAddress ?? null,
+      userAgent: opts.userAgent ?? null,
+      success: opts.success,
+      failReason: opts.failReason ?? null,
+    });
+  } catch {
+    // non-critical — never fail the request due to logging
+  }
+}
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: "Too many requests, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const strictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: "Too many attempts, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.post("/auth/register", authLimiter, async (req, res): Promise<void> => {
   const parsed = RegisterBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -22,36 +79,36 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   }
 
   const { email, password, name } = parsed.data;
+  const normalizedEmail = email.toLowerCase().trim();
 
-  const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+  const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail));
   if (existing) {
-    res.status(409).json({ error: "Email already in use" });
+    res.status(409).json({ error: "An account with this email already exists." });
     return;
   }
 
   const passwordHash = hashPassword(password);
-  const [user] = await db.insert(usersTable).values({ email, name, passwordHash }).returning();
+  const verificationToken = generateToken();
+
+  const [user] = await db.insert(usersTable).values({
+    email: normalizedEmail,
+    name: name.trim(),
+    passwordHash,
+    emailVerificationToken: verificationToken,
+  }).returning();
 
   const token = generateToken();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   await db.insert(sessionsTable).values({ userId: user.id, token, expiresAt });
 
-  res.status(201).json({
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      plan: user.plan,
-      timezone: user.timezone,
-      currency: user.currency,
-      defaultLotSize: user.defaultLotSize ? parseFloat(user.defaultLotSize) : null,
-      createdAt: user.createdAt.toISOString(),
-    },
-    token,
-  });
+  // TODO: Send verification email with verificationToken
+  // In production: sendEmail({ to: normalizedEmail, subject: "Verify your email", token: verificationToken })
+  req.log.info({ userId: user.id, email: normalizedEmail }, "New user registered");
+
+  res.status(201).json({ user: formatUser(user), token });
 });
 
-router.post("/auth/login", async (req, res): Promise<void> => {
+router.post("/auth/login", authLimiter, async (req, res): Promise<void> => {
   const parsed = LoginBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -59,31 +116,40 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   const { email, password } = parsed.data;
-  const passwordHash = hashPassword(password);
+  const normalizedEmail = email.toLowerCase().trim();
+  const ipAddress = req.ip ?? req.headers["x-forwarded-for"]?.toString();
+  const userAgent = req.headers["user-agent"];
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
-  if (!user || user.passwordHash !== passwordHash) {
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail));
+
+  if (!user) {
+    await logLoginAttempt({ email: normalizedEmail, ipAddress, userAgent, success: false, failReason: "user_not_found" });
+    res.status(401).json({ error: "Invalid email or password" });
+    return;
+  }
+
+  if (!user.isActive) {
+    await logLoginAttempt({ userId: user.id, email: normalizedEmail, ipAddress, userAgent, success: false, failReason: "account_disabled" });
+    res.status(403).json({ error: "Your account has been disabled. Please contact support." });
+    return;
+  }
+
+  const passwordHash = hashPassword(password);
+  if (user.passwordHash !== passwordHash) {
+    await logLoginAttempt({ userId: user.id, email: normalizedEmail, ipAddress, userAgent, success: false, failReason: "wrong_password" });
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
 
   const token = generateToken();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  await db.insert(sessionsTable).values({ userId: user.id, token, expiresAt });
+  await Promise.all([
+    db.insert(sessionsTable).values({ userId: user.id, token, expiresAt }),
+    db.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, user.id)),
+    logLoginAttempt({ userId: user.id, email: normalizedEmail, ipAddress, userAgent, success: true }),
+  ]);
 
-  res.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      plan: user.plan,
-      timezone: user.timezone,
-      currency: user.currency,
-      defaultLotSize: user.defaultLotSize ? parseFloat(user.defaultLotSize) : null,
-      createdAt: user.createdAt.toISOString(),
-    },
-    token,
-  });
+  res.json({ user: formatUser(user), token });
 });
 
 router.post("/auth/logout", async (req, res): Promise<void> => {
@@ -115,16 +181,12 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    plan: user.plan,
-    timezone: user.timezone,
-    currency: user.currency,
-    defaultLotSize: user.defaultLotSize ? parseFloat(user.defaultLotSize) : null,
-    createdAt: user.createdAt.toISOString(),
-  });
+  if (!user.isActive) {
+    res.status(403).json({ error: "Account disabled" });
+    return;
+  }
+
+  res.json(formatUser(user));
 });
 
 router.patch("/auth/me/settings", async (req, res): Promise<void> => {
@@ -154,18 +216,74 @@ router.patch("/auth/me/settings", async (req, res): Promise<void> => {
   if (body.currency !== undefined) updates.currency = body.currency;
   if (body.defaultLotSize !== undefined) updates.defaultLotSize = body.defaultLotSize != null ? String(body.defaultLotSize) : null;
 
-  const [user] = await db.update(usersTable).set(updates as Partial<typeof usersTable.$inferSelect>).where(eq(usersTable.id, session.userId)).returning();
+  const [user] = await db.update(usersTable)
+    .set(updates as Partial<typeof usersTable.$inferSelect>)
+    .where(eq(usersTable.id, session.userId))
+    .returning();
 
-  res.json({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    plan: user.plan,
-    timezone: user.timezone,
-    currency: user.currency,
-    defaultLotSize: user.defaultLotSize ? parseFloat(user.defaultLotSize) : null,
-    createdAt: user.createdAt.toISOString(),
-  });
+  res.json(formatUser(user));
+});
+
+router.post("/auth/forgot-password", strictLimiter, async (req, res): Promise<void> => {
+  const parsed = ForgotPasswordBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const normalizedEmail = parsed.data.email.toLowerCase().trim();
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail));
+
+  // Always return 200 to prevent email enumeration
+  if (user && user.isActive) {
+    const resetToken = generateToken();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await db.insert(passwordResetTokensTable).values({
+      userId: user.id,
+      token: resetToken,
+      expiresAt,
+    });
+
+    // TODO: Send email with resetToken
+    // Reset link: https://yourdomain.com/reset-password?token=<resetToken>
+    req.log.info({ userId: user.id, email: normalizedEmail }, "Password reset requested");
+    req.log.info({ resetToken }, "Password reset token (remove in production)");
+  }
+
+  res.json({ success: true });
+});
+
+router.post("/auth/reset-password", strictLimiter, async (req, res): Promise<void> => {
+  const parsed = ResetPasswordBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { token, password } = parsed.data;
+
+  const [resetToken] = await db.select().from(passwordResetTokensTable)
+    .where(and(
+      eq(passwordResetTokensTable.token, token),
+      eq(passwordResetTokensTable.used, false)
+    ));
+
+  if (!resetToken || resetToken.expiresAt < new Date()) {
+    res.status(400).json({ error: "Invalid or expired reset token. Please request a new one." });
+    return;
+  }
+
+  const newPasswordHash = hashPassword(password);
+
+  await Promise.all([
+    db.update(usersTable).set({ passwordHash: newPasswordHash }).where(eq(usersTable.id, resetToken.userId)),
+    db.update(passwordResetTokensTable).set({ used: true }).where(eq(passwordResetTokensTable.id, resetToken.id)),
+    db.delete(sessionsTable).where(eq(sessionsTable.userId, resetToken.userId)),
+  ]);
+
+  req.log.info({ userId: resetToken.userId }, "Password reset successfully");
+  res.json({ success: true });
 });
 
 export default router;

@@ -44,6 +44,11 @@ export const LoginResponse = zod.object({
   "email": zod.string(),
   "name": zod.string(),
   "plan": zod.enum(['free', 'pro', 'elite']),
+  "role": zod.enum(['user', 'admin']),
+  "isActive": zod.boolean(),
+  "emailVerified": zod.boolean().optional(),
+  "lastLogin": zod.string().nullish(),
+  "subscriptionExpiresAt": zod.string().nullish(),
   "timezone": zod.string(),
   "currency": zod.string(),
   "defaultLotSize": zod.number().nullish(),
@@ -69,10 +74,44 @@ export const GetMeResponse = zod.object({
   "email": zod.string(),
   "name": zod.string(),
   "plan": zod.enum(['free', 'pro', 'elite']),
+  "role": zod.enum(['user', 'admin']),
+  "isActive": zod.boolean(),
+  "emailVerified": zod.boolean().optional(),
+  "lastLogin": zod.string().nullish(),
+  "subscriptionExpiresAt": zod.string().nullish(),
   "timezone": zod.string(),
   "currency": zod.string(),
   "defaultLotSize": zod.number().nullish(),
   "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Request password reset email
+ */
+export const ForgotPasswordBody = zod.object({
+  "email": zod.string().email()
+})
+
+export const ForgotPasswordResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Reset password with token
+ */
+export const resetPasswordBodyPasswordMin = 8;
+
+
+
+export const ResetPasswordBody = zod.object({
+  "token": zod.string(),
+  "password": zod.string().min(resetPasswordBodyPasswordMin)
+})
+
+export const ResetPasswordResponse = zod.object({
+  "success": zod.boolean()
 })
 
 
@@ -91,6 +130,11 @@ export const UpdateSettingsResponse = zod.object({
   "email": zod.string(),
   "name": zod.string(),
   "plan": zod.enum(['free', 'pro', 'elite']),
+  "role": zod.enum(['user', 'admin']),
+  "isActive": zod.boolean(),
+  "emailVerified": zod.boolean().optional(),
+  "lastLogin": zod.string().nullish(),
+  "subscriptionExpiresAt": zod.string().nullish(),
   "timezone": zod.string(),
   "currency": zod.string(),
   "defaultLotSize": zod.number().nullish(),

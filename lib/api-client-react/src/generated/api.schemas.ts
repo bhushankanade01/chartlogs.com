@@ -38,11 +38,26 @@ export const UserPlan = {
   elite: 'elite',
 } as const;
 
+export type UserRole = typeof UserRole[keyof typeof UserRole];
+
+
+export const UserRole = {
+  user: 'user',
+  admin: 'admin',
+} as const;
+
 export interface User {
   id: number;
   email: string;
   name: string;
   plan: UserPlan;
+  role: UserRole;
+  isActive: boolean;
+  emailVerified?: boolean;
+  /** @nullable */
+  lastLogin?: string | null;
+  /** @nullable */
+  subscriptionExpiresAt?: string | null;
   timezone: string;
   currency: string;
   /** @nullable */
@@ -53,6 +68,16 @@ export interface User {
 export interface AuthResponse {
   user: User;
   token: string;
+}
+
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ResetPasswordInput {
+  token: string;
+  /** @minLength 8 */
+  password: string;
 }
 
 export interface UserSettingsUpdate {

@@ -24,6 +24,8 @@ tags:
     description: Market calendar
   - name: tools
     description: Trading tools
+  - name: admin
+    description: Admin operations
 
 paths:
   /healthz:
@@ -123,6 +125,50 @@ paths:
                 $ref: "#/components/schemas/User"
         "401":
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/forgot-password:
+    post:
+      operationId: forgotPassword
+      tags: [auth]
+      summary: Request password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordInput"
+      responses:
+        "200":
+          description: Reset email sent (always returns 200 to avoid email enumeration)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordInput"
+      responses:
+        "200":
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid or expired token
           content:
             application/json:
               schema:
@@ -657,7 +703,7 @@ components:
 
     User:
       type: object
-      required: [id, email, name, plan, timezone, currency, createdAt]
+      required: [id, email, name, plan, role, isActive, timezone, currency, createdAt]
       properties:
         id:
           type: integer
@@ -668,6 +714,17 @@ components:
         plan:
           type: string
           enum: [free, pro, elite]
+        role:
+          type: string
+          enum: [user, admin]
+        isActive:
+          type: boolean
+        emailVerified:
+          type: boolean
+        lastLogin:
+          type: ["string", "null"]
+        subscriptionExpiresAt:
+          type: ["string", "null"]
         timezone:
           type: string
         currency:
@@ -676,6 +733,24 @@ components:
           type: ["number", "null"]
         createdAt:
           type: string
+
+    ForgotPasswordInput:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    ResetPasswordInput:
+      type: object
+      required: [token, password]
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+          minLength: 8
 
     UserSettingsUpdate:
       type: object

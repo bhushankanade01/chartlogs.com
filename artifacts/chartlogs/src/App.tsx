@@ -9,6 +9,8 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import Dashboard from "@/pages/Dashboard";
 import Trades from "@/pages/Trades";
 import Journal from "@/pages/Journal";
@@ -16,6 +18,7 @@ import Analytics from "@/pages/Analytics";
 import Market from "@/pages/Market";
 import Tools from "@/pages/Tools";
 import Settings from "@/pages/Settings";
+import Admin from "@/pages/Admin";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,7 +35,9 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
-      
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
+
       <Route path="/dashboard">
         <ProtectedRoute component={Dashboard} />
       </Route>
@@ -53,6 +58,9 @@ function Router() {
       </Route>
       <Route path="/settings">
         <ProtectedRoute component={Settings} />
+      </Route>
+      <Route path="/admin">
+        <ProtectedRoute component={Admin} />
       </Route>
 
       <Route component={NotFound} />

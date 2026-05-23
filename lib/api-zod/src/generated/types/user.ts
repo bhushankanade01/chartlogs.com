@@ -6,12 +6,20 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { UserPlan } from './userPlan';
+import type { UserRole } from './userRole';
 
 export interface User {
   id: number;
   email: string;
   name: string;
   plan: UserPlan;
+  role: UserRole;
+  isActive: boolean;
+  emailVerified?: boolean;
+  /** @nullable */
+  lastLogin?: string | null;
+  /** @nullable */
+  subscriptionExpiresAt?: string | null;
   timezone: string;
   currency: string;
   /** @nullable */

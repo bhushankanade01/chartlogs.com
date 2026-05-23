@@ -80,14 +80,24 @@ export default function Login() {
           </Button>
         </form>
 
-        <div className="text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
-          <button
-            onClick={() => setLocation("/register")}
-            className="text-primary hover:underline font-medium"
-          >
-            Sign up
-          </button>
+        <div className="text-center text-sm text-muted-foreground space-y-2">
+          <div>
+            <button
+              onClick={() => setLocation("/forgot-password")}
+              className="text-primary hover:underline font-medium"
+            >
+              Forgot your password?
+            </button>
+          </div>
+          <div>
+            Don't have an account?{" "}
+            <button
+              onClick={() => setLocation("/register")}
+              className="text-primary hover:underline font-medium"
+            >
+              Sign up
+            </button>
+          </div>
         </div>
       </div>
     </div>

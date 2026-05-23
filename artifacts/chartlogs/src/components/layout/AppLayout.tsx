@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   X,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -58,6 +59,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const SidebarContent = ({ onNav }: { onNav?: () => void }) => (
     <>
       <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        {user?.role === "admin" && (
+          <Link
+            href="/admin"
+            onClick={onNav}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium mb-1 ${
+              location.startsWith("/admin")
+                ? "bg-yellow-400/10 text-yellow-400"
+                : "text-yellow-500/70 hover:bg-yellow-400/10 hover:text-yellow-400"
+            }`}
+          >
+            <Shield className="h-4 w-4 flex-shrink-0" />
+            Admin Panel
+          </Link>
+        )}
         {navItems.map((item) => {
           const isActive = location.startsWith(item.href);
           return (

@@ -7,6 +7,7 @@ import dashboardRouter from "./dashboard";
 import analyticsRouter from "./analytics";
 import marketRouter from "./market";
 import toolsRouter from "./tools";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(dashboardRouter);
 router.use(analyticsRouter);
 router.use(marketRouter);
 router.use(toolsRouter);
+router.use(adminRouter);
 
 export default router;
