@@ -46,6 +46,7 @@ interface ImportPreviewResponse {
 interface ImportTradesResponse {
   imported: number;
   skipped: number;
+  invalidRows: number;
   errors: string[];
   format: string;
 }
@@ -69,10 +70,12 @@ function getAuthToken(): string | null {
 
 async function callPreview(
   file: File,
-  accountId?: number
+  accountId?: number,
+  columnMap?: GenericColumnMap
 ): Promise<ImportPreviewResponse> {
   const fd = new FormData();
   fd.append("file", file);
+  if (columnMap) fd.append("columnMap", JSON.stringify(columnMap));
   const url = accountId
     ? `/api/trades/import/preview?accountId=${accountId}`
     : `/api/trades/import/preview`;
@@ -214,20 +217,36 @@ export function ImportTradesModal({ open, onClose }: Props) {
     [handleFile]
   );
 
+  // Called from the mapping step: run preview with the column map first
+  const handleMappedPreview = async () => {
+    if (!file) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const map = columnMap as GenericColumnMap;
+      const data = await callPreview(file, activeAccountId ?? undefined, map);
+      setPreview(data);
+      setStep("preview");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to parse file");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Called from the preview step: run the actual import
   const handleImport = async () => {
     if (!file) return;
     setLoading(true);
     setError(null);
 
     try {
-      const map =
-        step === "mapping"
-          ? (columnMap as GenericColumnMap)
-          : undefined;
       const data = await callImport(
         file,
         activeAccountId ?? undefined,
-        map
+        // Pass columnMap only if the file was a generic CSV that needed mapping
+        preview?.format === "csv" ? (columnMap as GenericColumnMap) : undefined
       );
       setResult(data);
       setStep("done");
@@ -239,10 +258,7 @@ export function ImportTradesModal({ open, onClose }: Props) {
     }
   };
 
-  const canImport =
-    step === "preview" ||
-    (step === "mapping" &&
-      REQUIRED_COLS.every((k) => !!columnMap[k]));
+  const canMappedPreview = REQUIRED_COLS.every((k) => !!columnMap[k]);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
@@ -577,16 +593,16 @@ export function ImportTradesModal({ open, onClose }: Props) {
               </Button>
               <Button
                 className="flex-1"
-                onClick={handleImport}
-                disabled={loading || !canImport}
+                onClick={handleMappedPreview}
+                disabled={loading || !canMappedPreview}
               >
                 {loading ? (
                   <>
                     <Spinner className="mr-2 h-4 w-4" />
-                    Importing…
+                    Parsing…
                   </>
                 ) : (
-                  "Import trades"
+                  "Preview trades"
                 )}
               </Button>
             </div>
@@ -609,7 +625,7 @@ export function ImportTradesModal({ open, onClose }: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <div className="rounded-lg border border-border p-4 text-center">
                 <p className="text-2xl font-bold text-emerald-400">
                   {result.imported}
@@ -620,7 +636,13 @@ export function ImportTradesModal({ open, onClose }: Props) {
                 <p className="text-2xl font-bold text-yellow-400">
                   {result.skipped}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">Skipped (duplicate)</p>
+                <p className="text-xs text-muted-foreground mt-1">Duplicates</p>
+              </div>
+              <div className="rounded-lg border border-border p-4 text-center">
+                <p className="text-2xl font-bold text-amber-400">
+                  {result.invalidRows}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Invalid</p>
               </div>
               <div className="rounded-lg border border-border p-4 text-center">
                 <p className="text-2xl font-bold text-red-400">

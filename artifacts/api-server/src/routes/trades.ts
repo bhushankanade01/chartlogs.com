@@ -280,7 +280,19 @@ router.post(
     }
 
     const content = req.file.buffer.toString("utf-8");
-    const result = parseTradesCsv(content);
+
+    // Accept optional columnMap for generic CSV preview
+    let columnMap: GenericColumnMap | undefined;
+    if (req.body.columnMap) {
+      try {
+        columnMap = JSON.parse(String(req.body.columnMap)) as GenericColumnMap;
+      } catch {
+        res.status(400).json({ error: "Invalid columnMap JSON" });
+        return;
+      }
+    }
+
+    const result = parseTradesCsv(content, columnMap);
 
     res.json({
       format: result.format,
@@ -377,6 +389,7 @@ router.post(
 
     let imported = 0;
     let skipped = 0;
+    let invalidRows = 0;
     const errors: string[] = [];
 
     const sourceMap = { mt4: "mt4", mt5: "mt5", csv: "csv", unknown: "csv" } as const;
@@ -385,18 +398,19 @@ router.post(
     for (let i = 0; i < parseResult.rows.length; i++) {
       const row = parseResult.rows[i]!;
 
-      // Skip warning rows — they have invalid/missing data and cannot be imported
+      // Invalid rows (missing/unparseable fields) — skip and report separately
       if (row.warning) {
         if (errors.length < 20) {
           errors.push(`Row ${i + 1} (${row.symbol}): ${row.warning}`);
         }
-        skipped++;
+        invalidRows++;
         continue;
       }
 
       const openKey = new Date(row.openTime).toISOString().slice(0, 19);
       const key = `${row.symbol}|${openKey}|${row.entryPrice}`;
 
+      // Duplicate of an existing trade in the same account scope
       if (existingSet.has(key)) {
         skipped++;
         continue;
@@ -450,7 +464,7 @@ router.post(
       }
     }
 
-    res.json({ imported, skipped, errors, format: parseResult.format });
+    res.json({ imported, skipped, invalidRows, errors, format: parseResult.format });
   }
 );
 

@@ -1347,6 +1347,9 @@ export const previewImport = async (previewImportBody: PreviewImportBody,
     params?: PreviewImportParams, options?: RequestInit): Promise<ImportPreviewResponse> => {
     const formData = new FormData();
 formData.append(`file`, previewImportBody.file);
+if(previewImportBody.columnMap !== undefined) {
+ formData.append(`columnMap`, previewImportBody.columnMap);
+ }
 
   return customFetch<ImportPreviewResponse>(getPreviewImportUrl(params),
   {

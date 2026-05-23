@@ -384,7 +384,8 @@ export const PreviewImportQueryParams = zod.object({
 })
 
 export const PreviewImportBody = zod.object({
-  "file": zod.instanceof(File)
+  "file": zod.instanceof(File),
+  "columnMap": zod.string().optional().describe('JSON-encoded GenericColumnMap for unknown-format CSV')
 })
 
 export const PreviewImportResponse = zod.object({
@@ -421,7 +422,8 @@ export const ImportTradesBody = zod.object({
 
 export const ImportTradesResponse = zod.object({
   "imported": zod.number(),
-  "skipped": zod.number(),
+  "skipped": zod.number().describe('Number of rows skipped because they are duplicates of existing trades'),
+  "invalidRows": zod.number().describe('Number of rows skipped because of missing or unparseable fields'),
   "errors": zod.array(zod.string()),
   "format": zod.enum(['mt4', 'mt5', 'csv', 'unknown'])
 })

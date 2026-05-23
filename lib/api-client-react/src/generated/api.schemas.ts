@@ -495,7 +495,10 @@ export const ImportTradesResponseFormat = {
 
 export interface ImportTradesResponse {
   imported: number;
+  /** Number of rows skipped because they are duplicates of existing trades */
   skipped: number;
+  /** Number of rows skipped because of missing or unparseable fields */
+  invalidRows: number;
   errors: string[];
   format: ImportTradesResponseFormat;
 }
@@ -549,6 +552,8 @@ accountId?: number;
 
 export type PreviewImportBody = {
   file: Blob;
+  /** JSON-encoded GenericColumnMap for unknown-format CSV */
+  columnMap?: string;
 };
 
 export type ImportTradesParams = {
