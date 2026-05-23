@@ -129,11 +129,9 @@ function parseMt4(headers: string[], rows: string[][]): ParsedTradeRow[] {
     if (row.length < 4) continue;
     const rawType = row[iType] ?? "";
     const type = normalizeType(rawType);
-    if (!type) continue; // balance, deposit, credit rows
+    if (!type) continue; // balance, deposit, credit rows — definitively not trades
 
     const openTime = parseDate(row[iOpenTime] ?? "");
-    if (!openTime) continue;
-
     const closeTime = iCloseTime >= 0 ? parseDate(row[iCloseTime] ?? "") : null;
     const entryPrice = priceIndices[0] !== undefined ? parseNum(row[priceIndices[0]]) : null;
     const exitPrice = priceIndices[1] !== undefined ? parseNum(row[priceIndices[1]]) : null;
@@ -141,7 +139,27 @@ function parseMt4(headers: string[], rows: string[][]): ParsedTradeRow[] {
     const rawSymbol = row[iItem] ?? "";
     const symbol = rawSymbol.toUpperCase().replace(/[^A-Z0-9.]/g, "");
 
-    if (!entryPrice || !positionSize || !symbol) continue;
+    const warns: string[] = [];
+    if (!openTime) warns.push("could not parse open time");
+    if (!entryPrice) warns.push("missing entry price");
+    if (!positionSize) warns.push("missing position size");
+    if (!symbol) warns.push("missing symbol");
+
+    if (warns.length > 0) {
+      results.push({
+        symbol: symbol || rawSymbol || "UNKNOWN",
+        type,
+        entryPrice: entryPrice ?? 0,
+        exitPrice,
+        positionSize: positionSize ?? 0,
+        openTime: openTime?.toISOString() ?? new Date(0).toISOString(),
+        closeTime: closeTime?.toISOString() ?? null,
+        pnl: null,
+        fees: null,
+        warning: warns.join("; "),
+      });
+      continue;
+    }
 
     const commission = iCommission >= 0 ? (parseNum(row[iCommission]) ?? 0) : 0;
     const taxes = iTaxes >= 0 ? (parseNum(row[iTaxes]) ?? 0) : 0;
@@ -156,10 +174,10 @@ function parseMt4(headers: string[], rows: string[][]): ParsedTradeRow[] {
     results.push({
       symbol,
       type,
-      entryPrice,
+      entryPrice: entryPrice!,
       exitPrice,
-      positionSize,
-      openTime: openTime.toISOString(),
+      positionSize: positionSize!,
+      openTime: openTime!.toISOString(),
       closeTime: closeTime?.toISOString() ?? null,
       pnl,
       fees: fees > 0 ? fees : null,
@@ -219,14 +237,34 @@ function parseMt5(headers: string[], rows: string[][]): ParsedTradeRow[] {
       if (direction !== "in" && direction !== "out") continue;
 
       const type = normalizeType(row[iType] ?? "");
-      if (!type) continue;
-
       const time = parseDate(row[iTime] ?? "");
-      if (!time) continue;
-
       const order = row[iOrder] ?? "";
-      const symbol = (row[iSymbol] ?? "").toUpperCase().replace(/[^A-Z0-9.]/g, "");
-      if (!symbol) continue;
+      const rawSymbol = row[iSymbol] ?? "";
+      const symbol = rawSymbol.toUpperCase().replace(/[^A-Z0-9.]/g, "");
+
+      const warns: string[] = [];
+      if (!type) warns.push("unrecognized trade direction");
+      if (!time) warns.push("could not parse time");
+      if (!symbol) warns.push("missing symbol");
+
+      if (warns.length > 0 && direction === "out") {
+        const inDeal = inDeals.get(order);
+        results.push({
+          symbol: symbol || rawSymbol || "UNKNOWN",
+          type: inDeal?.type ?? type ?? "long",
+          entryPrice: inDeal?.price ?? 0,
+          exitPrice: parseNum(row[iPrice]) ?? 0,
+          positionSize: parseNum(row[iVolume]) ?? 0,
+          openTime: inDeal?.time.toISOString() ?? new Date(0).toISOString(),
+          closeTime: time?.toISOString() ?? null,
+          pnl: null,
+          fees: null,
+          warning: warns.join("; "),
+        });
+        continue;
+      }
+
+      if (!type || !time || !symbol) continue;
 
       const volume = parseNum(row[iVolume]) ?? 0;
       const price = parseNum(row[iPrice]) ?? 0;
@@ -277,24 +315,42 @@ function parseMt5(headers: string[], rows: string[][]): ParsedTradeRow[] {
 
     for (const row of rows) {
       const type = normalizeType(row[iAction] ?? "");
-      if (!type) continue;
-
       const openTime = parseDate(row[iTime] ?? "");
-      if (!openTime) continue;
-
-      const symbol = (row[iSymbol] ?? "").toUpperCase().replace(/[^A-Z0-9.]/g, "");
+      const rawSymbol = row[iSymbol] ?? "";
+      const symbol = rawSymbol.toUpperCase().replace(/[^A-Z0-9.]/g, "");
       const entryPrice = parseNum(row[iPrice]);
       const volume = parseNum(row[iVolume]);
 
-      if (!entryPrice || !volume || !symbol) continue;
+      const warns: string[] = [];
+      if (!type) warns.push("unrecognized trade type");
+      if (!openTime) warns.push("could not parse time");
+      if (!symbol) warns.push("missing symbol");
+      if (!entryPrice) warns.push("missing entry price");
+      if (!volume) warns.push("missing volume");
+
+      if (warns.length > 0) {
+        results.push({
+          symbol: symbol || rawSymbol || "UNKNOWN",
+          type: type ?? "long",
+          entryPrice: entryPrice ?? 0,
+          exitPrice: null,
+          positionSize: volume ?? 0,
+          openTime: openTime?.toISOString() ?? new Date(0).toISOString(),
+          closeTime: null,
+          pnl: null,
+          fees: null,
+          warning: warns.join("; "),
+        });
+        continue;
+      }
 
       results.push({
         symbol,
-        type,
-        entryPrice,
+        type: type!,
+        entryPrice: entryPrice!,
         exitPrice: null,
-        positionSize: volume,
-        openTime: openTime.toISOString(),
+        positionSize: volume!,
+        openTime: openTime!.toISOString(),
         closeTime: null,
         pnl: iProfit >= 0 ? parseNum(row[iProfit]) : null,
         fees: null,
@@ -327,20 +383,41 @@ export function parseGenericCsv(
   const results: ParsedTradeRow[] = [];
 
   for (const row of rows) {
-    const symbol = iSymbol >= 0 ? (row[iSymbol] ?? "").toUpperCase().trim() : "";
+    const rawSymbol = iSymbol >= 0 ? (row[iSymbol] ?? "") : "";
+    const symbol = rawSymbol.toUpperCase().trim();
     const type = normalizeType(iType >= 0 ? (row[iType] ?? "") : "");
     const entryPrice = iEntry >= 0 ? parseNum(row[iEntry]) : null;
     const openTime = iOpenTime >= 0 ? parseDate(row[iOpenTime] ?? "") : null;
 
-    if (!symbol || !type || !entryPrice || !openTime) continue;
+    const warns: string[] = [];
+    if (!symbol) warns.push("missing symbol");
+    if (!type) warns.push("unrecognized trade type");
+    if (!entryPrice) warns.push("missing entry price");
+    if (!openTime) warns.push("could not parse open time");
+
+    if (warns.length > 0) {
+      results.push({
+        symbol: symbol || rawSymbol || "UNKNOWN",
+        type: type ?? "long",
+        entryPrice: entryPrice ?? 0,
+        exitPrice: iExit >= 0 ? parseNum(row[iExit]) : null,
+        positionSize: (iSize >= 0 ? parseNum(row[iSize]) : null) ?? 1,
+        openTime: openTime?.toISOString() ?? new Date(0).toISOString(),
+        closeTime: iCloseTime >= 0 ? (parseDate(row[iCloseTime] ?? "")?.toISOString() ?? null) : null,
+        pnl: iPnl >= 0 ? parseNum(row[iPnl]) : null,
+        fees: iFees >= 0 ? parseNum(row[iFees]) : null,
+        warning: warns.join("; "),
+      });
+      continue;
+    }
 
     results.push({
       symbol,
-      type,
-      entryPrice,
+      type: type!,
+      entryPrice: entryPrice!,
       exitPrice: iExit >= 0 ? parseNum(row[iExit]) : null,
       positionSize: (iSize >= 0 ? parseNum(row[iSize]) : null) ?? 1,
-      openTime: openTime.toISOString(),
+      openTime: openTime!.toISOString(),
       closeTime: iCloseTime >= 0 ? (parseDate(row[iCloseTime] ?? "")?.toISOString() ?? null) : null,
       pnl: iPnl >= 0 ? parseNum(row[iPnl]) : null,
       fees: iFees >= 0 ? parseNum(row[iFees]) : null,

@@ -345,13 +345,18 @@ export function ImportTradesModal({ open, onClose }: Props) {
                     <th className="py-2 px-3 text-right font-medium">Size</th>
                     <th className="py-2 px-3 text-right font-medium">P&L</th>
                     <th className="py-2 px-3 text-left font-medium">Open Time</th>
+                    <th className="py-2 px-3 text-left font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {preview.preview.map((row, i) => (
                     <tr
                       key={i}
-                      className="border-b border-border/50 last:border-0 hover:bg-muted/10"
+                      className={`border-b border-border/50 last:border-0 ${
+                        row.warning
+                          ? "bg-amber-500/5 hover:bg-amber-500/10"
+                          : "hover:bg-muted/10"
+                      }`}
                     >
                       <td className="py-2 px-3 font-bold">{row.symbol}</td>
                       <td className="py-2 px-3">
@@ -366,13 +371,13 @@ export function ImportTradesModal({ open, onClose }: Props) {
                         </span>
                       </td>
                       <td className="py-2 px-3 text-right font-mono">
-                        {row.entryPrice}
+                        {row.entryPrice || "—"}
                       </td>
                       <td className="py-2 px-3 text-right font-mono">
                         {row.exitPrice ?? "—"}
                       </td>
                       <td className="py-2 px-3 text-right font-mono">
-                        {row.positionSize}
+                        {row.positionSize || "—"}
                       </td>
                       <td
                         className={`py-2 px-3 text-right font-mono ${
@@ -386,7 +391,24 @@ export function ImportTradesModal({ open, onClose }: Props) {
                         {row.pnl !== null ? row.pnl.toFixed(2) : "—"}
                       </td>
                       <td className="py-2 px-3 text-muted-foreground">
-                        {new Date(row.openTime).toLocaleDateString()}
+                        {new Date(row.openTime).getTime() === 0
+                          ? "—"
+                          : new Date(row.openTime).toLocaleDateString()}
+                      </td>
+                      <td className="py-2 px-3">
+                        {row.warning ? (
+                          <span
+                            className="flex items-center gap-1 text-amber-400 cursor-help"
+                            title={row.warning}
+                          >
+                            <AlertCircle className="h-3 w-3 shrink-0" />
+                            <span className="text-xs truncate max-w-[120px]">
+                              {row.warning}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-emerald-400 text-xs">✓ OK</span>
+                        )}
                       </td>
                     </tr>
                   ))}

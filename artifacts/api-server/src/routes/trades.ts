@@ -17,7 +17,7 @@ import {
   calculateRR,
   determineOutcome,
 } from "../lib/trade-calculations";
-import { parseTradesCsv, parseGenericCsv, type GenericColumnMap } from "../lib/csv-parser";
+import { parseTradesCsv, type GenericColumnMap } from "../lib/csv-parser";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -352,7 +352,13 @@ router.post(
       return;
     }
 
-    // Deduplicate: load existing trade fingerprints for this user
+    // Deduplicate: load existing trade fingerprints scoped to same account context.
+    // If importing into a specific account, only dedupe against that account's trades.
+    // If importing globally (no accountId), only dedupe against global (accountId IS NULL) trades.
+    const dedupeConditions = accountId && !isNaN(accountId)
+      ? and(eq(tradesTable.userId, userId), eq(tradesTable.accountId, accountId))
+      : and(eq(tradesTable.userId, userId), sql`${tradesTable.accountId} IS NULL`);
+
     const existing = await db
       .select({
         symbol: tradesTable.symbol,
@@ -360,7 +366,7 @@ router.post(
         entryPrice: tradesTable.entryPrice,
       })
       .from(tradesTable)
-      .where(eq(tradesTable.userId, userId));
+      .where(dedupeConditions);
 
     const existingSet = new Set(
       existing.map(
@@ -378,6 +384,16 @@ router.post(
 
     for (let i = 0; i < parseResult.rows.length; i++) {
       const row = parseResult.rows[i]!;
+
+      // Skip warning rows — they have invalid/missing data and cannot be imported
+      if (row.warning) {
+        if (errors.length < 20) {
+          errors.push(`Row ${i + 1} (${row.symbol}): ${row.warning}`);
+        }
+        skipped++;
+        continue;
+      }
+
       const openKey = new Date(row.openTime).toISOString().slice(0, 19);
       const key = `${row.symbol}|${openKey}|${row.entryPrice}`;
 
