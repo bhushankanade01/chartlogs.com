@@ -1,6 +1,7 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAccount } from "@/contexts/AccountContext";
 import { useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -15,9 +16,22 @@ import {
   Menu,
   X,
   Shield,
+  ChevronDown,
+  Wallet,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { useLocation as useWouterLocation } from "wouter";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -29,10 +43,18 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+const PLATFORM_LABELS: Record<string, string> = {
+  manual: "Manual",
+  mt4: "MT4",
+  mt5: "MT5",
+};
+
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
+  const [, navigate] = useWouterLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
+  const { accounts, activeAccountId, setActiveAccountId } = useAccount();
   const queryClient = useQueryClient();
   const logoutMutation = useLogout();
 
@@ -47,50 +69,105 @@ export function AppLayout({ children }: { children: ReactNode }) {
     });
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  const getInitials = (name: string) =>
+    name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+
+  const activeAccount = accounts.find((a) => a.id === activeAccountId);
+
+  const AccountSwitcher = () => (
+    <div className="px-3 pb-2 pt-1">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-left group border border-border/50">
+            <Wallet className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-medium truncate">
+                {activeAccount ? activeAccount.name : "All Accounts"}
+              </div>
+              {activeAccount && (
+                <div className="text-[10px] text-muted-foreground">
+                  {PLATFORM_LABELS[activeAccount.platform]} · {activeAccount.currency}
+                </div>
+              )}
+            </div>
+            <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-52" align="start">
+          <DropdownMenuLabel className="text-xs">Switch Account</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => setActiveAccountId(null)}
+            className={!activeAccountId ? "bg-primary/10 text-primary" : ""}
+          >
+            <Wallet className="h-4 w-4 mr-2" />
+            All Accounts
+          </DropdownMenuItem>
+          {accounts.map((acc) => (
+            <DropdownMenuItem
+              key={acc.id}
+              onClick={() => setActiveAccountId(acc.id)}
+              className={activeAccountId === acc.id ? "bg-primary/10 text-primary" : ""}
+            >
+              <div className="flex flex-col min-w-0">
+                <span className="truncate">{acc.name}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {PLATFORM_LABELS[acc.platform]} · {acc.currency}
+                </span>
+              </div>
+              {acc.isDefault && (
+                <Badge variant="outline" className="ml-auto text-[9px] px-1 py-0">default</Badge>
+              )}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => navigate("/settings?tab=accounts")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Account
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
 
   const SidebarContent = ({ onNav }: { onNav?: () => void }) => (
     <>
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-        {user?.role === "admin" && (
-          <Link
-            href="/admin"
-            onClick={onNav}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium mb-1 ${
-              location.startsWith("/admin")
-                ? "bg-yellow-400/10 text-yellow-400"
-                : "text-yellow-500/70 hover:bg-yellow-400/10 hover:text-yellow-400"
-            }`}
-          >
-            <Shield className="h-4 w-4 flex-shrink-0" />
-            Admin Panel
-          </Link>
-        )}
-        {navItems.map((item) => {
-          const isActive = location.startsWith(item.href);
-          return (
+      <div className="flex-1 overflow-y-auto">
+        <AccountSwitcher />
+        <div className="py-2 px-3 space-y-1">
+          {user?.role === "admin" && (
             <Link
-              key={item.href}
-              href={item.href}
+              href="/admin"
               onClick={onNav}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium ${
-                isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium mb-1 ${
+                location.startsWith("/admin")
+                  ? "bg-yellow-400/10 text-yellow-400"
+                  : "text-yellow-500/70 hover:bg-yellow-400/10 hover:text-yellow-400"
               }`}
             >
-              <item.icon className="h-4 w-4 flex-shrink-0" />
-              {item.label}
+              <Shield className="h-4 w-4 flex-shrink-0" />
+              Admin Panel
             </Link>
-          );
-        })}
+          )}
+          {navItems.map((item) => {
+            const isActive = location.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onNav}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium ${
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                <item.icon className="h-4 w-4 flex-shrink-0" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       <div className="p-4 border-t border-border">

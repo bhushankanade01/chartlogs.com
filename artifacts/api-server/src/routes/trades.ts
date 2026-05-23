@@ -23,6 +23,7 @@ function formatTrade(t: typeof tradesTable.$inferSelect) {
   return {
     id: t.id,
     userId: t.userId,
+    accountId: t.accountId ?? null,
     symbol: t.symbol,
     type: t.type,
     entryPrice: t.entryPrice ? parseFloat(t.entryPrice) : 0,
@@ -53,10 +54,11 @@ router.get("/trades", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const { symbol, type, outcome, startDate, endDate, tag, limit = 100, offset = 0 } = params.data;
+  const { symbol, type, outcome, startDate, endDate, tag, accountId, limit = 100, offset = 0 } = params.data;
   const userId = req.user!.id;
 
   const conditions = [eq(tradesTable.userId, userId)];
+  if (accountId) conditions.push(eq(tradesTable.accountId, accountId));
   if (symbol) conditions.push(sql`LOWER(${tradesTable.symbol}) = LOWER(${symbol})`);
   if (type) conditions.push(eq(tradesTable.type, type as "long" | "short"));
   if (outcome) conditions.push(eq(tradesTable.outcome, outcome as "win" | "loss" | "breakeven"));
@@ -107,6 +109,7 @@ router.post("/trades", requireAuth, async (req, res): Promise<void> => {
 
   const [trade] = await db.insert(tradesTable).values({
     userId,
+    accountId: d.accountId ?? null,
     symbol: d.symbol,
     type: d.type as "long" | "short",
     entryPrice: String(d.entryPrice),

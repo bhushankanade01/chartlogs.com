@@ -15,6 +15,7 @@ outcome?: ListTradesOutcome;
 startDate?: string;
 endDate?: string;
 tag?: string;
+accountId?: number;
 limit?: number;
 offset?: number;
 };

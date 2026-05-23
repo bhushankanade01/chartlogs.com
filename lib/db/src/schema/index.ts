@@ -1,4 +1,5 @@
 export * from "./users";
+export * from "./trading_accounts";
 export * from "./trades";
 export * from "./journal_entries";
 export * from "./sessions";

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useListTrades, getListTradesQueryKey, Trade } from "@workspace/api-client-react";
+import { useAccount } from "@/contexts/AccountContext";
 import { formatMoney, formatDate, cnClass } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +13,12 @@ import { AddTradeDrawer } from "@/components/trades/AddTradeDrawer";
 export default function Trades() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { activeAccountId } = useAccount();
 
+  const params = { symbol: searchTerm || undefined, accountId: activeAccountId ?? undefined };
   const { data, isLoading } = useListTrades(
-    { symbol: searchTerm || undefined },
-    { query: { queryKey: getListTradesQueryKey({ symbol: searchTerm || undefined }) } }
+    params,
+    { query: { queryKey: getListTradesQueryKey(params) } }
   );
 
   const trades = data?.trades || [];

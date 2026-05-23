@@ -2,6 +2,7 @@ import { pgTable, text, serial, timestamp, numeric, integer, pgEnum } from "driz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
+import { tradingAccountsTable } from "./trading_accounts";
 
 export const tradeTypeEnum = pgEnum("trade_type", ["long", "short"]);
 export const tradeSourceEnum = pgEnum("trade_source", ["manual", "mt4", "mt5", "csv"]);
@@ -10,6 +11,7 @@ export const tradeOutcomeEnum = pgEnum("trade_outcome", ["win", "loss", "breakev
 export const tradesTable = pgTable("trades", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  accountId: integer("account_id").references(() => tradingAccountsTable.id, { onDelete: "set null" }),
   symbol: text("symbol").notNull(),
   type: tradeTypeEnum("type").notNull(),
   entryPrice: numeric("entry_price", { precision: 20, scale: 8 }).notNull(),

@@ -9,6 +9,8 @@ import type { TradeInputSource } from './tradeInputSource';
 import type { TradeInputType } from './tradeInputType';
 
 export interface TradeInput {
+  /** @nullable */
+  accountId?: number | null;
   symbol: string;
   type: TradeInputType;
   entryPrice: number;

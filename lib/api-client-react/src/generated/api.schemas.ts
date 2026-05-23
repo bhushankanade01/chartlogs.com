@@ -88,6 +88,66 @@ export interface UserSettingsUpdate {
   defaultLotSize?: number | null;
 }
 
+export type TradingAccountPlatform = typeof TradingAccountPlatform[keyof typeof TradingAccountPlatform];
+
+
+export const TradingAccountPlatform = {
+  manual: 'manual',
+  mt4: 'mt4',
+  mt5: 'mt5',
+} as const;
+
+export interface TradingAccount {
+  id: number;
+  userId: number;
+  name: string;
+  /** @nullable */
+  broker?: string | null;
+  platform: TradingAccountPlatform;
+  startingBalance: number;
+  currency: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export type TradingAccountInputPlatform = typeof TradingAccountInputPlatform[keyof typeof TradingAccountInputPlatform];
+
+
+export const TradingAccountInputPlatform = {
+  manual: 'manual',
+  mt4: 'mt4',
+  mt5: 'mt5',
+} as const;
+
+export interface TradingAccountInput {
+  name: string;
+  /** @nullable */
+  broker?: string | null;
+  platform: TradingAccountInputPlatform;
+  startingBalance: number;
+  currency: string;
+  isDefault?: boolean;
+}
+
+export type TradingAccountUpdatePlatform = typeof TradingAccountUpdatePlatform[keyof typeof TradingAccountUpdatePlatform];
+
+
+export const TradingAccountUpdatePlatform = {
+  manual: 'manual',
+  mt4: 'mt4',
+  mt5: 'mt5',
+} as const;
+
+export interface TradingAccountUpdate {
+  name?: string;
+  /** @nullable */
+  broker?: string | null;
+  platform?: TradingAccountUpdatePlatform;
+  startingBalance?: number;
+  currency?: string;
+  isDefault?: boolean;
+}
+
 export type TradeType = typeof TradeType[keyof typeof TradeType];
 
 
@@ -121,6 +181,8 @@ export const TradeOutcome = {
 export interface Trade {
   id: number;
   userId: number;
+  /** @nullable */
+  accountId?: number | null;
   symbol: string;
   type: TradeType;
   entryPrice: number;
@@ -173,6 +235,8 @@ export const TradeInputSource = {
 } as const;
 
 export interface TradeInput {
+  /** @nullable */
+  accountId?: number | null;
   symbol: string;
   type: TradeInputType;
   entryPrice: number;
@@ -216,6 +280,8 @@ export const TradeUpdateSource = {
 } as const;
 
 export interface TradeUpdate {
+  /** @nullable */
+  accountId?: number | null;
   symbol?: string;
   type?: TradeUpdateType;
   entryPrice?: number;
@@ -393,6 +459,7 @@ outcome?: ListTradesOutcome;
 startDate?: string;
 endDate?: string;
 tag?: string;
+accountId?: number;
 limit?: number;
 offset?: number;
 };

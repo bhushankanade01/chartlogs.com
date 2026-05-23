@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useCreateTrade, getListTradesQueryKey } from "@workspace/api-client-react";
+import { useAccount } from "@/contexts/AccountContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ interface AddTradeDrawerProps {
 export function AddTradeDrawer({ open, onClose }: AddTradeDrawerProps) {
   const queryClient = useQueryClient();
   const createTrade = useCreateTrade();
+  const { activeAccountId } = useAccount();
 
   const [symbol, setSymbol] = useState("EURUSD");
   const [customSymbol, setCustomSymbol] = useState("");
@@ -84,6 +86,7 @@ export function AddTradeDrawer({ open, onClose }: AddTradeDrawerProps) {
           notes: notes || undefined,
           tags: tags.length > 0 ? tags : undefined,
           source: "manual",
+          accountId: activeAccountId ?? undefined,
         },
       },
       {

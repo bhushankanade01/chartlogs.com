@@ -143,6 +143,73 @@ export const UpdateSettingsResponse = zod.object({
 
 
 /**
+ * @summary List user's trading accounts
+ */
+export const ListAccountsResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "name": zod.string(),
+  "broker": zod.string().nullish(),
+  "platform": zod.enum(['manual', 'mt4', 'mt5']),
+  "startingBalance": zod.number(),
+  "currency": zod.string(),
+  "isDefault": zod.boolean(),
+  "createdAt": zod.string()
+})
+export const ListAccountsResponse = zod.array(ListAccountsResponseItem)
+
+
+/**
+ * @summary Create a trading account
+ */
+export const CreateAccountBody = zod.object({
+  "name": zod.string(),
+  "broker": zod.string().nullish(),
+  "platform": zod.enum(['manual', 'mt4', 'mt5']),
+  "startingBalance": zod.number(),
+  "currency": zod.string(),
+  "isDefault": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Update a trading account
+ */
+export const UpdateAccountParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateAccountBody = zod.object({
+  "name": zod.string().optional(),
+  "broker": zod.string().nullish(),
+  "platform": zod.enum(['manual', 'mt4', 'mt5']).optional(),
+  "startingBalance": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "isDefault": zod.boolean().optional()
+})
+
+export const UpdateAccountResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "name": zod.string(),
+  "broker": zod.string().nullish(),
+  "platform": zod.enum(['manual', 'mt4', 'mt5']),
+  "startingBalance": zod.number(),
+  "currency": zod.string(),
+  "isDefault": zod.boolean(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a trading account
+ */
+export const DeleteAccountParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
  * @summary List trades with filters
  */
 export const ListTradesQueryParams = zod.object({
@@ -152,6 +219,7 @@ export const ListTradesQueryParams = zod.object({
   "startDate": zod.coerce.string().optional(),
   "endDate": zod.coerce.string().optional(),
   "tag": zod.coerce.string().optional(),
+  "accountId": zod.coerce.number().optional(),
   "limit": zod.coerce.number().optional(),
   "offset": zod.coerce.number().optional()
 })
@@ -160,6 +228,7 @@ export const ListTradesResponse = zod.object({
   "trades": zod.array(zod.object({
   "id": zod.number(),
   "userId": zod.number(),
+  "accountId": zod.number().nullish(),
   "symbol": zod.string(),
   "type": zod.enum(['long', 'short']),
   "entryPrice": zod.number(),
@@ -189,6 +258,7 @@ export const ListTradesResponse = zod.object({
  * @summary Create a new trade
  */
 export const CreateTradeBody = zod.object({
+  "accountId": zod.number().nullish(),
   "symbol": zod.string(),
   "type": zod.enum(['long', 'short']),
   "entryPrice": zod.number(),
@@ -217,6 +287,7 @@ export const GetTradeParams = zod.object({
 export const GetTradeResponse = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
+  "accountId": zod.number().nullish(),
   "symbol": zod.string(),
   "type": zod.enum(['long', 'short']),
   "entryPrice": zod.number(),
@@ -248,6 +319,7 @@ export const UpdateTradeParams = zod.object({
 })
 
 export const UpdateTradeBody = zod.object({
+  "accountId": zod.number().nullish(),
   "symbol": zod.string().optional(),
   "type": zod.enum(['long', 'short']).optional(),
   "entryPrice": zod.number().optional(),
@@ -268,6 +340,7 @@ export const UpdateTradeBody = zod.object({
 export const UpdateTradeResponse = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
+  "accountId": zod.number().nullish(),
   "symbol": zod.string(),
   "type": zod.enum(['long', 'short']),
   "entryPrice": zod.number(),
@@ -316,6 +389,7 @@ export const ListJournalEntriesResponseItem = zod.object({
   "trade": zod.object({
   "id": zod.number(),
   "userId": zod.number(),
+  "accountId": zod.number().nullish(),
   "symbol": zod.string(),
   "type": zod.enum(['long', 'short']),
   "entryPrice": zod.number(),
@@ -360,6 +434,7 @@ export const GetJournalEntryResponse = zod.object({
   "trade": zod.object({
   "id": zod.number(),
   "userId": zod.number(),
+  "accountId": zod.number().nullish(),
   "symbol": zod.string(),
   "type": zod.enum(['long', 'short']),
   "entryPrice": zod.number(),
@@ -409,6 +484,7 @@ export const UpsertJournalEntryResponse = zod.object({
   "trade": zod.object({
   "id": zod.number(),
   "userId": zod.number(),
+  "accountId": zod.number().nullish(),
   "symbol": zod.string(),
   "type": zod.enum(['long', 'short']),
   "entryPrice": zod.number(),
@@ -502,6 +578,7 @@ export const GetDashboardCalendarResponse = zod.array(GetDashboardCalendarRespon
 export const GetRecentTradesResponseItem = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
+  "accountId": zod.number().nullish(),
   "symbol": zod.string(),
   "type": zod.enum(['long', 'short']),
   "entryPrice": zod.number(),

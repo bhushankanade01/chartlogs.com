@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: auth
     description: Authentication
+  - name: accounts
+    description: Trading account management
   - name: trades
     description: Trade management
   - name: journal
@@ -193,6 +195,91 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
 
+  # ACCOUNTS
+  /accounts:
+    get:
+      operationId: listAccounts
+      tags: [accounts]
+      summary: List user's trading accounts
+      responses:
+        "200":
+          description: List of trading accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TradingAccount"
+
+    post:
+      operationId: createAccount
+      tags: [accounts]
+      summary: Create a trading account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradingAccountInput"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradingAccount"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /accounts/{id}:
+    patch:
+      operationId: updateAccount
+      tags: [accounts]
+      summary: Update a trading account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradingAccountUpdate"
+      responses:
+        "200":
+          description: Account updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradingAccount"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteAccount
+      tags: [accounts]
+      summary: Delete a trading account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
   # TRADES
   /trades:
     get:
@@ -226,6 +313,10 @@ paths:
           in: query
           schema:
             type: string
+        - name: accountId
+          in: query
+          schema:
+            type: integer
         - name: limit
           in: query
           schema:
@@ -764,6 +855,66 @@ components:
         defaultLotSize:
           type: ["number", "null"]
 
+    # ACCOUNTS
+    TradingAccount:
+      type: object
+      required: [id, userId, name, platform, startingBalance, currency, isDefault, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        broker:
+          type: ["string", "null"]
+        platform:
+          type: string
+          enum: [manual, mt4, mt5]
+        startingBalance:
+          type: number
+        currency:
+          type: string
+        isDefault:
+          type: boolean
+        createdAt:
+          type: string
+
+    TradingAccountInput:
+      type: object
+      required: [name, platform, startingBalance, currency]
+      properties:
+        name:
+          type: string
+        broker:
+          type: ["string", "null"]
+        platform:
+          type: string
+          enum: [manual, mt4, mt5]
+        startingBalance:
+          type: number
+        currency:
+          type: string
+        isDefault:
+          type: boolean
+
+    TradingAccountUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        broker:
+          type: ["string", "null"]
+        platform:
+          type: string
+          enum: [manual, mt4, mt5]
+        startingBalance:
+          type: number
+        currency:
+          type: string
+        isDefault:
+          type: boolean
+
     # TRADES
     Trade:
       type: object
@@ -773,6 +924,8 @@ components:
           type: integer
         userId:
           type: integer
+        accountId:
+          type: ["integer", "null"]
         symbol:
           type: string
         type:
@@ -825,6 +978,8 @@ components:
       type: object
       required: [symbol, type, entryPrice, positionSize, openTime, source]
       properties:
+        accountId:
+          type: ["integer", "null"]
         symbol:
           type: string
         type:
@@ -865,6 +1020,8 @@ components:
     TradeUpdate:
       type: object
       properties:
+        accountId:
+          type: ["integer", "null"]
         symbol:
           type: string
         type:

@@ -9,6 +9,8 @@ import type { TradeUpdateSource } from './tradeUpdateSource';
 import type { TradeUpdateType } from './tradeUpdateType';
 
 export interface TradeUpdate {
+  /** @nullable */
+  accountId?: number | null;
   symbol?: string;
   type?: TradeUpdateType;
   entryPrice?: number;

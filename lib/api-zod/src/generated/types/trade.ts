@@ -12,6 +12,8 @@ import type { TradeType } from './tradeType';
 export interface Trade {
   id: number;
   userId: number;
+  /** @nullable */
+  accountId?: number | null;
   symbol: string;
   type: TradeType;
   entryPrice: number;
