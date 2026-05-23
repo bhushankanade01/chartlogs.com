@@ -5,3 +5,5 @@ export * from "./journal_entries";
 export * from "./sessions";
 export * from "./password_reset_tokens";
 export * from "./login_history";
+export * from "./checklist_templates";
+export * from "./checklist_responses";

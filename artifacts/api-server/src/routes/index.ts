@@ -10,6 +10,7 @@ import marketRouter from "./market";
 import toolsRouter from "./tools";
 import adminRouter from "./admin";
 import storageRouter from "./storage";
+import checklistsRouter from "./checklists";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(marketRouter);
 router.use(toolsRouter);
 router.use(adminRouter);
 router.use(storageRouter);
+router.use(checklistsRouter);
 
 export default router;

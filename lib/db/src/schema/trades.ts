@@ -7,6 +7,7 @@ import { tradingAccountsTable } from "./trading_accounts";
 export const tradeTypeEnum = pgEnum("trade_type", ["long", "short"]);
 export const tradeSourceEnum = pgEnum("trade_source", ["manual", "mt4", "mt5", "csv"]);
 export const tradeOutcomeEnum = pgEnum("trade_outcome", ["win", "loss", "breakeven"]);
+export const tradeSessionEnum = pgEnum("trade_session", ["London", "NewYork", "Asian", "Sydney", "OffHours"]);
 
 export const tradesTable = pgTable("trades", {
   id: serial("id").primaryKey(),
@@ -24,6 +25,7 @@ export const tradesTable = pgTable("trades", {
   pnl: numeric("pnl", { precision: 20, scale: 4 }),
   pips: numeric("pips", { precision: 20, scale: 4 }),
   rrRatio: numeric("rr_ratio", { precision: 10, scale: 4 }),
+  rMultiple: numeric("r_multiple", { precision: 10, scale: 4 }),
   fees: numeric("fees", { precision: 20, scale: 4 }),
   source: tradeSourceEnum("source").notNull().default("manual"),
   tags: text("tags").array().notNull().default([]),
@@ -31,6 +33,9 @@ export const tradesTable = pgTable("trades", {
   notes: text("notes"),
   screenshots: text("screenshots").array().notNull().default([]),
   outcome: tradeOutcomeEnum("outcome"),
+  strategy: text("strategy"),
+  session: tradeSessionEnum("session"),
+  rating: integer("rating"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

@@ -180,6 +180,20 @@ export const TradeOutcome = {
   breakeven: 'breakeven',
 } as const;
 
+/**
+ * @nullable
+ */
+export type TradeSession = typeof TradeSession[keyof typeof TradeSession] | null;
+
+
+export const TradeSession = {
+  London: 'London',
+  NewYork: 'NewYork',
+  Asian: 'Asian',
+  Sydney: 'Sydney',
+  OffHours: 'OffHours',
+} as const;
+
 export interface Trade {
   id: number;
   userId: number;
@@ -205,6 +219,8 @@ export interface Trade {
   /** @nullable */
   rrRatio?: number | null;
   /** @nullable */
+  rMultiple?: number | null;
+  /** @nullable */
   fees?: number | null;
   source: TradeSource;
   tags?: string[];
@@ -215,6 +231,16 @@ export interface Trade {
   screenshots?: string[];
   /** @nullable */
   outcome?: TradeOutcome;
+  /** @nullable */
+  strategy?: string | null;
+  /** @nullable */
+  session?: TradeSession;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  rating?: number | null;
   createdAt: string;
 }
 
@@ -236,6 +262,20 @@ export const TradeInputSource = {
   csv: 'csv',
 } as const;
 
+/**
+ * @nullable
+ */
+export type TradeInputSession = typeof TradeInputSession[keyof typeof TradeInputSession] | null;
+
+
+export const TradeInputSession = {
+  London: 'London',
+  NewYork: 'NewYork',
+  Asian: 'Asian',
+  Sydney: 'Sydney',
+  OffHours: 'OffHours',
+} as const;
+
 export interface TradeInput {
   /** @nullable */
   accountId?: number | null;
@@ -254,13 +294,25 @@ export interface TradeInput {
   closeTime?: string | null;
   /** @nullable */
   fees?: number | null;
-  source: TradeInputSource;
+  source?: TradeInputSource;
   tags?: string[];
   /** @nullable */
   emotion?: string | null;
   /** @nullable */
   notes?: string | null;
   screenshots?: string[];
+  /** @nullable */
+  strategy?: string | null;
+  /** @nullable */
+  session?: TradeInputSession;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  rating?: number | null;
+  /** @nullable */
+  rMultiple?: number | null;
 }
 
 export type TradeUpdateType = typeof TradeUpdateType[keyof typeof TradeUpdateType];
@@ -279,6 +331,20 @@ export const TradeUpdateSource = {
   mt4: 'mt4',
   mt5: 'mt5',
   csv: 'csv',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TradeUpdateSession = typeof TradeUpdateSession[keyof typeof TradeUpdateSession] | null;
+
+
+export const TradeUpdateSession = {
+  London: 'London',
+  NewYork: 'NewYork',
+  Asian: 'Asian',
+  Sydney: 'Sydney',
+  OffHours: 'OffHours',
 } as const;
 
 export interface TradeUpdate {
@@ -306,6 +372,18 @@ export interface TradeUpdate {
   /** @nullable */
   notes?: string | null;
   screenshots?: string[];
+  /** @nullable */
+  strategy?: string | null;
+  /** @nullable */
+  session?: TradeUpdateSession;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  rating?: number | null;
+  /** @nullable */
+  rMultiple?: number | null;
 }
 
 export interface TradeListResponse {
@@ -541,6 +619,66 @@ export interface PositionSizeResult {
   pipValue: number;
 }
 
+export interface StrategyPerformance {
+  strategy: string;
+  trades: number;
+  pnl: number;
+  winRate: number;
+  /** @nullable */
+  avgRMultiple: number | null;
+}
+
+export interface SessionPerformance {
+  session: string;
+  trades: number;
+  pnl: number;
+  winRate: number;
+}
+
+export interface ChecklistQuestion {
+  id: string;
+  text: string;
+}
+
+export interface ChecklistTemplate {
+  id: number;
+  userId: number;
+  name: string;
+  questions: ChecklistQuestion[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ChecklistTemplateInput {
+  name: string;
+  questions: ChecklistQuestion[];
+}
+
+export interface ChecklistTemplateUpdate {
+  name?: string;
+  questions?: ChecklistQuestion[];
+}
+
+export interface ChecklistAnswer {
+  questionId: string;
+  checked: boolean;
+}
+
+export interface ChecklistResponse {
+  id: number;
+  userId: number;
+  tradeId: number;
+  templateId: number;
+  answers: ChecklistAnswer[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ChecklistResponseInput {
+  templateId: number;
+  answers: ChecklistAnswer[];
+}
+
 export type ListTradesParams = {
 symbol?: string;
 type?: ListTradesType;
@@ -710,6 +848,14 @@ accountId?: number;
 };
 
 export type GetAnalyticsByEmotionParams = {
+accountId?: number;
+};
+
+export type GetAnalyticsByStrategyParams = {
+accountId?: number;
+};
+
+export type GetAnalyticsBySessionParams = {
 accountId?: number;
 };
 

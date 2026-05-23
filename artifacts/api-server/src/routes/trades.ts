@@ -33,6 +33,14 @@ const upload = multer({
 
 const router: IRouter = Router();
 
+function detectSession(openTime: Date): "London" | "NewYork" | "Asian" | "Sydney" | "OffHours" {
+  const hour = openTime.getUTCHours();
+  if (hour >= 7 && hour < 12) return "London";
+  if (hour >= 12 && hour < 21) return "NewYork";
+  if (hour >= 0 && hour < 7) return "Asian";
+  return "Sydney";
+}
+
 function formatTrade(t: typeof tradesTable.$inferSelect) {
   return {
     id: t.id,
@@ -50,6 +58,7 @@ function formatTrade(t: typeof tradesTable.$inferSelect) {
     pnl: t.pnl ? parseFloat(t.pnl) : null,
     pips: t.pips ? parseFloat(t.pips) : null,
     rrRatio: t.rrRatio ? parseFloat(t.rrRatio) : null,
+    rMultiple: t.rMultiple ? parseFloat(t.rMultiple) : null,
     fees: t.fees ? parseFloat(t.fees) : null,
     source: t.source,
     tags: t.tags ?? [],
@@ -57,6 +66,9 @@ function formatTrade(t: typeof tradesTable.$inferSelect) {
     notes: t.notes,
     screenshots: t.screenshots ?? [],
     outcome: t.outcome,
+    strategy: t.strategy ?? null,
+    session: t.session ?? null,
+    rating: t.rating ?? null,
     createdAt: t.createdAt.toISOString(),
   };
 }
@@ -132,6 +144,10 @@ router.post("/trades", requireAuth, async (req, res): Promise<void> => {
     }
   }
 
+  const openTime = new Date(d.openTime);
+  const autoSession = detectSession(openTime);
+  const session = ((d as Record<string, unknown>)["session"] ?? autoSession) as "London" | "NewYork" | "Asian" | "Sydney" | "OffHours";
+
   const [trade] = await db.insert(tradesTable).values({
     userId,
     accountId: d.accountId ?? null,
@@ -142,11 +158,12 @@ router.post("/trades", requireAuth, async (req, res): Promise<void> => {
     positionSize: String(d.positionSize),
     stopLoss: d.stopLoss != null ? String(d.stopLoss) : null,
     takeProfit: d.takeProfit != null ? String(d.takeProfit) : null,
-    openTime: new Date(d.openTime),
+    openTime,
     closeTime: d.closeTime ? new Date(d.closeTime) : null,
     pnl: pnl !== null ? String(pnl) : null,
     pips: pips !== null ? String(pips) : null,
     rrRatio: rrRatio !== null ? String(rrRatio) : null,
+    rMultiple: (d as Record<string, unknown>)["rMultiple"] != null ? String((d as Record<string, unknown>)["rMultiple"]) : null,
     fees: d.fees != null ? String(d.fees) : null,
     source: (d.source ?? "manual") as "manual" | "mt4" | "mt5" | "csv",
     tags: d.tags ?? [],
@@ -154,6 +171,9 @@ router.post("/trades", requireAuth, async (req, res): Promise<void> => {
     notes: d.notes ?? null,
     screenshots: d.screenshots ?? [],
     outcome,
+    strategy: (d as Record<string, unknown>)["strategy"] as string ?? null,
+    session,
+    rating: (d as Record<string, unknown>)["rating"] as number ?? null,
   }).returning();
 
   res.status(201).json(formatTrade(trade));
@@ -200,6 +220,7 @@ router.patch("/trades/:id", requireAuth, async (req, res): Promise<void> => {
   const d = parsed.data;
   const updates: Record<string, unknown> = {};
 
+  const dRaw = d as Record<string, unknown>;
   if (d.symbol !== undefined) updates.symbol = d.symbol;
   if (d.type !== undefined) updates.type = d.type;
   if (d.entryPrice !== undefined) updates.entryPrice = String(d.entryPrice);
@@ -215,6 +236,10 @@ router.patch("/trades/:id", requireAuth, async (req, res): Promise<void> => {
   if (d.emotion !== undefined) updates.emotion = d.emotion;
   if (d.notes !== undefined) updates.notes = d.notes;
   if (d.screenshots !== undefined) updates.screenshots = d.screenshots;
+  if (dRaw["strategy"] !== undefined) updates.strategy = dRaw["strategy"] ?? null;
+  if (dRaw["session"] !== undefined) updates.session = dRaw["session"] ?? null;
+  if (dRaw["rating"] !== undefined) updates.rating = dRaw["rating"] ?? null;
+  if (dRaw["rMultiple"] !== undefined) updates.rMultiple = dRaw["rMultiple"] != null ? String(dRaw["rMultiple"]) : null;
 
   // Recalculate if needed
   const entry = parseFloat(String(updates.entryPrice ?? existing.entryPrice));

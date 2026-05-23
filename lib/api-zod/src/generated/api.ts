@@ -228,6 +228,10 @@ export const ListTradesQueryParams = zod.object({
   "offset": zod.coerce.number().optional()
 })
 
+export const listTradesResponseTradesItemRatingMax = 5;
+
+
+
 export const ListTradesResponse = zod.object({
   "trades": zod.array(zod.object({
   "id": zod.number(),
@@ -245,6 +249,7 @@ export const ListTradesResponse = zod.object({
   "pnl": zod.number().nullish(),
   "pips": zod.number().nullish(),
   "rrRatio": zod.number().nullish(),
+  "rMultiple": zod.number().nullish(),
   "fees": zod.number().nullish(),
   "source": zod.enum(['manual', 'mt4', 'mt5', 'csv']),
   "tags": zod.array(zod.string()).optional(),
@@ -252,6 +257,9 @@ export const ListTradesResponse = zod.object({
   "notes": zod.string().nullish(),
   "screenshots": zod.array(zod.string()).optional(),
   "outcome": zod.union([zod.literal('win'),zod.literal('loss'),zod.literal('breakeven'),zod.literal(null)]).nullish(),
+  "strategy": zod.string().nullish(),
+  "session": zod.union([zod.literal('London'),zod.literal('NewYork'),zod.literal('Asian'),zod.literal('Sydney'),zod.literal('OffHours'),zod.literal(null)]).nullish(),
+  "rating": zod.number().min(1).max(listTradesResponseTradesItemRatingMax).nullish(),
   "createdAt": zod.string()
 })),
   "total": zod.number()
@@ -261,6 +269,10 @@ export const ListTradesResponse = zod.object({
 /**
  * @summary Create a new trade
  */
+export const createTradeBodyRatingMax = 5;
+
+
+
 export const CreateTradeBody = zod.object({
   "accountId": zod.number().nullish(),
   "symbol": zod.string(),
@@ -273,11 +285,15 @@ export const CreateTradeBody = zod.object({
   "openTime": zod.string(),
   "closeTime": zod.string().nullish(),
   "fees": zod.number().nullish(),
-  "source": zod.enum(['manual', 'mt4', 'mt5', 'csv']),
+  "source": zod.enum(['manual', 'mt4', 'mt5', 'csv']).optional(),
   "tags": zod.array(zod.string()).optional(),
   "emotion": zod.string().nullish(),
   "notes": zod.string().nullish(),
-  "screenshots": zod.array(zod.string()).optional()
+  "screenshots": zod.array(zod.string()).optional(),
+  "strategy": zod.string().nullish(),
+  "session": zod.union([zod.literal('London'),zod.literal('NewYork'),zod.literal('Asian'),zod.literal('Sydney'),zod.literal('OffHours'),zod.literal(null)]).nullish(),
+  "rating": zod.number().min(1).max(createTradeBodyRatingMax).nullish(),
+  "rMultiple": zod.number().nullish()
 })
 
 
@@ -287,6 +303,10 @@ export const CreateTradeBody = zod.object({
 export const GetTradeParams = zod.object({
   "id": zod.coerce.number()
 })
+
+export const getTradeResponseRatingMax = 5;
+
+
 
 export const GetTradeResponse = zod.object({
   "id": zod.number(),
@@ -304,6 +324,7 @@ export const GetTradeResponse = zod.object({
   "pnl": zod.number().nullish(),
   "pips": zod.number().nullish(),
   "rrRatio": zod.number().nullish(),
+  "rMultiple": zod.number().nullish(),
   "fees": zod.number().nullish(),
   "source": zod.enum(['manual', 'mt4', 'mt5', 'csv']),
   "tags": zod.array(zod.string()).optional(),
@@ -311,6 +332,9 @@ export const GetTradeResponse = zod.object({
   "notes": zod.string().nullish(),
   "screenshots": zod.array(zod.string()).optional(),
   "outcome": zod.union([zod.literal('win'),zod.literal('loss'),zod.literal('breakeven'),zod.literal(null)]).nullish(),
+  "strategy": zod.string().nullish(),
+  "session": zod.union([zod.literal('London'),zod.literal('NewYork'),zod.literal('Asian'),zod.literal('Sydney'),zod.literal('OffHours'),zod.literal(null)]).nullish(),
+  "rating": zod.number().min(1).max(getTradeResponseRatingMax).nullish(),
   "createdAt": zod.string()
 })
 
@@ -321,6 +345,10 @@ export const GetTradeResponse = zod.object({
 export const UpdateTradeParams = zod.object({
   "id": zod.coerce.number()
 })
+
+export const updateTradeBodyRatingMax = 5;
+
+
 
 export const UpdateTradeBody = zod.object({
   "accountId": zod.number().nullish(),
@@ -338,8 +366,16 @@ export const UpdateTradeBody = zod.object({
   "tags": zod.array(zod.string()).optional(),
   "emotion": zod.string().nullish(),
   "notes": zod.string().nullish(),
-  "screenshots": zod.array(zod.string()).optional()
+  "screenshots": zod.array(zod.string()).optional(),
+  "strategy": zod.string().nullish(),
+  "session": zod.union([zod.literal('London'),zod.literal('NewYork'),zod.literal('Asian'),zod.literal('Sydney'),zod.literal('OffHours'),zod.literal(null)]).nullish(),
+  "rating": zod.number().min(1).max(updateTradeBodyRatingMax).nullish(),
+  "rMultiple": zod.number().nullish()
 })
+
+export const updateTradeResponseRatingMax = 5;
+
+
 
 export const UpdateTradeResponse = zod.object({
   "id": zod.number(),
@@ -357,6 +393,7 @@ export const UpdateTradeResponse = zod.object({
   "pnl": zod.number().nullish(),
   "pips": zod.number().nullish(),
   "rrRatio": zod.number().nullish(),
+  "rMultiple": zod.number().nullish(),
   "fees": zod.number().nullish(),
   "source": zod.enum(['manual', 'mt4', 'mt5', 'csv']),
   "tags": zod.array(zod.string()).optional(),
@@ -364,6 +401,9 @@ export const UpdateTradeResponse = zod.object({
   "notes": zod.string().nullish(),
   "screenshots": zod.array(zod.string()).optional(),
   "outcome": zod.union([zod.literal('win'),zod.literal('loss'),zod.literal('breakeven'),zod.literal(null)]).nullish(),
+  "strategy": zod.string().nullish(),
+  "session": zod.union([zod.literal('London'),zod.literal('NewYork'),zod.literal('Asian'),zod.literal('Sydney'),zod.literal('OffHours'),zod.literal(null)]).nullish(),
+  "rating": zod.number().min(1).max(updateTradeResponseRatingMax).nullish(),
   "createdAt": zod.string()
 })
 
@@ -487,6 +527,10 @@ export const ListJournalEntriesQueryParams = zod.object({
   "accountId": zod.coerce.number().optional()
 })
 
+export const listJournalEntriesResponseTradeRatingMax = 5;
+
+
+
 export const ListJournalEntriesResponseItem = zod.object({
   "id": zod.number(),
   "tradeId": zod.number(),
@@ -510,6 +554,7 @@ export const ListJournalEntriesResponseItem = zod.object({
   "pnl": zod.number().nullish(),
   "pips": zod.number().nullish(),
   "rrRatio": zod.number().nullish(),
+  "rMultiple": zod.number().nullish(),
   "fees": zod.number().nullish(),
   "source": zod.enum(['manual', 'mt4', 'mt5', 'csv']),
   "tags": zod.array(zod.string()).optional(),
@@ -517,6 +562,9 @@ export const ListJournalEntriesResponseItem = zod.object({
   "notes": zod.string().nullish(),
   "screenshots": zod.array(zod.string()).optional(),
   "outcome": zod.union([zod.literal('win'),zod.literal('loss'),zod.literal('breakeven'),zod.literal(null)]).nullish(),
+  "strategy": zod.string().nullish(),
+  "session": zod.union([zod.literal('London'),zod.literal('NewYork'),zod.literal('Asian'),zod.literal('Sydney'),zod.literal('OffHours'),zod.literal(null)]).nullish(),
+  "rating": zod.number().min(1).max(listJournalEntriesResponseTradeRatingMax).nullish(),
   "createdAt": zod.string()
 }).optional(),
   "createdAt": zod.string(),
@@ -531,6 +579,10 @@ export const ListJournalEntriesResponse = zod.array(ListJournalEntriesResponseIt
 export const GetJournalEntryParams = zod.object({
   "tradeId": zod.coerce.number()
 })
+
+export const getJournalEntryResponseTradeRatingMax = 5;
+
+
 
 export const GetJournalEntryResponse = zod.object({
   "id": zod.number(),
@@ -555,6 +607,7 @@ export const GetJournalEntryResponse = zod.object({
   "pnl": zod.number().nullish(),
   "pips": zod.number().nullish(),
   "rrRatio": zod.number().nullish(),
+  "rMultiple": zod.number().nullish(),
   "fees": zod.number().nullish(),
   "source": zod.enum(['manual', 'mt4', 'mt5', 'csv']),
   "tags": zod.array(zod.string()).optional(),
@@ -562,6 +615,9 @@ export const GetJournalEntryResponse = zod.object({
   "notes": zod.string().nullish(),
   "screenshots": zod.array(zod.string()).optional(),
   "outcome": zod.union([zod.literal('win'),zod.literal('loss'),zod.literal('breakeven'),zod.literal(null)]).nullish(),
+  "strategy": zod.string().nullish(),
+  "session": zod.union([zod.literal('London'),zod.literal('NewYork'),zod.literal('Asian'),zod.literal('Sydney'),zod.literal('OffHours'),zod.literal(null)]).nullish(),
+  "rating": zod.number().min(1).max(getJournalEntryResponseTradeRatingMax).nullish(),
   "createdAt": zod.string()
 }).optional(),
   "createdAt": zod.string(),
@@ -581,6 +637,10 @@ export const UpsertJournalEntryBody = zod.object({
   "mood": zod.string().nullish(),
   "screenshots": zod.array(zod.string()).optional()
 })
+
+export const upsertJournalEntryResponseTradeRatingMax = 5;
+
+
 
 export const UpsertJournalEntryResponse = zod.object({
   "id": zod.number(),
@@ -605,6 +665,7 @@ export const UpsertJournalEntryResponse = zod.object({
   "pnl": zod.number().nullish(),
   "pips": zod.number().nullish(),
   "rrRatio": zod.number().nullish(),
+  "rMultiple": zod.number().nullish(),
   "fees": zod.number().nullish(),
   "source": zod.enum(['manual', 'mt4', 'mt5', 'csv']),
   "tags": zod.array(zod.string()).optional(),
@@ -612,6 +673,9 @@ export const UpsertJournalEntryResponse = zod.object({
   "notes": zod.string().nullish(),
   "screenshots": zod.array(zod.string()).optional(),
   "outcome": zod.union([zod.literal('win'),zod.literal('loss'),zod.literal('breakeven'),zod.literal(null)]).nullish(),
+  "strategy": zod.string().nullish(),
+  "session": zod.union([zod.literal('London'),zod.literal('NewYork'),zod.literal('Asian'),zod.literal('Sydney'),zod.literal('OffHours'),zod.literal(null)]).nullish(),
+  "rating": zod.number().min(1).max(upsertJournalEntryResponseTradeRatingMax).nullish(),
   "createdAt": zod.string()
 }).optional(),
   "createdAt": zod.string(),
@@ -690,6 +754,10 @@ export const GetRecentTradesQueryParams = zod.object({
   "accountId": zod.coerce.number().optional()
 })
 
+export const getRecentTradesResponseRatingMax = 5;
+
+
+
 export const GetRecentTradesResponseItem = zod.object({
   "id": zod.number(),
   "userId": zod.number(),
@@ -706,6 +774,7 @@ export const GetRecentTradesResponseItem = zod.object({
   "pnl": zod.number().nullish(),
   "pips": zod.number().nullish(),
   "rrRatio": zod.number().nullish(),
+  "rMultiple": zod.number().nullish(),
   "fees": zod.number().nullish(),
   "source": zod.enum(['manual', 'mt4', 'mt5', 'csv']),
   "tags": zod.array(zod.string()).optional(),
@@ -713,6 +782,9 @@ export const GetRecentTradesResponseItem = zod.object({
   "notes": zod.string().nullish(),
   "screenshots": zod.array(zod.string()).optional(),
   "outcome": zod.union([zod.literal('win'),zod.literal('loss'),zod.literal('breakeven'),zod.literal(null)]).nullish(),
+  "strategy": zod.string().nullish(),
+  "session": zod.union([zod.literal('London'),zod.literal('NewYork'),zod.literal('Asian'),zod.literal('Sydney'),zod.literal('OffHours'),zod.literal(null)]).nullish(),
+  "rating": zod.number().min(1).max(getRecentTradesResponseRatingMax).nullish(),
   "createdAt": zod.string()
 })
 export const GetRecentTradesResponse = zod.array(GetRecentTradesResponseItem)
@@ -824,6 +896,155 @@ export const GetAnalyticsByEmotionResponseItem = zod.object({
   "winRate": zod.number()
 })
 export const GetAnalyticsByEmotionResponse = zod.array(GetAnalyticsByEmotionResponseItem)
+
+
+/**
+ * @summary Get performance grouped by strategy
+ */
+export const GetAnalyticsByStrategyQueryParams = zod.object({
+  "accountId": zod.coerce.number().optional()
+})
+
+export const GetAnalyticsByStrategyResponseItem = zod.object({
+  "strategy": zod.string(),
+  "trades": zod.number(),
+  "pnl": zod.number(),
+  "winRate": zod.number(),
+  "avgRMultiple": zod.number().nullable()
+})
+export const GetAnalyticsByStrategyResponse = zod.array(GetAnalyticsByStrategyResponseItem)
+
+
+/**
+ * @summary Get performance grouped by trading session
+ */
+export const GetAnalyticsBySessionQueryParams = zod.object({
+  "accountId": zod.coerce.number().optional()
+})
+
+export const GetAnalyticsBySessionResponseItem = zod.object({
+  "session": zod.string(),
+  "trades": zod.number(),
+  "pnl": zod.number(),
+  "winRate": zod.number()
+})
+export const GetAnalyticsBySessionResponse = zod.array(GetAnalyticsBySessionResponseItem)
+
+
+/**
+ * @summary List checklist templates for the current user
+ */
+export const ListChecklistTemplatesResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "text": zod.string()
+})),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+export const ListChecklistTemplatesResponse = zod.array(ListChecklistTemplatesResponseItem)
+
+
+/**
+ * @summary Create a checklist template
+ */
+export const CreateChecklistTemplateBody = zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "text": zod.string()
+}))
+})
+
+
+/**
+ * @summary Update a checklist template
+ */
+export const UpdateChecklistTemplateParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateChecklistTemplateBody = zod.object({
+  "name": zod.string().optional(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "text": zod.string()
+})).optional()
+})
+
+export const UpdateChecklistTemplateResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "text": zod.string()
+})),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Delete a checklist template
+ */
+export const DeleteChecklistTemplateParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Get checklist responses for a trade
+ */
+export const GetChecklistResponsesParams = zod.object({
+  "tradeId": zod.coerce.number()
+})
+
+export const GetChecklistResponsesResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "tradeId": zod.number(),
+  "templateId": zod.number(),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "checked": zod.boolean()
+})),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+export const GetChecklistResponsesResponse = zod.array(GetChecklistResponsesResponseItem)
+
+
+/**
+ * @summary Save checklist responses for a trade
+ */
+export const UpsertChecklistResponseParams = zod.object({
+  "tradeId": zod.coerce.number()
+})
+
+export const UpsertChecklistResponseBody = zod.object({
+  "templateId": zod.number(),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "checked": zod.boolean()
+}))
+})
+
+export const UpsertChecklistResponseResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "tradeId": zod.number(),
+  "templateId": zod.number(),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "checked": zod.boolean()
+})),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
 
 
 /**

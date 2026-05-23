@@ -238,4 +238,74 @@ router.get("/analytics/by-emotion", requireAuth, async (req, res): Promise<void>
   res.json(result);
 });
 
+router.get("/analytics/by-strategy", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.user!.id;
+  const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
+
+  const conditions = [eq(tradesTable.userId, userId)];
+  if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
+
+  const trades = await db.select().from(tradesTable).where(and(...conditions));
+  const withStrategy = trades.filter(t => t.strategy && t.pnl !== null);
+
+  const byStrategy = new Map<string, { pnl: number; count: number; wins: number; rMultiples: number[] }>();
+  for (const t of withStrategy) {
+    const strategy = t.strategy!;
+    const existing = byStrategy.get(strategy) ?? { pnl: 0, count: 0, wins: 0, rMultiples: [] };
+    byStrategy.set(strategy, {
+      pnl: existing.pnl + parseFloat(t.pnl!),
+      count: existing.count + 1,
+      wins: existing.wins + (t.outcome === "win" ? 1 : 0),
+      rMultiples: t.rMultiple ? [...existing.rMultiples, parseFloat(t.rMultiple)] : existing.rMultiples,
+    });
+  }
+
+  const result = Array.from(byStrategy.entries())
+    .map(([strategy, { pnl, count, wins, rMultiples }]) => ({
+      strategy,
+      trades: count,
+      pnl: parseFloat(pnl.toFixed(2)),
+      winRate: parseFloat(((wins / count) * 100).toFixed(1)),
+      avgRMultiple: rMultiples.length > 0
+        ? parseFloat((rMultiples.reduce((a, b) => a + b, 0) / rMultiples.length).toFixed(2))
+        : null,
+    }))
+    .sort((a, b) => b.pnl - a.pnl);
+
+  res.json(result);
+});
+
+router.get("/analytics/by-session", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.user!.id;
+  const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
+
+  const conditions = [eq(tradesTable.userId, userId)];
+  if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
+
+  const trades = await db.select().from(tradesTable).where(and(...conditions));
+  const closed = trades.filter(t => t.pnl !== null && t.session);
+
+  const bySession = new Map<string, { pnl: number; count: number; wins: number }>();
+  for (const t of closed) {
+    const session = t.session!;
+    const existing = bySession.get(session) ?? { pnl: 0, count: 0, wins: 0 };
+    bySession.set(session, {
+      pnl: existing.pnl + parseFloat(t.pnl!),
+      count: existing.count + 1,
+      wins: existing.wins + (t.outcome === "win" ? 1 : 0),
+    });
+  }
+
+  const result = Array.from(bySession.entries())
+    .map(([session, { pnl, count, wins }]) => ({
+      session,
+      trades: count,
+      pnl: parseFloat(pnl.toFixed(2)),
+      winRate: parseFloat(((wins / count) * 100).toFixed(1)),
+    }))
+    .sort((a, b) => b.pnl - a.pnl);
+
+  res.json(result);
+});
+
 export default router;

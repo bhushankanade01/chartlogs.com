@@ -8,6 +8,11 @@ import {
   useUpdateAccount,
   useDeleteAccount,
   getListAccountsQueryKey,
+  useListChecklistTemplates,
+  useCreateChecklistTemplate,
+  useUpdateChecklistTemplate,
+  useDeleteChecklistTemplate,
+  getListChecklistTemplatesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
@@ -20,8 +25,173 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Check, Plus, Pencil, Trash2, Wallet, X, Star,
+  Check, Plus, Pencil, Trash2, Wallet, X, Star, ListChecks, GripVertical,
 } from "lucide-react";
+
+function ChecklistsTab() {
+  const { data: templates, isLoading } = useListChecklistTemplates();
+  const createTemplate = useCreateChecklistTemplate();
+  const updateTemplate = useUpdateChecklistTemplate();
+  const deleteTemplate = useDeleteChecklistTemplate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [name, setName] = useState("");
+  const [questions, setQuestions] = useState<string[]>([""]);
+
+  const resetForm = () => { setName(""); setQuestions([""]); setEditingId(null); setShowForm(false); };
+
+  const startEdit = (t: { id: number; name: string; questions: unknown }) => {
+    setEditingId(t.id);
+    setName(t.name);
+    const qs = (t.questions as { text: string }[]).map(q => q.text);
+    setQuestions(qs.length > 0 ? qs : [""]);
+    setShowForm(true);
+  };
+
+  const handleSave = () => {
+    if (!name.trim()) { toast({ variant: "destructive", title: "Template name required" }); return; }
+    const qs = questions.filter(q => q.trim()).map((text, i) => ({ id: String(i + 1), text }));
+    const payload = { name: name.trim(), questions: qs };
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: getListChecklistTemplatesQueryKey() });
+
+    if (editingId !== null) {
+      updateTemplate.mutate({ id: editingId, data: payload }, {
+        onSuccess: () => { invalidate(); resetForm(); toast({ title: "Checklist updated" }); },
+        onError: (e: unknown) => toast({ variant: "destructive", title: "Failed", description: (e as Error).message }),
+      });
+    } else {
+      createTemplate.mutate({ data: payload }, {
+        onSuccess: () => { invalidate(); resetForm(); toast({ title: "Checklist created" }); },
+        onError: (e: unknown) => toast({ variant: "destructive", title: "Failed", description: (e as Error).message }),
+      });
+    }
+  };
+
+  const handleDelete = (id: number, tName: string) => {
+    if (!confirm(`Delete "${tName}"? This will also remove all checklist responses for this template.`)) return;
+    deleteTemplate.mutate({ id }, {
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListChecklistTemplatesQueryKey() }); toast({ title: "Checklist deleted" }); },
+    });
+  };
+
+  const updateQuestion = (i: number, val: string) => setQuestions(prev => prev.map((q, idx) => idx === i ? val : q));
+  const addQuestion = () => setQuestions(prev => [...prev, ""]);
+  const removeQuestion = (i: number) => setQuestions(prev => prev.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Create pre/post-trade checklists to enforce your trading rules.</p>
+        {!showForm && (
+          <Button size="sm" onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />New Checklist
+          </Button>
+        )}
+      </div>
+
+      {showForm && (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">{editingId !== null ? "Edit Checklist" : "New Checklist"}</CardTitle>
+              <button onClick={resetForm} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Checklist Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Pre-Trade Checklist" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Questions</Label>
+              {questions.map((q, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <Input
+                    value={q}
+                    onChange={(e) => updateQuestion(i, e.target.value)}
+                    placeholder={`Question ${i + 1}…`}
+                    className="flex-1"
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addQuestion(); } }}
+                  />
+                  {questions.length > 1 && (
+                    <button type="button" onClick={() => removeQuestion(i)} className="text-muted-foreground hover:text-red-400">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <Button type="button" variant="ghost" size="sm" onClick={addQuestion} className="text-muted-foreground">
+                <Plus className="h-3.5 w-3.5 mr-1" />Add question
+              </Button>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button onClick={handleSave} disabled={createTemplate.isPending || updateTemplate.isPending} size="sm">
+                {createTemplate.isPending || updateTemplate.isPending ? "Saving..." : editingId !== null ? "Update" : "Create Checklist"}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={resetForm}>Cancel</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Spinner /></div>
+      ) : !templates || templates.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <ListChecks className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground mb-4">No checklists yet. Create one to start enforcing your trading rules.</p>
+            <Button size="sm" onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />Create your first checklist
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {templates.map((t) => {
+            const qs = t.questions as { id: string; text: string }[];
+            return (
+              <Card key={t.id}>
+                <CardContent className="py-4">
+                  <div className="flex items-start gap-3">
+                    <ListChecks className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{t.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{qs.length} question{qs.length !== 1 ? "s" : ""}</p>
+                      {qs.length > 0 && (
+                        <ul className="mt-2 space-y-0.5">
+                          {qs.slice(0, 3).map((q) => (
+                            <li key={q.id} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                              <span className="mt-0.5 text-muted-foreground/50">•</span>
+                              <span className="truncate">{q.text}</span>
+                            </li>
+                          ))}
+                          {qs.length > 3 && <li className="text-xs text-muted-foreground/60">+{qs.length - 3} more…</li>}
+                        </ul>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => startEdit(t)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300" onClick={() => handleDelete(t.id, t.name)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const TIMEZONES = [
   "UTC", "America/New_York", "America/Chicago", "America/Los_Angeles", "America/Toronto",
@@ -53,7 +223,7 @@ const emptyAccountForm = (): AccountForm => ({
   isDefault: false,
 });
 
-type TabId = "general" | "accounts";
+type TabId = "general" | "accounts" | "checklists";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -67,7 +237,7 @@ export default function Settings() {
   const [location] = useLocation();
   const [saved, setSaved] = useState(false);
 
-  const defaultTab: TabId = location.includes("tab=accounts") ? "accounts" : "general";
+  const defaultTab: TabId = location.includes("tab=checklists") ? "checklists" : location.includes("tab=accounts") ? "accounts" : "general";
   const [activeTab, setActiveTab] = useState<TabId>(defaultTab);
 
   // General settings
@@ -84,7 +254,8 @@ export default function Settings() {
   const [accountForm, setAccountForm] = useState<AccountForm>(emptyAccountForm());
 
   useEffect(() => {
-    if (location.includes("tab=accounts")) setActiveTab("accounts");
+    if (location.includes("tab=checklists")) setActiveTab("checklists");
+    else if (location.includes("tab=accounts")) setActiveTab("accounts");
   }, [location]);
 
   const handleSave = () => {
@@ -230,6 +401,7 @@ export default function Settings() {
   const tabs: { id: TabId; label: string }[] = [
     { id: "general", label: "General" },
     { id: "accounts", label: "Trading Accounts" },
+    { id: "checklists", label: "Checklists" },
   ];
 
   return (
@@ -310,6 +482,9 @@ export default function Settings() {
           </Button>
         </div>
       )}
+
+      {/* CHECKLISTS TAB */}
+      {activeTab === "checklists" && <ChecklistsTab />}
 
       {/* ACCOUNTS TAB */}
       {activeTab === "accounts" && (

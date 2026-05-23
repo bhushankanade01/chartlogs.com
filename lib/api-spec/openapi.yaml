@@ -30,6 +30,8 @@ tags:
     description: Admin operations
   - name: storage
     description: Object storage upload and serving endpoints
+  - name: checklists
+    description: Checklist templates and responses
 
 paths:
   /healthz:
@@ -915,6 +917,176 @@ paths:
                 items:
                   $ref: "#/components/schemas/EmotionPerformance"
 
+  /analytics/by-strategy:
+    get:
+      operationId: getAnalyticsByStrategy
+      tags: [analytics]
+      summary: Get performance grouped by strategy
+      parameters:
+        - name: accountId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Strategy analytics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StrategyPerformance"
+
+  /analytics/by-session:
+    get:
+      operationId: getAnalyticsBySession
+      tags: [analytics]
+      summary: Get performance grouped by trading session
+      parameters:
+        - name: accountId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Session analytics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SessionPerformance"
+
+  # CHECKLISTS
+  /checklists/templates:
+    get:
+      operationId: listChecklistTemplates
+      tags: [checklists]
+      summary: List checklist templates for the current user
+      responses:
+        "200":
+          description: List of checklist templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChecklistTemplate"
+
+    post:
+      operationId: createChecklistTemplate
+      tags: [checklists]
+      summary: Create a checklist template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChecklistTemplateInput"
+      responses:
+        "201":
+          description: Template created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChecklistTemplate"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /checklists/templates/{id}:
+    patch:
+      operationId: updateChecklistTemplate
+      tags: [checklists]
+      summary: Update a checklist template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChecklistTemplateUpdate"
+      responses:
+        "200":
+          description: Template updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChecklistTemplate"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteChecklistTemplate
+      tags: [checklists]
+      summary: Delete a checklist template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /checklists/responses/{tradeId}:
+    get:
+      operationId: getChecklistResponses
+      tags: [checklists]
+      summary: Get checklist responses for a trade
+      parameters:
+        - name: tradeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Checklist responses for trade
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChecklistResponse"
+
+    put:
+      operationId: upsertChecklistResponse
+      tags: [checklists]
+      summary: Save checklist responses for a trade
+      parameters:
+        - name: tradeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChecklistResponseInput"
+      responses:
+        "200":
+          description: Response saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChecklistResponse"
+
   # MARKET
   /market/calendar:
     get:
@@ -1190,6 +1362,8 @@ components:
           type: ["number", "null"]
         rrRatio:
           type: ["number", "null"]
+        rMultiple:
+          type: ["number", "null"]
         fees:
           type: ["number", "null"]
         source:
@@ -1210,12 +1384,21 @@ components:
         outcome:
           type: ["string", "null"]
           enum: [win, loss, breakeven, null]
+        strategy:
+          type: ["string", "null"]
+        session:
+          type: ["string", "null"]
+          enum: [London, NewYork, Asian, Sydney, OffHours, null]
+        rating:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
         createdAt:
           type: string
 
     TradeInput:
       type: object
-      required: [symbol, type, entryPrice, positionSize, openTime, source]
+      required: [symbol, type, entryPrice, positionSize, openTime]
       properties:
         accountId:
           type: ["integer", "null"]
@@ -1255,6 +1438,17 @@ components:
           type: array
           items:
             type: string
+        strategy:
+          type: ["string", "null"]
+        session:
+          type: ["string", "null"]
+          enum: [London, NewYork, Asian, Sydney, OffHours, null]
+        rating:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+        rMultiple:
+          type: ["number", "null"]
 
     TradeUpdate:
       type: object
@@ -1297,6 +1491,17 @@ components:
           type: array
           items:
             type: string
+        strategy:
+          type: ["string", "null"]
+        session:
+          type: ["string", "null"]
+          enum: [London, NewYork, Asian, Sydney, OffHours, null]
+        rating:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+        rMultiple:
+          type: ["number", "null"]
 
     TradeListResponse:
       type: object
@@ -1669,3 +1874,123 @@ components:
           type: number
         pipValue:
           type: number
+
+    # ANALYTICS (new)
+    StrategyPerformance:
+      type: object
+      required: [strategy, trades, pnl, winRate, avgRMultiple]
+      properties:
+        strategy:
+          type: string
+        trades:
+          type: integer
+        pnl:
+          type: number
+        winRate:
+          type: number
+        avgRMultiple:
+          type: ["number", "null"]
+
+    SessionPerformance:
+      type: object
+      required: [session, trades, pnl, winRate]
+      properties:
+        session:
+          type: string
+        trades:
+          type: integer
+        pnl:
+          type: number
+        winRate:
+          type: number
+
+    # CHECKLISTS
+    ChecklistQuestion:
+      type: object
+      required: [id, text]
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+
+    ChecklistTemplate:
+      type: object
+      required: [id, userId, name, questions, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistQuestion"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    ChecklistTemplateInput:
+      type: object
+      required: [name, questions]
+      properties:
+        name:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistQuestion"
+
+    ChecklistTemplateUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistQuestion"
+
+    ChecklistAnswer:
+      type: object
+      required: [questionId, checked]
+      properties:
+        questionId:
+          type: string
+        checked:
+          type: boolean
+
+    ChecklistResponse:
+      type: object
+      required: [id, userId, tradeId, templateId, answers, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        tradeId:
+          type: integer
+        templateId:
+          type: integer
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistAnswer"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    ChecklistResponseInput:
+      type: object
+      required: [templateId, answers]
+      properties:
+        templateId:
+          type: integer
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistAnswer"
