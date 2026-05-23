@@ -40,6 +40,10 @@ import type {
   GetPerformanceParams,
   GetRecentTradesParams,
   HealthStatus,
+  ImportPreviewResponse,
+  ImportTradesBody,
+  ImportTradesParams,
+  ImportTradesResponse,
   JournalEntry,
   JournalInput,
   ListJournalEntriesParams,
@@ -48,6 +52,8 @@ import type {
   PerformanceAnalytics,
   PositionSizeInput,
   PositionSizeResult,
+  PreviewImportBody,
+  PreviewImportParams,
   RegisterInput,
   ResetPasswordInput,
   SuccessResponse,
@@ -1317,6 +1323,171 @@ export const useDeleteTrade = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteTradeMutationOptions(options));
+    }
+
+export const getPreviewImportUrl = (params?: PreviewImportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/trades/import/preview?${stringifiedParams}` : `/api/trades/import/preview`
+}
+
+/**
+ * @summary Parse a CSV file and return a preview (no insert)
+ */
+export const previewImport = async (previewImportBody: PreviewImportBody,
+    params?: PreviewImportParams, options?: RequestInit): Promise<ImportPreviewResponse> => {
+    const formData = new FormData();
+formData.append(`file`, previewImportBody.file);
+
+  return customFetch<ImportPreviewResponse>(getPreviewImportUrl(params),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body:
+      formData,
+  }
+);}
+
+
+
+
+export const getPreviewImportMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewImport>>, TError,{data: BodyType<PreviewImportBody>;params?: PreviewImportParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewImport>>, TError,{data: BodyType<PreviewImportBody>;params?: PreviewImportParams}, TContext> => {
+
+const mutationKey = ['previewImport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewImport>>, {data: BodyType<PreviewImportBody>;params?: PreviewImportParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  previewImport(data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewImportMutationResult = NonNullable<Awaited<ReturnType<typeof previewImport>>>
+    export type PreviewImportMutationBody = BodyType<PreviewImportBody>
+    export type PreviewImportMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Parse a CSV file and return a preview (no insert)
+ */
+export const usePreviewImport = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewImport>>, TError,{data: BodyType<PreviewImportBody>;params?: PreviewImportParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof previewImport>>,
+        TError,
+        {data: BodyType<PreviewImportBody>;params?: PreviewImportParams},
+        TContext
+      > => {
+      return useMutation(getPreviewImportMutationOptions(options));
+    }
+
+export const getImportTradesUrl = (params?: ImportTradesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/trades/import?${stringifiedParams}` : `/api/trades/import`
+}
+
+/**
+ * @summary Import trades from a CSV file
+ */
+export const importTrades = async (importTradesBody: ImportTradesBody,
+    params?: ImportTradesParams, options?: RequestInit): Promise<ImportTradesResponse> => {
+    const formData = new FormData();
+formData.append(`file`, importTradesBody.file);
+if(importTradesBody.columnMap !== undefined) {
+ formData.append(`columnMap`, importTradesBody.columnMap);
+ }
+
+  return customFetch<ImportTradesResponse>(getImportTradesUrl(params),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body:
+      formData,
+  }
+);}
+
+
+
+
+export const getImportTradesMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTrades>>, TError,{data: BodyType<ImportTradesBody>;params?: ImportTradesParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importTrades>>, TError,{data: BodyType<ImportTradesBody>;params?: ImportTradesParams}, TContext> => {
+
+const mutationKey = ['importTrades'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importTrades>>, {data: BodyType<ImportTradesBody>;params?: ImportTradesParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  importTrades(data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportTradesMutationResult = NonNullable<Awaited<ReturnType<typeof importTrades>>>
+    export type ImportTradesMutationBody = BodyType<ImportTradesBody>
+    export type ImportTradesMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Import trades from a CSV file
+ */
+export const useImportTrades = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTrades>>, TError,{data: BodyType<ImportTradesBody>;params?: ImportTradesParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importTrades>>,
+        TError,
+        {data: BodyType<ImportTradesBody>;params?: ImportTradesParams},
+        TContext
+      > => {
+      return useMutation(getImportTradesMutationOptions(options));
     }
 
 export const getListJournalEntriesUrl = (params?: ListJournalEntriesParams,) => {

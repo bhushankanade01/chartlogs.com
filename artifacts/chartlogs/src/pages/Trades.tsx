@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Upload } from "lucide-react";
 import { AddTradeDrawer } from "@/components/trades/AddTradeDrawer";
+import { ImportTradesModal } from "@/components/trades/ImportTradesModal";
 
 export default function Trades() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const { activeAccountId } = useAccount();
 
   const params = { symbol: searchTerm || undefined, accountId: activeAccountId ?? undefined };
@@ -27,10 +29,16 @@ export default function Trades() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Trades</h1>
-        <Button onClick={() => setIsDrawerOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Trade
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </Button>
+          <Button onClick={() => setIsDrawerOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Trade
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -112,6 +120,7 @@ export default function Trades() {
       </Card>
 
       <AddTradeDrawer open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+      <ImportTradesModal open={isImportOpen} onClose={() => setIsImportOpen(false)} />
     </div>
   );
 }

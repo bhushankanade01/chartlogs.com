@@ -377,6 +377,57 @@ export const DeleteTradeParams = zod.object({
 
 
 /**
+ * @summary Parse a CSV file and return a preview (no insert)
+ */
+export const PreviewImportQueryParams = zod.object({
+  "accountId": zod.coerce.number().optional()
+})
+
+export const PreviewImportBody = zod.object({
+  "file": zod.instanceof(File)
+})
+
+export const PreviewImportResponse = zod.object({
+  "format": zod.enum(['mt4', 'mt5', 'csv', 'unknown']),
+  "rowCount": zod.number(),
+  "preview": zod.array(zod.object({
+  "symbol": zod.string(),
+  "type": zod.enum(['long', 'short']),
+  "entryPrice": zod.number(),
+  "exitPrice": zod.number().nullish(),
+  "positionSize": zod.number(),
+  "openTime": zod.string(),
+  "closeTime": zod.string().nullish(),
+  "pnl": zod.number().nullish(),
+  "fees": zod.number().nullish(),
+  "warning": zod.string().optional()
+})),
+  "rawHeaders": zod.array(zod.string()),
+  "rawRows": zod.array(zod.array(zod.string()))
+})
+
+
+/**
+ * @summary Import trades from a CSV file
+ */
+export const ImportTradesQueryParams = zod.object({
+  "accountId": zod.coerce.number().optional()
+})
+
+export const ImportTradesBody = zod.object({
+  "file": zod.instanceof(File),
+  "columnMap": zod.string().optional().describe('JSON-encoded GenericColumnMap for unknown-format CSV')
+})
+
+export const ImportTradesResponse = zod.object({
+  "imported": zod.number(),
+  "skipped": zod.number(),
+  "errors": zod.array(zod.string()),
+  "format": zod.enum(['mt4', 'mt5', 'csv', 'unknown'])
+})
+
+
+/**
  * @summary List journal entries
  */
 export const ListJournalEntriesQueryParams = zod.object({

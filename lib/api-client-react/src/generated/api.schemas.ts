@@ -440,6 +440,66 @@ export interface EconomicEvent {
   previous?: string | null;
 }
 
+export type ImportPreviewRowType = typeof ImportPreviewRowType[keyof typeof ImportPreviewRowType];
+
+
+export const ImportPreviewRowType = {
+  long: 'long',
+  short: 'short',
+} as const;
+
+export interface ImportPreviewRow {
+  symbol: string;
+  type: ImportPreviewRowType;
+  entryPrice: number;
+  /** @nullable */
+  exitPrice?: number | null;
+  positionSize: number;
+  openTime: string;
+  /** @nullable */
+  closeTime?: string | null;
+  /** @nullable */
+  pnl?: number | null;
+  /** @nullable */
+  fees?: number | null;
+  warning?: string;
+}
+
+export type ImportPreviewResponseFormat = typeof ImportPreviewResponseFormat[keyof typeof ImportPreviewResponseFormat];
+
+
+export const ImportPreviewResponseFormat = {
+  mt4: 'mt4',
+  mt5: 'mt5',
+  csv: 'csv',
+  unknown: 'unknown',
+} as const;
+
+export interface ImportPreviewResponse {
+  format: ImportPreviewResponseFormat;
+  rowCount: number;
+  preview: ImportPreviewRow[];
+  rawHeaders: string[];
+  rawRows: string[][];
+}
+
+export type ImportTradesResponseFormat = typeof ImportTradesResponseFormat[keyof typeof ImportTradesResponseFormat];
+
+
+export const ImportTradesResponseFormat = {
+  mt4: 'mt4',
+  mt5: 'mt5',
+  csv: 'csv',
+  unknown: 'unknown',
+} as const;
+
+export interface ImportTradesResponse {
+  imported: number;
+  skipped: number;
+  errors: string[];
+  format: ImportTradesResponseFormat;
+}
+
 export interface PositionSizeInput {
   accountBalance: number;
   riskPercent: number;
@@ -482,6 +542,24 @@ export const ListTradesOutcome = {
   loss: 'loss',
   breakeven: 'breakeven',
 } as const;
+
+export type PreviewImportParams = {
+accountId?: number;
+};
+
+export type PreviewImportBody = {
+  file: Blob;
+};
+
+export type ImportTradesParams = {
+accountId?: number;
+};
+
+export type ImportTradesBody = {
+  file: Blob;
+  /** JSON-encoded GenericColumnMap for unknown-format CSV */
+  columnMap?: string;
+};
 
 export type ListJournalEntriesParams = {
 status?: ListJournalEntriesStatus;

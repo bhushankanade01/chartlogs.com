@@ -426,6 +426,79 @@ paths:
         "204":
           description: Deleted
 
+  /trades/import/preview:
+    post:
+      operationId: previewImport
+      tags: [trades]
+      summary: Parse a CSV file and return a preview (no insert)
+      parameters:
+        - name: accountId
+          in: query
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Preview of parsed trades
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPreviewResponse"
+        "400":
+          description: Parse error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /trades/import:
+    post:
+      operationId: importTrades
+      tags: [trades]
+      summary: Import trades from a CSV file
+      parameters:
+        - name: accountId
+          in: query
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                columnMap:
+                  type: string
+                  description: JSON-encoded GenericColumnMap for unknown-format CSV
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportTradesResponse"
+        "400":
+          description: Parse error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # JOURNAL
   /journal:
     get:
@@ -1338,6 +1411,73 @@ components:
           type: ["string", "null"]
         previous:
           type: ["string", "null"]
+
+    # IMPORT
+    ImportPreviewRow:
+      type: object
+      required: [symbol, type, entryPrice, positionSize, openTime]
+      properties:
+        symbol:
+          type: string
+        type:
+          type: string
+          enum: [long, short]
+        entryPrice:
+          type: number
+        exitPrice:
+          type: ["number", "null"]
+        positionSize:
+          type: number
+        openTime:
+          type: string
+        closeTime:
+          type: ["string", "null"]
+        pnl:
+          type: ["number", "null"]
+        fees:
+          type: ["number", "null"]
+        warning:
+          type: string
+
+    ImportPreviewResponse:
+      type: object
+      required: [format, rowCount, preview, rawHeaders, rawRows]
+      properties:
+        format:
+          type: string
+          enum: [mt4, mt5, csv, unknown]
+        rowCount:
+          type: integer
+        preview:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportPreviewRow"
+        rawHeaders:
+          type: array
+          items:
+            type: string
+        rawRows:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+
+    ImportTradesResponse:
+      type: object
+      required: [imported, skipped, errors, format]
+      properties:
+        imported:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+        format:
+          type: string
+          enum: [mt4, mt5, csv, unknown]
 
     # TOOLS
     PositionSizeInput:
