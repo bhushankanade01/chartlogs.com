@@ -4,6 +4,8 @@ import {
   useUpsertJournalEntry,
   getListJournalEntriesQueryKey,
   JournalEntry,
+  useGetChecklistResponses,
+  useListChecklistTemplates,
 } from "@workspace/api-client-react";
 import { useAccount } from "@/contexts/AccountContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,7 +16,70 @@ import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { ScreenshotUploader } from "@/components/ui/ScreenshotUploader";
-import { BookOpen, ChevronDown, ChevronUp, Edit2, Check, X } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronUp, Edit2, Check, X, Star } from "lucide-react";
+
+const SESSION_COLORS: Record<string, string> = {
+  London: "text-blue-400 border-blue-400/20",
+  NewYork: "text-purple-400 border-purple-400/20",
+  Asian: "text-yellow-400 border-yellow-400/20",
+  Sydney: "text-emerald-400 border-emerald-400/20",
+  OffHours: "text-muted-foreground border-border",
+};
+
+function StarDisplay({ rating }: { rating?: number | null }) {
+  if (!rating) return null;
+  return (
+    <div className="flex gap-0.5 items-center">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star key={s} className={`h-3 w-3 ${s <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/20"}`} />
+      ))}
+    </div>
+  );
+}
+
+function ChecklistResponseView({ tradeId }: { tradeId: number }) {
+  const { data: templates } = useListChecklistTemplates();
+  const { data: responses } = useGetChecklistResponses(tradeId);
+
+  if (!templates || templates.length === 0 || !responses || responses.length === 0) return null;
+
+  const responsesByTemplate = new Map(responses.map(r => [r.templateId, r.answers as { questionId: string; checked: boolean }[]]));
+
+  const relevantTemplates = templates.filter(t => responsesByTemplate.has(t.id));
+  if (relevantTemplates.length === 0) return null;
+
+  return (
+    <div className="space-y-2 mt-3">
+      <p className="text-xs text-muted-foreground font-medium">Checklists</p>
+      {relevantTemplates.map(t => {
+        const answers = responsesByTemplate.get(t.id) ?? [];
+        const questions = t.questions as { id: string; text: string }[];
+        const checked = answers.filter(a => a.checked).length;
+        return (
+          <div key={t.id} className="text-xs border border-border/50 rounded-md p-2.5 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-foreground/80">{t.name}</span>
+              <span className={`font-mono ${checked === questions.length ? "text-emerald-400" : "text-muted-foreground"}`}>{checked}/{questions.length}</span>
+            </div>
+            <div className="space-y-1">
+              {questions.map(q => {
+                const ans = answers.find(a => a.questionId === q.id);
+                return (
+                  <div key={q.id} className="flex items-center gap-1.5 text-muted-foreground">
+                    <span className={`w-3 h-3 rounded-sm border flex items-center justify-center flex-shrink-0 ${ans?.checked ? "bg-emerald-500/20 border-emerald-500/40" : "border-border/60"}`}>
+                      {ans?.checked && <Check className="w-2 h-2 text-emerald-400" />}
+                    </span>
+                    <span className={ans?.checked ? "line-through opacity-60" : ""}>{q.text}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 const MOOD_LABELS: Record<string, string> = {
   "1": "😊 Great",
@@ -158,11 +223,25 @@ function EntryCard({ entry }: { entry: JournalEntry }) {
           </div>
         </div>
         {entry.trade && (
-          <div className="flex gap-4 text-xs font-mono text-muted-foreground mt-2">
+          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-2 items-center">
             {entry.trade.pnl != null && (
-              <span className={entry.trade.pnl >= 0 ? "text-emerald-400" : "text-red-400"}>
+              <span className={`font-mono font-medium ${entry.trade.pnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                 {entry.trade.pnl >= 0 ? "+" : ""}${entry.trade.pnl.toFixed(2)}
               </span>
+            )}
+            {(entry.trade as Record<string, unknown>)["strategy"] && (
+              <span className="text-foreground/70 font-medium">{String((entry.trade as Record<string, unknown>)["strategy"])}</span>
+            )}
+            {(entry.trade as Record<string, unknown>)["session"] && (
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${SESSION_COLORS[String((entry.trade as Record<string, unknown>)["session"])] ?? ""}`}>
+                {String((entry.trade as Record<string, unknown>)["session"])}
+              </Badge>
+            )}
+            {(entry.trade as Record<string, unknown>)["rating"] && (
+              <StarDisplay rating={Number((entry.trade as Record<string, unknown>)["rating"])} />
+            )}
+            {(entry.trade as Record<string, unknown>)["rMultiple"] != null && (
+              <span className="font-mono">R: {Number((entry.trade as Record<string, unknown>)["rMultiple"]).toFixed(1)}</span>
             )}
             {entry.trade.tags && entry.trade.tags.length > 0 && (
               <span className="flex gap-1 flex-wrap">

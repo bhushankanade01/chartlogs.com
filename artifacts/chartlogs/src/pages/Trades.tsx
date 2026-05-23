@@ -7,10 +7,29 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
-import { Search, Plus, Upload } from "lucide-react";
+import { Search, Plus, Upload, Star } from "lucide-react";
 import { AddTradeDrawer } from "@/components/trades/AddTradeDrawer";
 import { ImportTradesModal } from "@/components/trades/ImportTradesModal";
 import { getStorageUrl, Lightbox } from "@/components/ui/ScreenshotUploader";
+
+const SESSION_COLORS: Record<string, string> = {
+  London: "text-blue-400 border-blue-400/20",
+  NewYork: "text-purple-400 border-purple-400/20",
+  Asian: "text-yellow-400 border-yellow-400/20",
+  Sydney: "text-emerald-400 border-emerald-400/20",
+  OffHours: "text-muted-foreground border-border",
+};
+
+function StarDisplay({ rating }: { rating?: number | null }) {
+  if (!rating) return <span className="text-muted-foreground/40">—</span>;
+  return (
+    <div className="flex gap-0.5 justify-end">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star key={s} className={`h-3 w-3 ${s <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/20"}`} />
+      ))}
+    </div>
+  );
+}
 
 function ScreenshotPreviewCell({ screenshots }: { screenshots?: string[] | null }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -117,6 +136,9 @@ export default function Trades() {
                     <th className="py-3 px-4 text-right font-medium">Entry</th>
                     <th className="py-3 px-4 text-right font-medium">Exit</th>
                     <th className="py-3 px-4 text-right font-medium">P&L</th>
+                    <th className="py-3 px-4 text-left font-medium">Strategy</th>
+                    <th className="py-3 px-4 text-left font-medium">Session</th>
+                    <th className="py-3 px-4 text-right font-medium">Rating</th>
                     <th className="py-3 px-4 text-right font-medium">Tags</th>
                     <th className="py-3 px-4 text-right font-medium">Charts</th>
                   </tr>
@@ -139,6 +161,19 @@ export default function Trades() {
                         trade.pnl && trade.pnl > 0 ? "text-emerald-400" : trade.pnl && trade.pnl < 0 ? "text-red-400" : ""
                       )}>
                         {trade.pnl ? formatMoney(trade.pnl) : '-'}
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {trade.strategy
+                          ? <span className="text-foreground/80 truncate max-w-[100px] block">{trade.strategy}</span>
+                          : <span className="text-muted-foreground/40">—</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        {trade.session
+                          ? <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${SESSION_COLORS[trade.session] ?? "text-muted-foreground"}`}>{trade.session}</Badge>
+                          : <span className="text-muted-foreground/40">—</span>}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <StarDisplay rating={trade.rating} />
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex justify-end gap-1 flex-wrap">
