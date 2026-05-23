@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { ScreenshotUploader } from "@/components/ui/ScreenshotUploader";
 import { X } from "lucide-react";
 
 const COMMON_SYMBOLS = [
@@ -51,6 +52,7 @@ export function AddTradeDrawer({ open, onClose }: AddTradeDrawerProps) {
   const [notes, setNotes] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [screenshots, setScreenshots] = useState<string[]>([]);
 
   const resolvedSymbol = symbol === "__custom__" ? customSymbol.toUpperCase().trim() : symbol;
 
@@ -85,6 +87,7 @@ export function AddTradeDrawer({ open, onClose }: AddTradeDrawerProps) {
           emotion: emotion || undefined,
           notes: notes || undefined,
           tags: tags.length > 0 ? tags : undefined,
+          screenshots: screenshots.length > 0 ? screenshots : undefined,
           source: "manual",
           accountId: activeAccountId ?? undefined,
         },
@@ -114,6 +117,7 @@ export function AddTradeDrawer({ open, onClose }: AddTradeDrawerProps) {
     setEmotion("");
     setNotes("");
     setTags([]);
+    setScreenshots([]);
   };
 
   const isValid = resolvedSymbol && entryPrice && positionSize && openTime;
@@ -323,6 +327,11 @@ export function AddTradeDrawer({ open, onClose }: AddTradeDrawerProps) {
               placeholder="Trade rationale, observations…"
               rows={3}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Screenshots</Label>
+            <ScreenshotUploader value={screenshots} onChange={setScreenshots} />
           </div>
 
           <div className="flex gap-3 pt-2">

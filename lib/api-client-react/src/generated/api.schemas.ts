@@ -503,6 +503,20 @@ export interface ImportTradesResponse {
   format: ImportTradesResponseFormat;
 }
 
+export interface UploadUrlRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  /** @minLength 1 */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+}
+
 export interface PositionSizeInput {
   accountBalance: number;
   riskPercent: number;

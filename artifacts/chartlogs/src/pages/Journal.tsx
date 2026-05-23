@@ -1,16 +1,20 @@
 import { useState } from "react";
 import {
   useListJournalEntries,
+  useUpsertJournalEntry,
   getListJournalEntriesQueryKey,
   JournalEntry,
 } from "@workspace/api-client-react";
 import { useAccount } from "@/contexts/AccountContext";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatDate } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { ScreenshotUploader } from "@/components/ui/ScreenshotUploader";
+import { BookOpen, ChevronDown, ChevronUp, Edit2, Check, X } from "lucide-react";
 
 const MOOD_LABELS: Record<string, string> = {
   "1": "😊 Great",
@@ -28,9 +32,91 @@ const MOOD_COLORS: Record<string, string> = {
   "5": "text-purple-400",
 };
 
+function getStorageUrl(objectPath: string): string {
+  return `/api/storage${objectPath}`;
+}
+
+function ThumbnailStrip({ screenshots, onOpen }: { screenshots: string[]; onOpen: (i: number) => void }) {
+  if (!screenshots || screenshots.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-2">
+      {screenshots.map((p, i) => (
+        <button
+          key={p}
+          type="button"
+          onClick={() => onOpen(i)}
+          className="w-14 h-14 rounded border border-border overflow-hidden hover:border-border/60 transition-colors"
+        >
+          <img src={getStorageUrl(p)} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Lightbox({ urls, initialIndex, onClose }: { urls: string[]; initialIndex: number; onClose: () => void }) {
+  const [index, setIndex] = useState(initialIndex);
+  const prev = () => setIndex((i) => (i - 1 + urls.length) % urls.length);
+  const next = () => setIndex((i) => (i + 1) % urls.length);
+  return (
+    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={onClose}>
+      <div className="relative max-w-5xl max-h-[90vh] px-12" onClick={(e) => e.stopPropagation()}>
+        <img src={urls[index]} alt="" className="max-h-[85vh] max-w-full object-contain rounded-md" />
+        <button type="button" className="absolute top-2 right-2 text-white/70 hover:text-white bg-black/40 rounded-full p-1" onClick={onClose}>
+          <X className="h-5 w-5" />
+        </button>
+        {urls.length > 1 && (
+          <>
+            <button type="button" className="absolute left-0 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-black/40 rounded-full p-1.5" onClick={prev}>
+              <ChevronDown className="h-5 w-5 rotate-90" />
+            </button>
+            <button type="button" className="absolute right-0 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-black/40 rounded-full p-1.5" onClick={next}>
+              <ChevronDown className="h-5 w-5 -rotate-90" />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function EntryCard({ entry }: { entry: JournalEntry }) {
+  const queryClient = useQueryClient();
+  const upsert = useUpsertJournalEntry();
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editNotes, setEditNotes] = useState(entry.notes ?? "");
+  const [editScreenshots, setEditScreenshots] = useState<string[]>(entry.screenshots ?? []);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
   const moodKey = entry.mood ? String(entry.mood) : null;
+  const hasContent = entry.notes || (entry.screenshots && entry.screenshots.length > 0);
+
+  const handleSave = () => {
+    upsert.mutate(
+      {
+        tradeId: entry.tradeId,
+        data: {
+          notes: editNotes || undefined,
+          mood: entry.mood ?? undefined,
+          screenshots: editScreenshots.length > 0 ? editScreenshots : undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListJournalEntriesQueryKey() });
+          setEditing(false);
+          setExpanded(true);
+        },
+      }
+    );
+  };
+
+  const handleCancel = () => {
+    setEditNotes(entry.notes ?? "");
+    setEditScreenshots(entry.screenshots ?? []);
+    setEditing(false);
+  };
 
   return (
     <Card className="transition-colors hover:border-border/80">
@@ -49,16 +135,27 @@ function EntryCard({ entry }: { entry: JournalEntry }) {
               </div>
             </div>
           </div>
-          {entry.notes && (
+          <div className="flex items-center gap-1 flex-shrink-0">
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-muted-foreground flex-shrink-0"
-              onClick={() => setExpanded((e) => !e)}
+              className="h-7 w-7 text-muted-foreground"
+              onClick={() => { setEditing(true); setExpanded(true); }}
+              title="Edit entry"
             >
-              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              <Edit2 className="h-3.5 w-3.5" />
             </Button>
-          )}
+            {hasContent && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground"
+                onClick={() => setExpanded((e) => !e)}
+              >
+                {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            )}
+          </div>
         </div>
         {entry.trade && (
           <div className="flex gap-4 text-xs font-mono text-muted-foreground mt-2">
@@ -76,15 +173,70 @@ function EntryCard({ entry }: { entry: JournalEntry }) {
             )}
           </div>
         )}
+
+        {!editing && !expanded && entry.screenshots && entry.screenshots.length > 0 && (
+          <ThumbnailStrip
+            screenshots={entry.screenshots}
+            onOpen={(i) => { setLightboxIndex(i); }}
+          />
+        )}
       </CardHeader>
 
-      {expanded && entry.notes && (
+      {(expanded || editing) && (
         <CardContent className="pt-0">
-          <div className="border-t border-border pt-4">
-            <p className="text-sm text-muted-foreground font-medium mb-1">Notes</p>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{entry.notes}</p>
+          <div className="border-t border-border pt-4 space-y-4">
+            {editing ? (
+              <>
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground font-medium">Notes</p>
+                  <Textarea
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    placeholder="Trade reflections, lessons learned…"
+                    rows={3}
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground font-medium">Screenshots</p>
+                  <ScreenshotUploader value={editScreenshots} onChange={setEditScreenshots} />
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleSave} disabled={upsert.isPending}>
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                    {upsert.isPending ? "Saving…" : "Save"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleCancel} disabled={upsert.isPending}>
+                    Cancel
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                {entry.notes && (
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium mb-1">Notes</p>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{entry.notes}</p>
+                  </div>
+                )}
+                {entry.screenshots && entry.screenshots.length > 0 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium mb-2">Screenshots</p>
+                    <ThumbnailStrip screenshots={entry.screenshots} onOpen={setLightboxIndex} />
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </CardContent>
+      )}
+
+      {lightboxIndex !== null && entry.screenshots && (
+        <Lightbox
+          urls={entry.screenshots.map(getStorageUrl)}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
     </Card>
   );
