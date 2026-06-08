@@ -229,19 +229,19 @@ function EntryCard({ entry }: { entry: JournalEntry }) {
                 {entry.trade.pnl >= 0 ? "+" : ""}${entry.trade.pnl.toFixed(2)}
               </span>
             )}
-            {(entry.trade as Record<string, unknown>)["strategy"] && (
-              <span className="text-foreground/70 font-medium">{String((entry.trade as Record<string, unknown>)["strategy"])}</span>
+            {entry.trade.strategy && (
+              <span className="text-foreground/70 font-medium">{entry.trade.strategy}</span>
             )}
-            {(entry.trade as Record<string, unknown>)["session"] && (
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${SESSION_COLORS[String((entry.trade as Record<string, unknown>)["session"])] ?? ""}`}>
-                {String((entry.trade as Record<string, unknown>)["session"])}
+            {entry.trade.session && (
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${SESSION_COLORS[entry.trade.session] ?? ""}`}>
+                {entry.trade.session}
               </Badge>
             )}
-            {(entry.trade as Record<string, unknown>)["rating"] && (
-              <StarDisplay rating={Number((entry.trade as Record<string, unknown>)["rating"])} />
+            {entry.trade.rating && (
+              <StarDisplay rating={entry.trade.rating} />
             )}
-            {(entry.trade as Record<string, unknown>)["rMultiple"] != null && (
-              <span className="font-mono">R: {Number((entry.trade as Record<string, unknown>)["rMultiple"]).toFixed(1)}</span>
+            {entry.trade.rMultiple != null && (
+              <span className="font-mono">R: {entry.trade.rMultiple.toFixed(1)}</span>
             )}
             {entry.trade.tags && entry.trade.tags.length > 0 && (
               <span className="flex gap-1 flex-wrap">
@@ -292,6 +292,7 @@ function EntryCard({ entry }: { entry: JournalEntry }) {
               </>
             ) : (
               <>
+                <ChecklistResponseView tradeId={entry.tradeId} />
                 {entry.notes && (
                   <div>
                     <p className="text-sm text-muted-foreground font-medium mb-1">Notes</p>

@@ -932,6 +932,22 @@ export const GetAnalyticsBySessionResponse = zod.array(GetAnalyticsBySessionResp
 
 
 /**
+ * @summary Get checklist compliance stats per template
+ */
+export const GetChecklistComplianceQueryParams = zod.object({
+  "accountId": zod.coerce.number().optional()
+})
+
+export const GetChecklistComplianceResponseItem = zod.object({
+  "templateId": zod.number(),
+  "templateName": zod.string(),
+  "totalResponses": zod.number(),
+  "avgComplianceRate": zod.number().describe('Average percentage of items checked (0-100)')
+})
+export const GetChecklistComplianceResponse = zod.array(GetChecklistComplianceResponseItem)
+
+
+/**
  * @summary List checklist templates for the current user
  */
 export const ListChecklistTemplatesResponseItem = zod.object({

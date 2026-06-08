@@ -133,6 +133,14 @@ router.post("/trades", requireAuth, async (req, res): Promise<void> => {
   }
   rrRatio = calculateRR(d.type as "long" | "short", entry, tp, sl);
 
+  // Auto-compute R-multiple from prices when SL is set and user didn't supply one
+  let computedRMultiple: number | null = (d as Record<string, unknown>)["rMultiple"] as number | null ?? null;
+  if (computedRMultiple === null && exit !== null && sl !== null) {
+    const risk = d.type === "long" ? entry - sl : sl - entry;
+    const reward = d.type === "long" ? exit - entry : entry - exit;
+    if (risk > 0) computedRMultiple = parseFloat((reward / risk).toFixed(2));
+  }
+
   // Validate account ownership if accountId is provided
   if (d.accountId) {
     const [acct] = await db.select({ id: tradingAccountsTable.id })
@@ -163,7 +171,7 @@ router.post("/trades", requireAuth, async (req, res): Promise<void> => {
     pnl: pnl !== null ? String(pnl) : null,
     pips: pips !== null ? String(pips) : null,
     rrRatio: rrRatio !== null ? String(rrRatio) : null,
-    rMultiple: (d as Record<string, unknown>)["rMultiple"] != null ? String((d as Record<string, unknown>)["rMultiple"]) : null,
+    rMultiple: computedRMultiple != null ? String(computedRMultiple) : null,
     fees: d.fees != null ? String(d.fees) : null,
     source: (d.source ?? "manual") as "manual" | "mt4" | "mt5" | "csv",
     tags: d.tags ?? [],
@@ -265,6 +273,13 @@ router.patch("/trades/:id", requireAuth, async (req, res): Promise<void> => {
     updates.outcome = determineOutcome(parseFloat(String(updates.pnl)));
   }
   updates.rrRatio = calculateRR(tradeType, entry, tp, sl) !== null ? String(calculateRR(tradeType, entry, tp, sl)) : null;
+
+  // Auto-compute R-multiple when prices and SL are available and user didn't supply one
+  if (dRaw["rMultiple"] === undefined && exit !== null && sl !== null) {
+    const risk = tradeType === "long" ? entry - sl : sl - entry;
+    const reward = tradeType === "long" ? exit - entry : entry - exit;
+    if (risk > 0) updates.rMultiple = String(parseFloat((reward / risk).toFixed(2)));
+  }
 
   const [trade] = await db.update(tradesTable)
     .set(updates as Partial<typeof tradesTable.$inferSelect>)

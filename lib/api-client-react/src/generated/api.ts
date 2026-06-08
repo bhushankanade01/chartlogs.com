@@ -22,6 +22,7 @@ import type {
 import type {
   AuthResponse,
   CalendarDay,
+  ChecklistCompliance,
   ChecklistResponse,
   ChecklistResponseInput,
   ChecklistTemplate,
@@ -42,6 +43,7 @@ import type {
   GetAnalyticsByStrategyParams,
   GetAnalyticsBySymbolParams,
   GetAnalyticsByTagParams,
+  GetChecklistComplianceParams,
   GetDashboardCalendarParams,
   GetDashboardStatsParams,
   GetEquityCurveParams,
@@ -2941,6 +2943,90 @@ export function useGetAnalyticsBySession<TData = Awaited<ReturnType<typeof getAn
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAnalyticsBySessionQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetChecklistComplianceUrl = (params?: GetChecklistComplianceParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/analytics/checklist-compliance?${stringifiedParams}` : `/api/analytics/checklist-compliance`
+}
+
+/**
+ * @summary Get checklist compliance stats per template
+ */
+export const getChecklistCompliance = async (params?: GetChecklistComplianceParams, options?: RequestInit): Promise<ChecklistCompliance[]> => {
+
+  return customFetch<ChecklistCompliance[]>(getGetChecklistComplianceUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChecklistComplianceQueryKey = (params?: GetChecklistComplianceParams,) => {
+    return [
+    `/api/analytics/checklist-compliance`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetChecklistComplianceQueryOptions = <TData = Awaited<ReturnType<typeof getChecklistCompliance>>, TError = ErrorType<unknown>>(params?: GetChecklistComplianceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChecklistCompliance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChecklistComplianceQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChecklistCompliance>>> = ({ signal }) => getChecklistCompliance(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChecklistCompliance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChecklistComplianceQueryResult = NonNullable<Awaited<ReturnType<typeof getChecklistCompliance>>>
+export type GetChecklistComplianceQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get checklist compliance stats per template
+ */
+
+export function useGetChecklistCompliance<TData = Awaited<ReturnType<typeof getChecklistCompliance>>, TError = ErrorType<unknown>>(
+ params?: GetChecklistComplianceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChecklistCompliance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChecklistComplianceQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

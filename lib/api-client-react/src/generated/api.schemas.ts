@@ -635,6 +635,14 @@ export interface SessionPerformance {
   winRate: number;
 }
 
+export interface ChecklistCompliance {
+  templateId: number;
+  templateName: string;
+  totalResponses: number;
+  /** Average percentage of items checked (0-100) */
+  avgComplianceRate: number;
+}
+
 export interface ChecklistQuestion {
   id: string;
   text: string;
@@ -856,6 +864,10 @@ accountId?: number;
 };
 
 export type GetAnalyticsBySessionParams = {
+accountId?: number;
+};
+
+export type GetChecklistComplianceParams = {
 accountId?: number;
 };
 

@@ -957,6 +957,28 @@ paths:
                 items:
                   $ref: "#/components/schemas/SessionPerformance"
 
+  /analytics/checklist-compliance:
+    get:
+      operationId: getChecklistCompliance
+      tags: [analytics]
+      summary: Get checklist compliance stats per template
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Compliance statistics per checklist template
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChecklistCompliance"
+
   # CHECKLISTS
   /checklists/templates:
     get:
@@ -1903,6 +1925,20 @@ components:
           type: number
         winRate:
           type: number
+
+    ChecklistCompliance:
+      type: object
+      required: [templateId, templateName, totalResponses, avgComplianceRate]
+      properties:
+        templateId:
+          type: integer
+        templateName:
+          type: string
+        totalResponses:
+          type: integer
+        avgComplianceRate:
+          type: number
+          description: Average percentage of items checked (0-100)
 
     # CHECKLISTS
     ChecklistQuestion:

@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   useCreateTrade, getListTradesQueryKey,
   useListChecklistTemplates, useGetChecklistResponses, useUpsertChecklistResponse,
+  useListTrades,
 } from "@workspace/api-client-react";
 import { useAccount } from "@/contexts/AccountContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -159,6 +160,48 @@ function ChecklistSection({ tradeId }: { tradeId: number }) {
 interface AddTradeDrawerProps {
   open: boolean;
   onClose: () => void;
+}
+
+function StrategyInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { data } = useListTrades();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const pastStrategies = [...new Set(
+    (data?.trades ?? [])
+      .map(t => (t as unknown as Record<string, unknown>)["strategy"] as string | null)
+      .filter((s): s is string => !!s)
+  )].slice(0, 10);
+
+  const filtered = pastStrategies.filter(s => s.toLowerCase().includes(value.toLowerCase()) && s !== value);
+
+  return (
+    <div className="relative">
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setShowSuggestions(true)}
+        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+        placeholder="e.g. VWAP Retest"
+        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      />
+      {showSuggestions && filtered.length > 0 && (
+        <div className="absolute z-50 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-md overflow-hidden">
+          {filtered.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted/60 transition-colors"
+              onMouseDown={() => { onChange(s); setShowSuggestions(false); }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AddTradeDrawer({ open, onClose }: AddTradeDrawerProps) {
@@ -327,7 +370,7 @@ export function AddTradeDrawer({ open, onClose }: AddTradeDrawerProps) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Strategy / Setup</Label>
-                <Input value={strategy} onChange={(e) => setStrategy(e.target.value)} placeholder="e.g. VWAP Retest" />
+                <StrategyInput value={strategy} onChange={setStrategy} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Session</Label>

@@ -7,6 +7,7 @@ import {
   useGetAnalyticsByEmotion,
   useGetAnalyticsByStrategy,
   useGetAnalyticsBySession,
+  useGetChecklistCompliance,
   getGetPerformanceQueryKey,
   getGetAnalyticsBySymbolQueryKey,
   getGetAnalyticsByDayQueryKey,
@@ -14,6 +15,7 @@ import {
   getGetAnalyticsByEmotionQueryKey,
   getGetAnalyticsByStrategyQueryKey,
   getGetAnalyticsBySessionQueryKey,
+  getGetChecklistComplianceQueryKey,
   GetPerformancePeriod,
   GetAnalyticsByDayPeriod,
   GetAnalyticsBySymbolPeriod,
@@ -76,6 +78,10 @@ export default function Analytics() {
   const { data: bySession } = useGetAnalyticsBySession(
     { accountId: acctParam },
     { query: { queryKey: getGetAnalyticsBySessionQueryKey({ accountId: acctParam }) } }
+  );
+  const { data: compliance } = useGetChecklistCompliance(
+    { accountId: acctParam },
+    { query: { queryKey: getGetChecklistComplianceQueryKey({ accountId: acctParam }) } }
   );
 
   return (
@@ -279,6 +285,35 @@ export default function Analytics() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {compliance && compliance.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle>Checklist Compliance</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {compliance.map((c) => (
+                  <div key={c.templateId} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground font-medium">{c.templateName}</span>
+                      <div className="flex items-center gap-3 text-xs font-mono">
+                        <span className="text-muted-foreground">{c.totalResponses} responses</span>
+                        <span className={c.avgComplianceRate >= 80 ? "text-emerald-400" : c.avgComplianceRate >= 50 ? "text-yellow-400" : "text-red-400"}>
+                          {c.avgComplianceRate.toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${c.avgComplianceRate >= 80 ? "bg-emerald-500" : c.avgComplianceRate >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
+                        style={{ width: `${c.avgComplianceRate}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}

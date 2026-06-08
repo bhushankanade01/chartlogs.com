@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, tradesTable } from "@workspace/db";
+import { db, tradesTable, checklistTemplatesTable, checklistResponsesTable } from "@workspace/db";
 import { eq, and, gte } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import {
@@ -304,6 +304,47 @@ router.get("/analytics/by-session", requireAuth, async (req, res): Promise<void>
       winRate: parseFloat(((wins / count) * 100).toFixed(1)),
     }))
     .sort((a, b) => b.pnl - a.pnl);
+
+  res.json(result);
+});
+
+router.get("/analytics/checklist-compliance", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.user!.id;
+
+  const templates = await db.select().from(checklistTemplatesTable)
+    .where(eq(checklistTemplatesTable.userId, userId));
+
+  if (templates.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const responses = await db.select().from(checklistResponsesTable)
+    .where(eq(checklistResponsesTable.userId, userId));
+
+  const result = templates.map(t => {
+    const templateResponses = responses.filter(r => r.templateId === t.id);
+    const questions = t.questions as { id: string; text: string }[];
+    const total = questions.length;
+
+    let totalRate = 0;
+    for (const r of templateResponses) {
+      const answers = r.answers as { questionId: string; checked: boolean }[];
+      const checked = answers.filter(a => a.checked).length;
+      totalRate += total > 0 ? (checked / total) * 100 : 0;
+    }
+
+    const avgComplianceRate = templateResponses.length > 0
+      ? parseFloat((totalRate / templateResponses.length).toFixed(1))
+      : 0;
+
+    return {
+      templateId: t.id,
+      templateName: t.name,
+      totalResponses: templateResponses.length,
+      avgComplianceRate,
+    };
+  }).filter(t => t.totalResponses > 0);
 
   res.json(result);
 });
