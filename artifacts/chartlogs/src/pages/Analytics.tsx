@@ -8,6 +8,10 @@ import {
   useGetAnalyticsByStrategy,
   useGetAnalyticsBySession,
   useGetChecklistCompliance,
+  useGetAnalyticsByHour,
+  useGetAnalyticsRMultiples,
+  useGetAnalyticsStreaks,
+  useGetAnalyticsProfitFactorTrend,
   getGetPerformanceQueryKey,
   getGetAnalyticsBySymbolQueryKey,
   getGetAnalyticsByDayQueryKey,
@@ -16,6 +20,10 @@ import {
   getGetAnalyticsByStrategyQueryKey,
   getGetAnalyticsBySessionQueryKey,
   getGetChecklistComplianceQueryKey,
+  getGetAnalyticsByHourQueryKey,
+  getGetAnalyticsRMultiplesQueryKey,
+  getGetAnalyticsStreaksQueryKey,
+  getGetAnalyticsProfitFactorTrendQueryKey,
   GetPerformancePeriod,
   GetAnalyticsByDayPeriod,
   GetAnalyticsBySymbolPeriod,
@@ -27,10 +35,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/ui/spinner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, LineChart, Line, ReferenceLine, Legend,
 } from "recharts";
 
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#06B6D4"];
+const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function MetricCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -84,6 +93,24 @@ export default function Analytics() {
     { query: { queryKey: getGetChecklistComplianceQueryKey({ accountId: acctParam }) } }
   );
 
+  const hourPeriod = period === "today" ? "7d" : period as "7d" | "30d" | "3m" | "1y" | "all";
+  const { data: byHour } = useGetAnalyticsByHour(
+    { period: hourPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByHourQueryKey({ period: hourPeriod, accountId: acctParam }) } }
+  );
+  const { data: rMultiples } = useGetAnalyticsRMultiples(
+    { period: hourPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsRMultiplesQueryKey({ period: hourPeriod, accountId: acctParam }) } }
+  );
+  const { data: streaks } = useGetAnalyticsStreaks(
+    { period: hourPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsStreaksQueryKey({ period: hourPeriod, accountId: acctParam }) } }
+  );
+  const { data: pfTrend } = useGetAnalyticsProfitFactorTrend(
+    { accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsProfitFactorTrendQueryKey({ accountId: acctParam }) } }
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -123,6 +150,12 @@ export default function Analytics() {
             <MetricCard label="Long Trades" value={String(perf.longTrades)} sub={perf.longWinRate != null ? `${perf.longWinRate.toFixed(0)}% WR` : undefined} />
             <MetricCard label="Short Trades" value={String(perf.shortTrades)} sub={perf.shortWinRate != null ? `${perf.shortWinRate.toFixed(0)}% WR` : undefined} />
             <MetricCard label="Max Drawdown" value={perf.drawdown?.length > 0 ? formatMoney(Math.min(...perf.drawdown.map(d => d.drawdown))) : "—"} />
+          </div>
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+            <MetricCard label="Breakeven" value={String(perf.breakeven ?? 0)} sub="no gain/loss" />
+            <MetricCard label="Max Consec. Losses" value={String(perf.maxConsecutiveLosses ?? 0)} sub="in a row" />
+            <MetricCard label="Max DD Duration" value={perf.maxDrawdownDuration ? `${perf.maxDrawdownDuration}d` : "—"} sub="calendar days" />
+            <MetricCard label="Expectancy / Trade" value={formatMoney(perf.expectancy)} sub="avg P&L per trade" />
           </div>
         </>
       ) : null}
@@ -357,7 +390,218 @@ export default function Analytics() {
             </CardContent>
           </Card>
         )}
+
+        {/* Win / Loss / BE donut */}
+        {perf && perf.totalTrades > 0 && (
+          <Card>
+            <CardHeader><CardTitle>Win / Loss / Breakeven</CardTitle></CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-6">
+                <ResponsiveContainer width={160} height={160}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Win", value: perf.winners },
+                        { name: "Loss", value: perf.losers },
+                        { name: "Breakeven", value: perf.breakeven ?? 0 },
+                      ].filter(d => d.value > 0)}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={70}
+                    >
+                      <Cell fill="#10B981" />
+                      <Cell fill="#EF4444" />
+                      <Cell fill="#6B7280" />
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex-1 space-y-3">
+                  {[
+                    { label: "Win", value: perf.winners, color: "#10B981" },
+                    { label: "Loss", value: perf.losers, color: "#EF4444" },
+                    { label: "Breakeven", value: perf.breakeven ?? 0, color: "#6B7280" },
+                  ].map(item => (
+                    <div key={item.label} className="flex items-center justify-between gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span className="text-muted-foreground">{item.label}</span>
+                      </div>
+                      <div className="flex items-center gap-3 font-mono text-xs">
+                        <span className="text-muted-foreground">{item.value} trades</span>
+                        <span className="text-foreground font-medium">
+                          {perf.totalTrades > 0 ? ((item.value / perf.totalTrades) * 100).toFixed(1) : 0}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* R-multiple distribution */}
+        {rMultiples && rMultiples.totalTrades > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>R-Multiple Distribution</CardTitle>
+                <span className="text-xs text-muted-foreground font-mono">
+                  Avg: {rMultiples.avgRMultiple != null ? `${rMultiples.avgRMultiple > 0 ? "+" : ""}${rMultiples.avgRMultiple}R` : "—"}
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={rMultiples.buckets} margin={{ top: 8, right: 8, left: -8, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fill: '#9CA3AF', fontSize: 9 }} tickLine={false} axisLine={false} interval={0} />
+                  <YAxis tick={{ fill: '#6B7280', fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
+                    formatter={(v: number, _: string, props: { payload?: { label?: string } }) => [v + " trades", props?.payload?.label ?? ""]}
+                  />
+                  {rMultiples.avgRMultiple != null && (
+                    <ReferenceLine x={rMultiples.avgRMultiple >= 0 ? "0R to 1R" : "-1R to 0R"} stroke="#F59E0B" strokeDasharray="4 4" label={{ value: "Avg", fill: '#F59E0B', fontSize: 9 }} />
+                  )}
+                  <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+                    {rMultiples.buckets.map((b) => (
+                      <Cell key={b.label} fill={b.label.startsWith("<") || b.label.startsWith("-") ? "#EF4444" : "#10B981"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Profit factor trend */}
+        {pfTrend && pfTrend.length > 1 && (
+          <Card>
+            <CardHeader><CardTitle>Monthly Profit Factor Trend</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={pfTrend} margin={{ top: 8, right: 16, left: -8, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fill: '#6B7280', fontSize: 10 }} tickLine={false} axisLine={false} domain={[0, 'auto']} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
+                    formatter={(v: number, name: string) => [name === "profitFactor" ? v.toFixed(2) : v, name === "profitFactor" ? "Profit Factor" : "Trades"]}
+                  />
+                  <Legend formatter={(v) => v === "profitFactor" ? "Profit Factor" : "Trades"} wrapperStyle={{ fontSize: 10, color: '#9CA3AF' }} />
+                  <ReferenceLine y={1} stroke="#6B7280" strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey="profitFactor" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#3B82F6', r: 3 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Streak tracker */}
+        {streaks && streaks.timeline.length > 0 && (
+          <Card className="md:col-span-2">
+            <CardHeader><CardTitle>Streak Tracker</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest">Current Streak</p>
+                  <p className={`text-2xl font-bold font-mono mt-1 ${streaks.currentType === "win" ? "text-emerald-400" : streaks.currentType === "loss" ? "text-red-400" : "text-muted-foreground"}`}>
+                    {streaks.currentType === "win" ? "+" : streaks.currentType === "loss" ? "-" : ""}{streaks.currentStreak}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5 capitalize">{streaks.currentType ?? "none"}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest">Best Win Streak</p>
+                  <p className="text-2xl font-bold font-mono mt-1 text-emerald-400">+{streaks.bestWinStreak}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">consecutive wins</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest">Worst Loss Streak</p>
+                  <p className="text-2xl font-bold font-mono mt-1 text-red-400">-{streaks.worstLossStreak}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">consecutive losses</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Last {streaks.timeline.length} trades</p>
+                <div className="flex gap-0.5 flex-wrap">
+                  {streaks.timeline.map((t, i) => (
+                    <div
+                      key={i}
+                      title={t.outcome}
+                      className={`w-4 h-4 rounded-sm flex-shrink-0 ${t.outcome === "win" ? "bg-emerald-500" : t.outcome === "loss" ? "bg-red-500" : "bg-gray-600"}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {/* Hour-of-day heatmap — full width */}
+      {byHour && byHour.length > 0 && (() => {
+        const heatmapMap = new Map<string, { avgPnl: number; trades: number }>();
+        for (const p of byHour) heatmapMap.set(`${p.day}:${p.hour}`, { avgPnl: p.avgPnl, trades: p.trades });
+        const allPnls = byHour.map(p => p.avgPnl);
+        const maxAbs = Math.max(...allPnls.map(Math.abs), 0.01);
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Hour-of-Day Heatmap</CardTitle>
+              <p className="text-xs text-muted-foreground">Average P&L by UTC hour and day of week — green = profitable, red = losing</p>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <div className="min-w-[640px]">
+                {/* Hour labels */}
+                <div className="flex mb-1 pl-10">
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <div key={h} className="flex-1 text-center text-[9px] text-muted-foreground/60">{h}</div>
+                  ))}
+                </div>
+                {/* Day rows */}
+                {[1, 2, 3, 4, 5, 0, 6].map(day => (
+                  <div key={day} className="flex items-center mb-0.5">
+                    <div className="w-10 text-[10px] text-muted-foreground flex-shrink-0">{DAY_SHORT[day]}</div>
+                    {Array.from({ length: 24 }, (_, hour) => {
+                      const cell = heatmapMap.get(`${day}:${hour}`);
+                      const intensity = cell ? Math.min(Math.abs(cell.avgPnl) / maxAbs, 1) : 0;
+                      const isPos = cell ? cell.avgPnl >= 0 : true;
+                      const alpha = cell ? Math.max(0.1 + intensity * 0.85, 0.1) : 0;
+                      const bg = cell
+                        ? `rgba(${isPos ? "16,185,129" : "239,68,68"},${alpha.toFixed(2)})`
+                        : "rgba(255,255,255,0.03)";
+                      return (
+                        <div
+                          key={hour}
+                          title={cell ? `${DAY_SHORT[day]} ${hour}:00 UTC — avg $${cell.avgPnl.toFixed(2)} (${cell.trades} trades)` : "No trades"}
+                          className="flex-1 h-6 rounded-sm mx-px cursor-default transition-opacity hover:opacity-80"
+                          style={{ backgroundColor: bg }}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+                <div className="flex items-center gap-3 mt-3 justify-end">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(239,68,68,0.7)' }} /> Loss
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="w-3 h-3 rounded-sm bg-white/5 rounded-sm" /> No data
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(16,185,129,0.7)' }} /> Profit
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
     </div>
   );
 }

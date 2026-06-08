@@ -78,6 +78,29 @@ router.get("/analytics/performance", requireAuth, async (req, res): Promise<void
     return { date: p.date, drawdown: parseFloat(dd.toFixed(2)) };
   });
 
+  const breakeven = filtered.filter(t => t.outcome === "breakeven").length;
+
+  // Max consecutive losses
+  let maxConsecLosses = 0;
+  let curLoss = 0;
+  for (const t of filtered) {
+    if (t.outcome === "loss") { curLoss++; maxConsecLosses = Math.max(maxConsecLosses, curLoss); }
+    else curLoss = 0;
+  }
+
+  // Max drawdown duration in calendar days
+  let maxDdDays = 0;
+  let peakEquity = 0;
+  let ddStart: Date | null = null;
+  for (const t of filtered) {
+    const tradeDate = new Date(t.closeTime ?? t.openTime);
+    const eq = parseFloat(t.pnl!);
+    if (peakEquity === 0 && eq > 0) { peakEquity = eq; continue; }
+    if (eq >= peakEquity) { peakEquity = eq; ddStart = null; }
+    else if (ddStart === null) { ddStart = tradeDate; }
+    else { const days = Math.round((tradeDate.getTime() - ddStart.getTime()) / 86400000); maxDdDays = Math.max(maxDdDays, days); }
+  }
+
   res.json({
     totalPnl: parseFloat(totalPnl.toFixed(2)),
     winRate: parseFloat(winRate.toFixed(1)),
@@ -86,12 +109,15 @@ router.get("/analytics/performance", requireAuth, async (req, res): Promise<void
     totalTrades: filtered.length,
     winners: winners.length,
     losers: losers.length,
+    breakeven,
     longTrades: longTrades.length,
     shortTrades: shortTrades.length,
     longPnl: parseFloat(longPnl.toFixed(2)),
     shortPnl: parseFloat(shortPnl.toFixed(2)),
     longWinRate: parseFloat(longWinRate.toFixed(1)),
     shortWinRate: parseFloat(shortWinRate.toFixed(1)),
+    maxConsecutiveLosses: maxConsecLosses,
+    maxDrawdownDuration: maxDdDays,
     equityCurve,
     drawdown,
   });
@@ -304,6 +330,150 @@ router.get("/analytics/by-session", requireAuth, async (req, res): Promise<void>
       winRate: parseFloat(((wins / count) * 100).toFixed(1)),
     }))
     .sort((a, b) => b.pnl - a.pnl);
+
+  res.json(result);
+});
+
+router.get("/analytics/by-hour", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.user!.id;
+  const period = String(req.query.period ?? "all");
+  const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
+  const periodStart = getPeriodStart(period);
+
+  const conditions = [eq(tradesTable.userId, userId)];
+  if (periodStart) conditions.push(gte(tradesTable.openTime, periodStart));
+  if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
+
+  const trades = await db.select().from(tradesTable).where(and(...conditions));
+  const closed = trades.filter(t => t.pnl !== null);
+
+  const grid = new Map<string, { pnlSum: number; count: number }>();
+  for (const t of closed) {
+    const d = t.openTime;
+    const day = d.getUTCDay();
+    const hour = d.getUTCHours();
+    const key = `${day}:${hour}`;
+    const existing = grid.get(key) ?? { pnlSum: 0, count: 0 };
+    grid.set(key, { pnlSum: existing.pnlSum + parseFloat(t.pnl!), count: existing.count + 1 });
+  }
+
+  const result = [];
+  for (const [key, { pnlSum, count }] of grid.entries()) {
+    const [day, hour] = key.split(":").map(Number);
+    result.push({ day, hour, avgPnl: parseFloat((pnlSum / count).toFixed(2)), trades: count });
+  }
+
+  res.json(result);
+});
+
+router.get("/analytics/r-multiples", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.user!.id;
+  const period = String(req.query.period ?? "all");
+  const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
+  const periodStart = getPeriodStart(period);
+
+  const conditions = [eq(tradesTable.userId, userId)];
+  if (periodStart) conditions.push(gte(tradesTable.openTime, periodStart));
+  if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
+
+  const trades = await db.select().from(tradesTable).where(and(...conditions));
+  const withR = trades.filter(t => t.rMultiple !== null && t.pnl !== null);
+
+  const bucketDefs = [
+    { label: "<-3R", min: -Infinity, max: -3 },
+    { label: "-3R to -2R", min: -3, max: -2 },
+    { label: "-2R to -1R", min: -2, max: -1 },
+    { label: "-1R to 0R", min: -1, max: 0 },
+    { label: "0R to 1R", min: 0, max: 1 },
+    { label: "1R to 2R", min: 1, max: 2 },
+    { label: "2R to 3R", min: 2, max: 3 },
+    { label: "3R to 5R", min: 3, max: 5 },
+    { label: ">5R", min: 5, max: Infinity },
+  ];
+
+  const counts = new Array(bucketDefs.length).fill(0);
+  let rSum = 0;
+  for (const t of withR) {
+    const r = parseFloat(t.rMultiple!);
+    rSum += r;
+    const idx = bucketDefs.findIndex(b => r >= b.min && r < b.max);
+    if (idx >= 0) counts[idx]++;
+  }
+
+  res.json({
+    buckets: bucketDefs.map((b, i) => ({ label: b.label, count: counts[i] })),
+    avgRMultiple: withR.length > 0 ? parseFloat((rSum / withR.length).toFixed(2)) : null,
+    totalTrades: withR.length,
+  });
+});
+
+router.get("/analytics/streaks", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.user!.id;
+  const period = String(req.query.period ?? "all");
+  const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
+  const periodStart = getPeriodStart(period);
+
+  const conditions = [eq(tradesTable.userId, userId)];
+  if (periodStart) conditions.push(gte(tradesTable.openTime, periodStart));
+  if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
+
+  const trades = await db.select().from(tradesTable).where(and(...conditions)).orderBy(tradesTable.openTime);
+  const closed = trades.filter(t => t.pnl !== null && t.outcome);
+
+  let bestWin = 0, worstLoss = 0;
+  let curWin = 0, curLoss = 0;
+  for (const t of closed) {
+    if (t.outcome === "win") { curWin++; curLoss = 0; bestWin = Math.max(bestWin, curWin); }
+    else if (t.outcome === "loss") { curLoss++; curWin = 0; worstLoss = Math.max(worstLoss, curLoss); }
+    else { curWin = 0; curLoss = 0; }
+  }
+
+  let currentStreak = 0;
+  let currentType: string | null = null;
+  if (closed.length > 0) {
+    const lastOutcome = closed[closed.length - 1].outcome!;
+    currentType = lastOutcome;
+    for (let i = closed.length - 1; i >= 0; i--) {
+      if (closed[i].outcome === lastOutcome) currentStreak++;
+      else break;
+    }
+  }
+
+  const timeline = closed.slice(-50).map(t => ({ outcome: t.outcome as "win" | "loss" | "breakeven" }));
+
+  res.json({ currentStreak, currentType, bestWinStreak: bestWin, worstLossStreak: worstLoss, timeline });
+});
+
+router.get("/analytics/profit-factor-trend", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.user!.id;
+  const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
+
+  const conditions = [eq(tradesTable.userId, userId)];
+  if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
+
+  const trades = await db.select().from(tradesTable).where(and(...conditions)).orderBy(tradesTable.openTime);
+  const closed = trades.filter(t => t.pnl !== null);
+
+  const byMonth = new Map<string, { gross: number; loss: number; count: number }>();
+  for (const t of closed) {
+    const d = t.closeTime ?? t.openTime;
+    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const existing = byMonth.get(month) ?? { gross: 0, loss: 0, count: 0 };
+    const pnl = parseFloat(t.pnl!);
+    byMonth.set(month, {
+      gross: existing.gross + (pnl > 0 ? pnl : 0),
+      loss: existing.loss + (pnl < 0 ? Math.abs(pnl) : 0),
+      count: existing.count + 1,
+    });
+  }
+
+  const result = Array.from(byMonth.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, { gross, loss, count }]) => ({
+      month,
+      profitFactor: parseFloat((loss > 0 ? gross / loss : gross > 0 ? 9.99 : 0).toFixed(2)),
+      trades: count,
+    }));
 
   res.json(result);
 });

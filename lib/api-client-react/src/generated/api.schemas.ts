@@ -456,12 +456,16 @@ export interface PerformanceAnalytics {
   totalTrades: number;
   winners: number;
   losers: number;
+  breakeven?: number;
   longTrades: number;
   shortTrades: number;
   longPnl?: number;
   shortPnl?: number;
   longWinRate?: number;
   shortWinRate?: number;
+  maxConsecutiveLosses?: number;
+  /** Max drawdown duration in days */
+  maxDrawdownDuration?: number;
   equityCurve: EquityPoint[];
   drawdown: DrawdownPoint[];
 }
@@ -633,6 +637,67 @@ export interface SessionPerformance {
   trades: number;
   pnl: number;
   winRate: number;
+}
+
+export interface HourHeatmapPoint {
+  /** 0=Sunday, 6=Saturday */
+  day: number;
+  /** 0-23 UTC hour */
+  hour: number;
+  avgPnl: number;
+  trades: number;
+}
+
+export interface RMultipleBucket {
+  label: string;
+  count: number;
+}
+
+export interface RMultipleStats {
+  buckets: RMultipleBucket[];
+  /** @nullable */
+  avgRMultiple: number | null;
+  totalTrades: number;
+}
+
+export type StreakPointOutcome = typeof StreakPointOutcome[keyof typeof StreakPointOutcome];
+
+
+export const StreakPointOutcome = {
+  win: 'win',
+  loss: 'loss',
+  breakeven: 'breakeven',
+} as const;
+
+export interface StreakPoint {
+  outcome: StreakPointOutcome;
+}
+
+/**
+ * @nullable
+ */
+export type StreakStatsCurrentType = typeof StreakStatsCurrentType[keyof typeof StreakStatsCurrentType] | null;
+
+
+export const StreakStatsCurrentType = {
+  win: 'win',
+  loss: 'loss',
+  breakeven: 'breakeven',
+} as const;
+
+export interface StreakStats {
+  currentStreak: number;
+  /** @nullable */
+  currentType: StreakStatsCurrentType;
+  bestWinStreak: number;
+  worstLossStreak: number;
+  timeline: StreakPoint[];
+}
+
+export interface ProfitFactorPoint {
+  month: string;
+  profitFactor: number;
+  trades: number;
 }
 
 export interface ChecklistCompliance {
@@ -864,6 +929,58 @@ accountId?: number;
 };
 
 export type GetAnalyticsBySessionParams = {
+accountId?: number;
+};
+
+export type GetAnalyticsByHourParams = {
+period?: GetAnalyticsByHourPeriod;
+accountId?: number;
+};
+
+export type GetAnalyticsByHourPeriod = typeof GetAnalyticsByHourPeriod[keyof typeof GetAnalyticsByHourPeriod];
+
+
+export const GetAnalyticsByHourPeriod = {
+  '7d': '7d',
+  '30d': '30d',
+  '3m': '3m',
+  '1y': '1y',
+  all: 'all',
+} as const;
+
+export type GetAnalyticsRMultiplesParams = {
+period?: GetAnalyticsRMultiplesPeriod;
+accountId?: number;
+};
+
+export type GetAnalyticsRMultiplesPeriod = typeof GetAnalyticsRMultiplesPeriod[keyof typeof GetAnalyticsRMultiplesPeriod];
+
+
+export const GetAnalyticsRMultiplesPeriod = {
+  '7d': '7d',
+  '30d': '30d',
+  '3m': '3m',
+  '1y': '1y',
+  all: 'all',
+} as const;
+
+export type GetAnalyticsStreaksParams = {
+period?: GetAnalyticsStreaksPeriod;
+accountId?: number;
+};
+
+export type GetAnalyticsStreaksPeriod = typeof GetAnalyticsStreaksPeriod[keyof typeof GetAnalyticsStreaksPeriod];
+
+
+export const GetAnalyticsStreaksPeriod = {
+  '7d': '7d',
+  '30d': '30d',
+  '3m': '3m',
+  '1y': '1y',
+  all: 'all',
+} as const;
+
+export type GetAnalyticsProfitFactorTrendParams = {
 accountId?: number;
 };
 

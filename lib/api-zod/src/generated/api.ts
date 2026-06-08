@@ -810,12 +810,15 @@ export const GetPerformanceResponse = zod.object({
   "totalTrades": zod.number(),
   "winners": zod.number(),
   "losers": zod.number(),
+  "breakeven": zod.number().optional(),
   "longTrades": zod.number(),
   "shortTrades": zod.number(),
   "longPnl": zod.number().optional(),
   "shortPnl": zod.number().optional(),
   "longWinRate": zod.number().optional(),
   "shortWinRate": zod.number().optional(),
+  "maxConsecutiveLosses": zod.number().optional(),
+  "maxDrawdownDuration": zod.number().optional().describe('Max drawdown duration in days'),
   "equityCurve": zod.array(zod.object({
   "date": zod.string(),
   "equity": zod.number(),
@@ -929,6 +932,81 @@ export const GetAnalyticsBySessionResponseItem = zod.object({
   "winRate": zod.number()
 })
 export const GetAnalyticsBySessionResponse = zod.array(GetAnalyticsBySessionResponseItem)
+
+
+/**
+ * @summary Get performance heatmap by hour-of-day and day-of-week
+ */
+export const getAnalyticsByHourQueryPeriodDefault = `all`;
+
+export const GetAnalyticsByHourQueryParams = zod.object({
+  "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsByHourQueryPeriodDefault),
+  "accountId": zod.coerce.number().optional()
+})
+
+export const GetAnalyticsByHourResponseItem = zod.object({
+  "day": zod.number().describe('0=Sunday, 6=Saturday'),
+  "hour": zod.number().describe('0-23 UTC hour'),
+  "avgPnl": zod.number(),
+  "trades": zod.number()
+})
+export const GetAnalyticsByHourResponse = zod.array(GetAnalyticsByHourResponseItem)
+
+
+/**
+ * @summary Get R-multiple distribution histogram
+ */
+export const getAnalyticsRMultiplesQueryPeriodDefault = `all`;
+
+export const GetAnalyticsRMultiplesQueryParams = zod.object({
+  "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsRMultiplesQueryPeriodDefault),
+  "accountId": zod.coerce.number().optional()
+})
+
+export const GetAnalyticsRMultiplesResponse = zod.object({
+  "buckets": zod.array(zod.object({
+  "label": zod.string(),
+  "count": zod.number()
+})),
+  "avgRMultiple": zod.number().nullable(),
+  "totalTrades": zod.number()
+})
+
+
+/**
+ * @summary Get win/loss streak statistics
+ */
+export const getAnalyticsStreaksQueryPeriodDefault = `all`;
+
+export const GetAnalyticsStreaksQueryParams = zod.object({
+  "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsStreaksQueryPeriodDefault),
+  "accountId": zod.coerce.number().optional()
+})
+
+export const GetAnalyticsStreaksResponse = zod.object({
+  "currentStreak": zod.number(),
+  "currentType": zod.union([zod.literal('win'),zod.literal('loss'),zod.literal('breakeven'),zod.literal(null)]).nullable(),
+  "bestWinStreak": zod.number(),
+  "worstLossStreak": zod.number(),
+  "timeline": zod.array(zod.object({
+  "outcome": zod.enum(['win', 'loss', 'breakeven'])
+}))
+})
+
+
+/**
+ * @summary Get monthly profit factor trend
+ */
+export const GetAnalyticsProfitFactorTrendQueryParams = zod.object({
+  "accountId": zod.coerce.number().optional()
+})
+
+export const GetAnalyticsProfitFactorTrendResponseItem = zod.object({
+  "month": zod.string(),
+  "profitFactor": zod.number(),
+  "trades": zod.number()
+})
+export const GetAnalyticsProfitFactorTrendResponse = zod.array(GetAnalyticsProfitFactorTrendResponseItem)
 
 
 /**

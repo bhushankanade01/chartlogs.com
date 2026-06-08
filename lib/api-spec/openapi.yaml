@@ -957,6 +957,100 @@ paths:
                 items:
                   $ref: "#/components/schemas/SessionPerformance"
 
+  /analytics/by-hour:
+    get:
+      operationId: getAnalyticsByHour
+      tags: [analytics]
+      summary: Get performance heatmap by hour-of-day and day-of-week
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 3m, 1y, all]
+            default: all
+        - name: accountId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Hour-of-day performance heatmap
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HourHeatmapPoint"
+
+  /analytics/r-multiples:
+    get:
+      operationId: getAnalyticsRMultiples
+      tags: [analytics]
+      summary: Get R-multiple distribution histogram
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 3m, 1y, all]
+            default: all
+        - name: accountId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: R-multiple histogram buckets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RMultipleStats"
+
+  /analytics/streaks:
+    get:
+      operationId: getAnalyticsStreaks
+      tags: [analytics]
+      summary: Get win/loss streak statistics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 3m, 1y, all]
+            default: all
+        - name: accountId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Streak statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreakStats"
+
+  /analytics/profit-factor-trend:
+    get:
+      operationId: getAnalyticsProfitFactorTrend
+      tags: [analytics]
+      summary: Get monthly profit factor trend
+      parameters:
+        - name: accountId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Monthly profit factor trend
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfitFactorPoint"
+
   /analytics/checklist-compliance:
     get:
       operationId: getChecklistCompliance
@@ -1651,6 +1745,8 @@ components:
           type: integer
         losers:
           type: integer
+        breakeven:
+          type: integer
         longTrades:
           type: integer
         shortTrades:
@@ -1663,6 +1759,11 @@ components:
           type: number
         shortWinRate:
           type: number
+        maxConsecutiveLosses:
+          type: integer
+        maxDrawdownDuration:
+          type: integer
+          description: Max drawdown duration in days
         equityCurve:
           type: array
           items:
@@ -1925,6 +2026,80 @@ components:
           type: number
         winRate:
           type: number
+
+    HourHeatmapPoint:
+      type: object
+      required: [day, hour, avgPnl, trades]
+      properties:
+        day:
+          type: integer
+          description: 0=Sunday, 6=Saturday
+        hour:
+          type: integer
+          description: 0-23 UTC hour
+        avgPnl:
+          type: number
+        trades:
+          type: integer
+
+    RMultipleBucket:
+      type: object
+      required: [label, count]
+      properties:
+        label:
+          type: string
+        count:
+          type: integer
+
+    RMultipleStats:
+      type: object
+      required: [buckets, avgRMultiple, totalTrades]
+      properties:
+        buckets:
+          type: array
+          items:
+            $ref: "#/components/schemas/RMultipleBucket"
+        avgRMultiple:
+          type: ["number", "null"]
+        totalTrades:
+          type: integer
+
+    StreakPoint:
+      type: object
+      required: [outcome]
+      properties:
+        outcome:
+          type: string
+          enum: [win, loss, breakeven]
+
+    StreakStats:
+      type: object
+      required: [currentStreak, currentType, bestWinStreak, worstLossStreak, timeline]
+      properties:
+        currentStreak:
+          type: integer
+        currentType:
+          type: ["string", "null"]
+          enum: [win, loss, breakeven, null]
+        bestWinStreak:
+          type: integer
+        worstLossStreak:
+          type: integer
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/StreakPoint"
+
+    ProfitFactorPoint:
+      type: object
+      required: [month, profitFactor, trades]
+      properties:
+        month:
+          type: string
+        profitFactor:
+          type: number
+        trades:
+          type: integer
 
     ChecklistCompliance:
       type: object
