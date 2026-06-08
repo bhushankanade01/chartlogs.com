@@ -15,6 +15,7 @@ function formatTrade(t: typeof tradesTable.$inferSelect) {
   return {
     id: t.id,
     userId: t.userId,
+    accountId: t.accountId ?? null,
     symbol: t.symbol,
     type: t.type,
     entryPrice: t.entryPrice ? parseFloat(t.entryPrice) : 0,
@@ -27,6 +28,7 @@ function formatTrade(t: typeof tradesTable.$inferSelect) {
     pnl: t.pnl ? parseFloat(t.pnl) : null,
     pips: t.pips ? parseFloat(t.pips) : null,
     rrRatio: t.rrRatio ? parseFloat(t.rrRatio) : null,
+    rMultiple: t.rMultiple ? parseFloat(t.rMultiple) : null,
     fees: t.fees ? parseFloat(t.fees) : null,
     source: t.source,
     tags: t.tags ?? [],
@@ -34,6 +36,9 @@ function formatTrade(t: typeof tradesTable.$inferSelect) {
     notes: t.notes,
     screenshots: t.screenshots ?? [],
     outcome: t.outcome,
+    strategy: t.strategy ?? null,
+    session: t.session ?? null,
+    rating: t.rating ?? null,
     createdAt: t.createdAt.toISOString(),
   };
 }
