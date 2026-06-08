@@ -21,6 +21,10 @@ router.post("/checklists/templates", requireAuth, async (req, res): Promise<void
     res.status(400).json({ error: "Template name is required" });
     return;
   }
+  if (Array.isArray(questions) && questions.length > 10) {
+    res.status(400).json({ error: "A checklist can have at most 10 questions" });
+    return;
+  }
 
   const [template] = await db.insert(checklistTemplatesTable).values({
     userId,
@@ -41,6 +45,10 @@ router.patch("/checklists/templates/:id", requireAuth, async (req, res): Promise
   if (!existing) { res.status(404).json({ error: "Template not found" }); return; }
 
   const { name, questions } = req.body as { name?: string; questions?: unknown[] };
+  if (Array.isArray(questions) && questions.length > 10) {
+    res.status(400).json({ error: "A checklist can have at most 10 questions" });
+    return;
+  }
   const updates: Record<string, unknown> = {};
   if (name !== undefined) updates.name = String(name).trim();
   if (questions !== undefined) updates.questions = Array.isArray(questions) ? questions : [];

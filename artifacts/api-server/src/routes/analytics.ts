@@ -310,6 +310,7 @@ router.get("/analytics/by-session", requireAuth, async (req, res): Promise<void>
 
 router.get("/analytics/checklist-compliance", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.id;
+  const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
 
   const templates = await db.select().from(checklistTemplatesTable)
     .where(eq(checklistTemplatesTable.userId, userId));
@@ -319,11 +320,22 @@ router.get("/analytics/checklist-compliance", requireAuth, async (req, res): Pro
     return;
   }
 
+  // Filter responses by account if requested (join through trades table)
+  let tradeIds: number[] | null = null;
+  if (accountId && !isNaN(accountId)) {
+    const trades = await db.select({ id: tradesTable.id }).from(tradesTable)
+      .where(and(eq(tradesTable.userId, userId), eq(tradesTable.accountId, accountId)));
+    tradeIds = trades.map(t => t.id);
+  }
+
+  const responseConditions = [eq(checklistResponsesTable.userId, userId)];
   const responses = await db.select().from(checklistResponsesTable)
-    .where(eq(checklistResponsesTable.userId, userId));
+    .where(and(...responseConditions));
 
   const result = templates.map(t => {
-    const templateResponses = responses.filter(r => r.templateId === t.id);
+    const templateResponses = responses.filter(r =>
+      r.templateId === t.id && (tradeIds === null || tradeIds.includes(r.tradeId))
+    );
     const questions = t.questions as { id: string; text: string }[];
     const total = questions.length;
 

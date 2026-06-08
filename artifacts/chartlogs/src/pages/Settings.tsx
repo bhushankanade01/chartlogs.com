@@ -78,7 +78,10 @@ function ChecklistsTab() {
   };
 
   const updateQuestion = (i: number, val: string) => setQuestions(prev => prev.map((q, idx) => idx === i ? val : q));
-  const addQuestion = () => setQuestions(prev => [...prev, ""]);
+  const addQuestion = () => {
+    if (questions.length >= 10) return;
+    setQuestions(prev => [...prev, ""]);
+  };
   const removeQuestion = (i: number) => setQuestions(prev => prev.filter((_, idx) => idx !== i));
 
   return (
@@ -124,9 +127,12 @@ function ChecklistsTab() {
                   )}
                 </div>
               ))}
-              <Button type="button" variant="ghost" size="sm" onClick={addQuestion} className="text-muted-foreground">
-                <Plus className="h-3.5 w-3.5 mr-1" />Add question
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={addQuestion} className="text-muted-foreground" disabled={questions.length >= 10}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />Add question
+                </Button>
+                {questions.length >= 10 && <span className="text-xs text-muted-foreground">Maximum 10 questions</span>}
+              </div>
             </div>
             <div className="flex gap-2 pt-1">
               <Button onClick={handleSave} disabled={createTemplate.isPending || updateTemplate.isPending} size="sm">

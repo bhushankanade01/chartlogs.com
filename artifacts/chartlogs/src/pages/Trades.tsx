@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListTrades, getListTradesQueryKey } from "@workspace/api-client-react";
+import { useListTrades, getListTradesQueryKey, useGetChecklistResponses, useListChecklistTemplates } from "@workspace/api-client-react";
 import { useAccount } from "@/contexts/AccountContext";
 import { formatMoney, formatDate, cnClass } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,31 @@ function StarDisplay({ rating }: { rating?: number | null }) {
         <Star key={s} className={`h-3 w-3 ${s <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/20"}`} />
       ))}
     </div>
+  );
+}
+
+function TradeChecklistBadge({ tradeId }: { tradeId: number }) {
+  const { data: templates } = useListChecklistTemplates();
+  const { data: responses } = useGetChecklistResponses(tradeId);
+
+  if (!templates || !responses || responses.length === 0) return <span className="text-muted-foreground/40">—</span>;
+
+  let totalQ = 0;
+  let totalC = 0;
+  for (const r of responses) {
+    const t = templates.find(t => t.id === r.templateId);
+    if (!t) continue;
+    const questions = t.questions as { id: string }[];
+    const answers = r.answers as { questionId: string; checked: boolean }[];
+    totalQ += questions.length;
+    totalC += answers.filter(a => a.checked).length;
+  }
+  if (totalQ === 0) return <span className="text-muted-foreground/40">—</span>;
+  const complete = totalC === totalQ;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-mono ${complete ? "text-emerald-400" : "text-muted-foreground"}`}>
+      ✓ {totalC}/{totalQ}
+    </span>
   );
 }
 
@@ -139,6 +164,7 @@ export default function Trades() {
                     <th className="py-3 px-4 text-left font-medium">Strategy</th>
                     <th className="py-3 px-4 text-left font-medium">Session</th>
                     <th className="py-3 px-4 text-right font-medium">Rating</th>
+                    <th className="py-3 px-4 text-right font-medium">Checklist</th>
                     <th className="py-3 px-4 text-right font-medium">Tags</th>
                     <th className="py-3 px-4 text-right font-medium">Charts</th>
                   </tr>
@@ -174,6 +200,9 @@ export default function Trades() {
                       </td>
                       <td className="py-3 px-4 text-right">
                         <StarDisplay rating={trade.rating} />
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <TradeChecklistBadge tradeId={trade.id} />
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex justify-end gap-1 flex-wrap">

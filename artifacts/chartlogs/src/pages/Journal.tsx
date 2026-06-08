@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useListJournalEntries,
   useUpsertJournalEntry,
@@ -6,6 +6,7 @@ import {
   JournalEntry,
   useGetChecklistResponses,
   useListChecklistTemplates,
+  useUpsertChecklistResponse,
 } from "@workspace/api-client-react";
 import { useAccount } from "@/contexts/AccountContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -37,47 +38,100 @@ function StarDisplay({ rating }: { rating?: number | null }) {
   );
 }
 
-function ChecklistResponseView({ tradeId }: { tradeId: number }) {
+function ChecklistSection({ tradeId }: { tradeId: number }) {
   const { data: templates } = useListChecklistTemplates();
-  const { data: responses } = useGetChecklistResponses(tradeId);
+  const { data: existingResponses } = useGetChecklistResponses(tradeId);
+  const upsertResponse = useUpsertChecklistResponse();
+  const [answers, setAnswers] = useState<Record<number, Record<string, boolean>>>({});
 
-  if (!templates || templates.length === 0 || !responses || responses.length === 0) return null;
+  useEffect(() => {
+    if (existingResponses) {
+      const next: Record<number, Record<string, boolean>> = {};
+      for (const r of existingResponses) {
+        const ans: Record<string, boolean> = {};
+        for (const a of (r.answers as { questionId: string; checked: boolean }[])) {
+          ans[a.questionId] = a.checked;
+        }
+        next[r.templateId] = ans;
+      }
+      setAnswers(next);
+    }
+  }, [existingResponses]);
 
-  const responsesByTemplate = new Map(responses.map(r => [r.templateId, r.answers as { questionId: string; checked: boolean }[]]));
+  if (!templates || templates.length === 0) return null;
 
-  const relevantTemplates = templates.filter(t => responsesByTemplate.has(t.id));
-  if (relevantTemplates.length === 0) return null;
+  const handleCheck = (templateId: number, questionId: string, checked: boolean) => {
+    const updated = { ...(answers[templateId] ?? {}), [questionId]: checked };
+    setAnswers(prev => ({ ...prev, [templateId]: updated }));
+    upsertResponse.mutate({
+      tradeId,
+      data: {
+        templateId,
+        answers: Object.entries(updated).map(([qId, c]) => ({ questionId: qId, checked: c })),
+      },
+    });
+  };
 
   return (
-    <div className="space-y-2 mt-3">
+    <div className="space-y-2">
       <p className="text-xs text-muted-foreground font-medium">Checklists</p>
-      {relevantTemplates.map(t => {
-        const answers = responsesByTemplate.get(t.id) ?? [];
+      {templates.map(t => {
+        const templateAnswers = answers[t.id] ?? {};
         const questions = t.questions as { id: string; text: string }[];
-        const checked = answers.filter(a => a.checked).length;
+        const checkedCount = questions.filter(q => templateAnswers[q.id]).length;
         return (
           <div key={t.id} className="text-xs border border-border/50 rounded-md p-2.5 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="font-medium text-foreground/80">{t.name}</span>
-              <span className={`font-mono ${checked === questions.length ? "text-emerald-400" : "text-muted-foreground"}`}>{checked}/{questions.length}</span>
+              <span className={`font-mono text-[11px] ${checkedCount === questions.length && questions.length > 0 ? "text-emerald-400" : "text-muted-foreground"}`}>
+                {checkedCount}/{questions.length}
+              </span>
             </div>
             <div className="space-y-1">
-              {questions.map(q => {
-                const ans = answers.find(a => a.questionId === q.id);
-                return (
-                  <div key={q.id} className="flex items-center gap-1.5 text-muted-foreground">
-                    <span className={`w-3 h-3 rounded-sm border flex items-center justify-center flex-shrink-0 ${ans?.checked ? "bg-emerald-500/20 border-emerald-500/40" : "border-border/60"}`}>
-                      {ans?.checked && <Check className="w-2 h-2 text-emerald-400" />}
-                    </span>
-                    <span className={ans?.checked ? "line-through opacity-60" : ""}>{q.text}</span>
-                  </div>
-                );
-              })}
+              {questions.map(q => (
+                <label key={q.id} className="flex items-center gap-1.5 text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={templateAnswers[q.id] ?? false}
+                    onChange={(e) => handleCheck(t.id, q.id, e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className={templateAnswers[q.id] ? "line-through opacity-50" : ""}>{q.text}</span>
+                </label>
+              ))}
             </div>
           </div>
         );
       })}
     </div>
+  );
+}
+
+function ChecklistBadge({ tradeId }: { tradeId: number }) {
+  const { data: templates } = useListChecklistTemplates();
+  const { data: responses } = useGetChecklistResponses(tradeId);
+
+  if (!templates || !responses || responses.length === 0) return null;
+
+  let totalQuestions = 0;
+  let totalChecked = 0;
+  for (const r of responses) {
+    const t = templates.find(t => t.id === r.templateId);
+    if (!t) continue;
+    const questions = t.questions as { id: string; text: string }[];
+    const answers = r.answers as { questionId: string; checked: boolean }[];
+    totalQuestions += questions.length;
+    totalChecked += answers.filter(a => a.checked).length;
+  }
+
+  if (totalQuestions === 0) return null;
+  const isComplete = totalChecked === totalQuestions;
+
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-mono px-1.5 py-0.5 rounded border ${isComplete ? "text-emerald-400 border-emerald-400/20 bg-emerald-400/5" : "text-muted-foreground border-border/50"}`}>
+      <Check className="h-2.5 w-2.5" />
+      {totalChecked}/{totalQuestions}
+    </span>
   );
 }
 
@@ -189,9 +243,12 @@ function EntryCard({ entry }: { entry: JournalEntry }) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div>
-              <CardTitle className="text-base font-semibold">
-                {entry.trade?.symbol ? `${entry.trade.symbol} — ${entry.trade.type?.toUpperCase()}` : `Trade #${entry.tradeId}`}
-              </CardTitle>
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-base font-semibold">
+                  {entry.trade?.symbol ? `${entry.trade.symbol} — ${entry.trade.type?.toUpperCase()}` : `Trade #${entry.tradeId}`}
+                </CardTitle>
+                <ChecklistBadge tradeId={entry.tradeId} />
+              </div>
               <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
                 <span>{formatDate(entry.createdAt)}</span>
                 {moodKey && MOOD_LABELS[moodKey] && (
@@ -292,7 +349,7 @@ function EntryCard({ entry }: { entry: JournalEntry }) {
               </>
             ) : (
               <>
-                <ChecklistResponseView tradeId={entry.tradeId} />
+                <ChecklistSection tradeId={entry.tradeId} />
                 {entry.notes && (
                   <div>
                     <p className="text-sm text-muted-foreground font-medium mb-1">Notes</p>

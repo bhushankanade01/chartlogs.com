@@ -133,12 +133,11 @@ router.post("/trades", requireAuth, async (req, res): Promise<void> => {
   }
   rrRatio = calculateRR(d.type as "long" | "short", entry, tp, sl);
 
-  // Auto-compute R-multiple from prices when SL is set and user didn't supply one
+  // Auto-compute R-multiple: actual PnL / planned dollar risk (if SL set and no manual value)
   let computedRMultiple: number | null = (d as Record<string, unknown>)["rMultiple"] as number | null ?? null;
-  if (computedRMultiple === null && exit !== null && sl !== null) {
-    const risk = d.type === "long" ? entry - sl : sl - entry;
-    const reward = d.type === "long" ? exit - entry : entry - exit;
-    if (risk > 0) computedRMultiple = parseFloat((reward / risk).toFixed(2));
+  if (computedRMultiple === null && pnl !== null && sl !== null) {
+    const dollarRisk = Math.abs(calculatePnl(d.type as "long" | "short", entry, sl, size, 0));
+    if (dollarRisk > 0) computedRMultiple = parseFloat((pnl / dollarRisk).toFixed(2));
   }
 
   // Validate account ownership if accountId is provided
@@ -274,11 +273,11 @@ router.patch("/trades/:id", requireAuth, async (req, res): Promise<void> => {
   }
   updates.rrRatio = calculateRR(tradeType, entry, tp, sl) !== null ? String(calculateRR(tradeType, entry, tp, sl)) : null;
 
-  // Auto-compute R-multiple when prices and SL are available and user didn't supply one
-  if (dRaw["rMultiple"] === undefined && exit !== null && sl !== null) {
-    const risk = tradeType === "long" ? entry - sl : sl - entry;
-    const reward = tradeType === "long" ? exit - entry : entry - exit;
-    if (risk > 0) updates.rMultiple = String(parseFloat((reward / risk).toFixed(2)));
+  // Auto-compute R-multiple: actual PnL / planned dollar risk (if SL set and no manual value)
+  if (dRaw["rMultiple"] === undefined && exit !== null && sl !== null && updates.pnl !== undefined) {
+    const pnlVal = parseFloat(String(updates.pnl));
+    const dollarRisk = Math.abs(calculatePnl(tradeType, entry, sl, size, 0));
+    if (dollarRisk > 0) updates.rMultiple = String(parseFloat((pnlVal / dollarRisk).toFixed(2)));
   }
 
   const [trade] = await db.update(tradesTable)
