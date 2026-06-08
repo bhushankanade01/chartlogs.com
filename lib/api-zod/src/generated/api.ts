@@ -1061,6 +1061,18 @@ export const GenerateWeeklyReportResponse = zod.object({
 
 
 /**
+ * @summary Get the latest cached pattern analysis (no regeneration)
+ */
+export const GetPatternAnalysisResponse = zod.union([zod.object({
+  "id": zod.number(),
+  "tradeId": zod.number().nullish(),
+  "reportType": zod.enum(['trade_review', 'weekly_report', 'pattern_analysis']),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+}),zod.null()])
+
+
+/**
  * @summary Generate pattern analysis from last 30 trades
  */
 export const GeneratePatternAnalysisResponse = zod.object({

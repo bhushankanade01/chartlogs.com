@@ -1150,6 +1150,19 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /ai/patterns:
+    get:
+      operationId: getPatternAnalysis
+      tags: [ai]
+      summary: Get the latest cached pattern analysis (no regeneration)
+      responses:
+        "200":
+          description: Latest pattern analysis report or null
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/AiReport"
+                  - type: "null"
     post:
       operationId: generatePatternAnalysis
       tags: [ai]

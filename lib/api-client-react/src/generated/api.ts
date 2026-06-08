@@ -3603,6 +3603,83 @@ export const useGenerateWeeklyReport = <TError = ErrorType<ErrorResponse>,
       return useMutation(getGenerateWeeklyReportMutationOptions(options));
     }
 
+export const getGetPatternAnalysisUrl = () => {
+
+
+
+
+  return `/api/ai/patterns`
+}
+
+/**
+ * @summary Get the latest cached pattern analysis (no regeneration)
+ */
+export const getPatternAnalysis = async ( options?: RequestInit): Promise<AiReport | null> => {
+
+  return customFetch<AiReport | null>(getGetPatternAnalysisUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPatternAnalysisQueryKey = () => {
+    return [
+    `/api/ai/patterns`
+    ] as const;
+    }
+
+
+export const getGetPatternAnalysisQueryOptions = <TData = Awaited<ReturnType<typeof getPatternAnalysis>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPatternAnalysis>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPatternAnalysisQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPatternAnalysis>>> = ({ signal }) => getPatternAnalysis({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPatternAnalysis>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPatternAnalysisQueryResult = NonNullable<Awaited<ReturnType<typeof getPatternAnalysis>>>
+export type GetPatternAnalysisQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the latest cached pattern analysis (no regeneration)
+ */
+
+export function useGetPatternAnalysis<TData = Awaited<ReturnType<typeof getPatternAnalysis>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPatternAnalysis>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPatternAnalysisQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getGeneratePatternAnalysisUrl = () => {
 
 

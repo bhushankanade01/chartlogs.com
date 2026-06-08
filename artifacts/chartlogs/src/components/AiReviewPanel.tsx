@@ -3,20 +3,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getListAiReportsQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { SafeMarkdown } from "@/components/SafeMarkdown";
 import { Bot, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 
 interface AiReviewPanelProps {
   tradeId: number;
   existingReview?: string | null;
-}
-
-function renderMarkdown(text: string): string {
-  return text
-    .replace(/^## (.+)$/gm, '<h3 class="text-sm font-semibold text-foreground mt-3 mb-1">$1</h3>')
-    .replace(/^# (.+)$/gm, '<h2 class="text-base font-bold text-foreground mt-3 mb-1">$1</h2>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n\n/g, '<br/><br/>')
-    .replace(/\n/g, '<br/>');
 }
 
 export function AiReviewPanel({ tradeId, existingReview }: AiReviewPanelProps) {
@@ -114,17 +106,10 @@ export function AiReviewPanel({ tradeId, existingReview }: AiReviewPanelProps) {
         <p className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded px-3 py-2">{error}</p>
       )}
 
-      {expanded && hasContent && (
-        <div
-          className="text-xs text-muted-foreground bg-muted/20 border border-border/50 rounded-md px-3 py-2.5 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-        />
-      )}
-
-      {streaming && content && (
-        <div
-          className="text-xs text-muted-foreground bg-muted/20 border border-border/50 rounded-md px-3 py-2.5 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+      {(expanded || streaming) && hasContent && (
+        <SafeMarkdown
+          content={content}
+          className="text-xs text-muted-foreground bg-muted/20 border border-border/50 rounded-md px-3 py-2.5 space-y-0.5"
         />
       )}
     </div>

@@ -11,19 +11,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { Bot, FileText, TrendingUp, RefreshCw, ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { SafeMarkdown } from "@/components/SafeMarkdown";
+import { Bot, FileText, TrendingUp, ChevronDown, ChevronUp, Lock } from "lucide-react";
 import { formatDate } from "@/lib/format";
-
-function renderMarkdown(text: string): string {
-  return text
-    .replace(/^### (.+)$/gm, '<h4 class="text-sm font-semibold text-foreground mt-4 mb-1">$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3 class="text-base font-semibold text-foreground mt-4 mb-1.5">$1</h3>')
-    .replace(/^# (.+)$/gm, '<h2 class="text-lg font-bold text-foreground mt-2 mb-2">$1</h2>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground">$1</strong>')
-    .replace(/^(\d+)\. /gm, '<span class="text-blue-400 font-medium">$1.</span> ')
-    .replace(/\n\n/g, '<br/><br/>')
-    .replace(/\n/g, '<br/>');
-}
 
 function ReportView({ report, onClose }: { report: AiReport; onClose: () => void }) {
   const label = report.reportType === "weekly_report" ? "Weekly Report" : "Pattern Analysis";
@@ -36,9 +26,9 @@ function ReportView({ report, onClose }: { report: AiReport; onClose: () => void
         </div>
         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onClose}>← Back</Button>
       </div>
-      <div
-        className="text-xs text-muted-foreground leading-relaxed max-h-96 overflow-y-auto pr-1"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(report.content) }}
+      <SafeMarkdown
+        content={report.content}
+        className="text-xs text-muted-foreground leading-relaxed max-h-96 overflow-y-auto pr-1 space-y-0.5"
       />
     </div>
   );
@@ -157,9 +147,9 @@ export function AiReportsCard() {
                       </button>
                       {expandedId === r.id && (
                         <div className="px-3 pb-3 pt-1 border-t border-border/40">
-                          <div
-                            className="text-xs text-muted-foreground leading-relaxed max-h-64 overflow-y-auto"
-                            dangerouslySetInnerHTML={{ __html: renderMarkdown(r.content) }}
+                          <SafeMarkdown
+                            content={r.content}
+                            className="text-xs text-muted-foreground leading-relaxed max-h-64 overflow-y-auto space-y-0.5"
                           />
                         </div>
                       )}

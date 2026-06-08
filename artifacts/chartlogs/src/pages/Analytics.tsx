@@ -28,9 +28,10 @@ import {
   GetAnalyticsByDayPeriod,
   GetAnalyticsBySymbolPeriod,
   useGetAiStatus,
-  useListAiReports,
   useGeneratePatternAnalysis,
+  useGetPatternAnalysis,
   getListAiReportsQueryKey,
+  getGetPatternAnalysisQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "@/contexts/AccountContext";
@@ -41,6 +42,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Bot, TrendingUp, RefreshCw, Lock } from "lucide-react";
+import { SafeMarkdown } from "@/components/SafeMarkdown";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, ReferenceLine, Legend,
@@ -639,35 +641,24 @@ export default function Analytics() {
   );
 }
 
-function renderMarkdown(text: string): string {
-  return text
-    .replace(/^### (.+)$/gm, '<h4 class="text-sm font-semibold text-foreground mt-4 mb-1">$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3 class="text-base font-semibold text-foreground mt-4 mb-1.5">$1</h3>')
-    .replace(/^# (.+)$/gm, '<h2 class="text-lg font-bold text-foreground mt-2 mb-2">$1</h2>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground">$1</strong>')
-    .replace(/^(\d+)\. /gm, '<span class="text-blue-400 font-medium">$1.</span> ')
-    .replace(/\n\n/g, '<br/><br/>')
-    .replace(/\n/g, '<br/>');
-}
 
 function AiInsightsSection() {
   const queryClient = useQueryClient();
   const { data: aiStatus } = useGetAiStatus();
-  const { data: reports, isLoading } = useListAiReports(
-    { reportType: "pattern_analysis", limit: 3 },
-    { query: { queryKey: getListAiReportsQueryKey({ reportType: "pattern_analysis", limit: 3 }) } }
-  );
+  const { data: latestReport, isLoading } = useGetPatternAnalysis({
+    query: { queryKey: getGetPatternAnalysisQueryKey() },
+  });
 
   const patternMutation = useGeneratePatternAnalysis({
     mutation: {
       onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetPatternAnalysisQueryKey() });
         queryClient.invalidateQueries({ queryKey: getListAiReportsQueryKey() });
       },
     },
   });
 
   const aiAvailable = aiStatus?.available ?? false;
-  const latestReport = reports?.[0];
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -723,10 +714,12 @@ function AiInsightsSection() {
           <div className="flex justify-center py-6"><Spinner /></div>
         ) : latestReport ? (
           <div className="space-y-3">
-            <div
-              className={`text-xs text-muted-foreground leading-relaxed overflow-hidden transition-all ${expanded ? "" : "max-h-48"}`}
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(latestReport.content) }}
-            />
+            <div className={`overflow-hidden transition-all ${expanded ? "" : "max-h-48"}`}>
+              <SafeMarkdown
+                content={latestReport.content}
+                className="text-xs text-muted-foreground leading-relaxed space-y-0.5"
+              />
+            </div>
             <button
               type="button"
               className="text-xs text-blue-400 hover:text-blue-300 transition-colors"

@@ -219,6 +219,27 @@ Format the report exactly as:
   }
 });
 
+router.get("/ai/patterns", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.user!.id;
+  const [latest] = await db.select().from(aiReviewsTable)
+    .where(and(eq(aiReviewsTable.userId, userId), eq(aiReviewsTable.reportType, "pattern_analysis")))
+    .orderBy(desc(aiReviewsTable.createdAt))
+    .limit(1);
+
+  if (!latest) {
+    res.json(null);
+    return;
+  }
+
+  res.json({
+    id: latest.id,
+    tradeId: latest.tradeId,
+    reportType: latest.reportType,
+    content: latest.content,
+    createdAt: latest.createdAt.toISOString(),
+  });
+});
+
 router.post("/ai/patterns", requireAuth, async (req, res): Promise<void> => {
   if (!AI_AVAILABLE) {
     res.status(503).json({ error: "AI features require ANTHROPIC_API_KEY. Add it to your secrets." });
