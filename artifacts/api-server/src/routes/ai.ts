@@ -1,16 +1,18 @@
 import { Router } from "express";
-import { eq, desc, and, gte, isNull, or } from "drizzle-orm";
+import { eq, desc, and, gte } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { tradesTable, journalEntriesTable, aiReviewsTable } from "@workspace/db";
+import {
+  tradesTable,
+  journalEntriesTable,
+  aiReviewsTable,
+  checklistResponsesTable,
+  checklistTemplatesTable,
+} from "@workspace/db";
 import { requireAuth } from "../middlewares/auth.js";
-import { getAnthropicClient, AI_AVAILABLE } from "@workspace/integrations-anthropic-ai";
+import { AI_AVAILABLE } from "@workspace/integrations-anthropic-ai";
+import { streamAnthropicMessage, createAnthropicMessage } from "../lib/ai.js";
 
 const router = Router();
-
-const SYSTEM_PROMPT = `You are an expert forex/stock trading coach and performance analyst. 
-You analyze trades and provide structured, actionable feedback. 
-Be direct, specific, and constructive. Focus on risk management, emotional patterns, and execution quality.
-Format responses in clear sections using markdown headings.`;
 
 function getPeriodStart(days: number): Date {
   const d = new Date();
@@ -47,6 +49,41 @@ router.post("/ai/trade-review/:tradeId", requireAuth, async (req, res): Promise<
   const [journalEntry] = await db.select().from(journalEntriesTable)
     .where(eq(journalEntriesTable.tradeId, tradeId));
 
+  const checklistRows = await db
+    .select({
+      templateName: checklistTemplatesTable.name,
+      questions: checklistTemplatesTable.questions,
+      answers: checklistResponsesTable.answers,
+    })
+    .from(checklistResponsesTable)
+    .innerJoin(
+      checklistTemplatesTable,
+      eq(checklistResponsesTable.templateId, checklistTemplatesTable.id),
+    )
+    .where(
+      and(
+        eq(checklistResponsesTable.tradeId, tradeId),
+        eq(checklistResponsesTable.userId, userId),
+      ),
+    );
+
+  let checklistSection = "";
+  if (checklistRows.length > 0) {
+    const lines: string[] = [];
+    for (const row of checklistRows) {
+      lines.push(`Checklist: ${row.templateName}`);
+      const questions = Array.isArray(row.questions) ? row.questions : [];
+      const answers = Array.isArray(row.answers) ? row.answers : [];
+      questions.forEach((q, i) => {
+        const answer = answers[i];
+        const qText = typeof q === "object" && q !== null && "text" in q ? String((q as { text: string }).text) : String(q);
+        const aText = answer !== undefined && answer !== null ? String(answer) : "—";
+        lines.push(`  Q: ${qText} → ${aText}`);
+      });
+    }
+    checklistSection = "\nChecklist Answers:\n" + lines.join("\n");
+  }
+
   const tradeContext = `
 Trade Details:
 - Symbol: ${trade.symbol}
@@ -63,7 +100,7 @@ Trade Details:
 - Emotion: ${trade.emotion ?? "Not recorded"}
 - Trade Rating: ${trade.rating ?? "Not rated"}/5
 - Open: ${trade.openTime}, Close: ${trade.closeTime ?? "Still open"}
-${journalEntry?.notes ? `- Journal Notes: ${journalEntry.notes}` : ""}
+${journalEntry?.notes ? `- Journal Notes: ${journalEntry.notes}` : ""}${checklistSection}
 `.trim();
 
   const prompt = `Analyze this trade and provide a structured review:
@@ -77,6 +114,9 @@ Provide your review in exactly this format:
 
 ## Areas to Improve
 [2-3 specific, actionable improvements]
+
+## Checklist Adherence
+[If checklist answers are present, comment on rule adherence. If no checklist, skip this section.]
 
 ## Risk Management Score
 [Score X/10 with one-line rationale]
@@ -94,13 +134,7 @@ Provide your review in exactly this format:
   let fullContent = "";
 
   try {
-    const client = getAnthropicClient();
-    const stream = client.messages.stream({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: prompt }],
-    });
+    const stream = streamAnthropicMessage(prompt);
 
     for await (const event of stream) {
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
@@ -189,14 +223,7 @@ Format the report exactly as:
 3. [Specific, measurable action]`;
 
   try {
-    const client = getAnthropicClient();
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: prompt }],
-    });
-
+    const message = await createAnthropicMessage(prompt);
     const content = message.content[0].type === "text" ? message.content[0].text : "";
 
     const [report] = await db.insert(aiReviewsTable).values({
@@ -292,14 +319,7 @@ Provide pattern analysis in this format:
 [2-3 sentence honest assessment of the trading psychology visible in the data]`;
 
   try {
-    const client = getAnthropicClient();
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: prompt }],
-    });
-
+    const message = await createAnthropicMessage(prompt);
     const content = message.content[0].type === "text" ? message.content[0].text : "";
 
     const [report] = await db.insert(aiReviewsTable).values({

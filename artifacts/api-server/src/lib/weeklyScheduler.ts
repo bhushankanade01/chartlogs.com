@@ -1,13 +1,9 @@
 import { desc, eq, gte, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { usersTable, tradesTable, aiReviewsTable } from "@workspace/db";
-import { getAnthropicClient, AI_AVAILABLE } from "@workspace/integrations-anthropic-ai";
+import { AI_AVAILABLE } from "@workspace/integrations-anthropic-ai";
+import { createAnthropicMessage, TRADING_SYSTEM_PROMPT } from "./ai.js";
 import { logger } from "./logger.js";
-
-const SYSTEM_PROMPT = `You are an expert forex/stock trading coach and performance analyst. 
-You analyze trades and provide structured, actionable feedback. 
-Be direct, specific, and constructive. Focus on risk management, emotional patterns, and execution quality.
-Format responses in clear sections using markdown headings.`;
 
 function msUntilNextMonday(): number {
   const now = new Date();
@@ -19,7 +15,7 @@ function msUntilNextMonday(): number {
   return nextMonday.getTime() - now.getTime();
 }
 
-async function generateWeeklyReportForUser(userId: number): Promise<void> {
+export async function generateWeeklyReportForUser(userId: number): Promise<void> {
   const since = new Date();
   since.setDate(since.getDate() - 7);
 
@@ -69,14 +65,7 @@ Format the report exactly as:
 2. [Specific, measurable action]
 3. [Specific, measurable action]`;
 
-  const client = getAnthropicClient();
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 8192,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: prompt }],
-  });
-
+  const message = await createAnthropicMessage(prompt);
   const content = message.content[0].type === "text" ? message.content[0].text : "";
 
   await db.insert(aiReviewsTable).values({
@@ -87,6 +76,59 @@ Format the report exactly as:
   });
 
   logger.info({ userId }, "Auto weekly report generated");
+}
+
+export async function generatePatternAnalysisForUser(userId: number): Promise<void> {
+  const trades = await db.select().from(tradesTable)
+    .where(eq(tradesTable.userId, userId))
+    .orderBy(desc(tradesTable.openTime))
+    .limit(30);
+
+  const closed = trades.filter(t => t.pnl !== null);
+  if (closed.length < 5) return;
+
+  const tradeSummaries = closed.map(t =>
+    `${t.symbol} ${t.type?.toUpperCase()} | ${t.outcome?.toUpperCase()} | P&L: $${parseFloat(t.pnl!).toFixed(2)} | R: ${t.rMultiple != null ? t.rMultiple + "R" : "N/A"} | Session: ${t.session ?? "N/A"} | Emotion: ${t.emotion ?? "N/A"} | Strategy: ${t.strategy ?? "N/A"}`
+  ).join("\n");
+
+  const prompt = `Analyze the last ${closed.length} closed trades and detect recurring behavioral and technical patterns.
+
+Trades (most recent first):
+${tradeSummaries}
+
+Provide pattern analysis in this format:
+
+# Pattern Analysis — Last ${closed.length} Trades
+
+## Recurring Mistake Patterns
+[3-5 specific patterns with frequency]
+
+## Emotional Trading Patterns  
+[Analysis of how emotions correlate with outcomes — be specific with percentages]
+
+## Best Performing Conditions
+[When / how / what you trade best — specific conditions that correlate with wins]
+
+## Worst Performing Conditions
+[The consistent losing scenarios to avoid]
+
+## Strategy Effectiveness
+[Which strategies are working and which aren't based on the data]
+
+## Overall Behavioral Assessment
+[2-3 sentence honest assessment of the trading psychology visible in the data]`;
+
+  const message = await createAnthropicMessage(prompt);
+  const content = message.content[0].type === "text" ? message.content[0].text : "";
+
+  await db.insert(aiReviewsTable).values({
+    userId,
+    tradeId: null,
+    reportType: "pattern_analysis",
+    content,
+  });
+
+  logger.info({ userId }, "Background pattern analysis generated");
 }
 
 async function runWeeklyReportsForAllUsers(): Promise<void> {
@@ -110,6 +152,24 @@ async function runWeeklyReportsForAllUsers(): Promise<void> {
   }
 }
 
+async function runPatternAnalysisForAllUsers(): Promise<void> {
+  if (!AI_AVAILABLE) return;
+
+  logger.info("Pattern analysis scheduler: starting background analysis");
+  const users = await db.select({ id: usersTable.id }).from(usersTable);
+
+  const results = await Promise.allSettled(
+    users.map(u => generatePatternAnalysisForUser(u.id))
+  );
+
+  const failed = results.filter(r => r.status === "rejected").length;
+  if (failed > 0) {
+    logger.warn({ failed, total: users.length }, "Some pattern analyses failed");
+  } else {
+    logger.info({ total: users.length }, "Pattern analysis completed for all users");
+  }
+}
+
 export function startWeeklyScheduler(): void {
   const delay = msUntilNextMonday();
   const days = Math.round(delay / 86400000);
@@ -121,4 +181,18 @@ export function startWeeklyScheduler(): void {
     });
     setTimeout(tick, 7 * 24 * 60 * 60 * 1000);
   }, delay);
+}
+
+export function startPatternAnalysisScheduler(): void {
+  const SIX_HOURS = 6 * 60 * 60 * 1000;
+  logger.info("Pattern analysis scheduler: runs every 6 hours");
+
+  const tick = () => {
+    runPatternAnalysisForAllUsers().catch(err => {
+      logger.error({ err }, "Background pattern analysis failed");
+    });
+    setTimeout(tick, SIX_HOURS);
+  };
+
+  setTimeout(tick, SIX_HOURS);
 }
