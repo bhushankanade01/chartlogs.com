@@ -929,8 +929,20 @@ accountId?: number;
 };
 
 export type GetAnalyticsBySessionParams = {
+period?: GetAnalyticsBySessionPeriod;
 accountId?: number;
 };
+
+export type GetAnalyticsBySessionPeriod = typeof GetAnalyticsBySessionPeriod[keyof typeof GetAnalyticsBySessionPeriod];
+
+
+export const GetAnalyticsBySessionPeriod = {
+  '7d': '7d',
+  '30d': '30d',
+  '3m': '3m',
+  '1y': '1y',
+  all: 'all',
+} as const;
 
 export type GetAnalyticsByHourParams = {
 period?: GetAnalyticsByHourPeriod;
@@ -981,8 +993,20 @@ export const GetAnalyticsStreaksPeriod = {
 } as const;
 
 export type GetAnalyticsProfitFactorTrendParams = {
+period?: GetAnalyticsProfitFactorTrendPeriod;
 accountId?: number;
 };
+
+export type GetAnalyticsProfitFactorTrendPeriod = typeof GetAnalyticsProfitFactorTrendPeriod[keyof typeof GetAnalyticsProfitFactorTrendPeriod];
+
+
+export const GetAnalyticsProfitFactorTrendPeriod = {
+  '7d': '7d',
+  '30d': '30d',
+  '3m': '3m',
+  '1y': '1y',
+  all: 'all',
+} as const;
 
 export type GetChecklistComplianceParams = {
 accountId?: number;

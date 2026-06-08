@@ -943,6 +943,12 @@ paths:
       tags: [analytics]
       summary: Get performance grouped by trading session
       parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 3m, 1y, all]
+            default: all
         - name: accountId
           in: query
           schema:
@@ -1037,6 +1043,12 @@ paths:
       tags: [analytics]
       summary: Get monthly profit factor trend
       parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 3m, 1y, all]
+            default: all
         - name: accountId
           in: query
           schema:

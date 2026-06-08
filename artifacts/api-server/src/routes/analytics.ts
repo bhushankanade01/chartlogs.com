@@ -88,17 +88,19 @@ router.get("/analytics/performance", requireAuth, async (req, res): Promise<void
     else curLoss = 0;
   }
 
-  // Max drawdown duration in calendar days
+  // Max drawdown duration — use cumulative equity curve, measure peak-to-trough days
   let maxDdDays = 0;
-  let peakEquity = 0;
-  let ddStart: Date | null = null;
+  let runningEquity = 0;
+  let peakEq = 0;
+  let peakDate: Date | null = null;
   for (const t of filtered) {
+    runningEquity += parseFloat(t.pnl!);
     const tradeDate = new Date(t.closeTime ?? t.openTime);
-    const eq = parseFloat(t.pnl!);
-    if (peakEquity === 0 && eq > 0) { peakEquity = eq; continue; }
-    if (eq >= peakEquity) { peakEquity = eq; ddStart = null; }
-    else if (ddStart === null) { ddStart = tradeDate; }
-    else { const days = Math.round((tradeDate.getTime() - ddStart.getTime()) / 86400000); maxDdDays = Math.max(maxDdDays, days); }
+    if (runningEquity >= peakEq) { peakEq = runningEquity; peakDate = tradeDate; }
+    else if (peakDate) {
+      const days = Math.round((tradeDate.getTime() - peakDate.getTime()) / 86400000);
+      maxDdDays = Math.max(maxDdDays, days);
+    }
   }
 
   res.json({
@@ -303,9 +305,12 @@ router.get("/analytics/by-strategy", requireAuth, async (req, res): Promise<void
 
 router.get("/analytics/by-session", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.id;
+  const period = String(req.query.period ?? "all");
   const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
+  const periodStart = getPeriodStart(period);
 
   const conditions = [eq(tradesTable.userId, userId)];
+  if (periodStart) conditions.push(gte(tradesTable.openTime, periodStart));
   if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
@@ -357,10 +362,18 @@ router.get("/analytics/by-hour", requireAuth, async (req, res): Promise<void> =>
     grid.set(key, { pnlSum: existing.pnlSum + parseFloat(t.pnl!), count: existing.count + 1 });
   }
 
+  // Return full 7×24 grid (all cells, including zeros)
   const result = [];
-  for (const [key, { pnlSum, count }] of grid.entries()) {
-    const [day, hour] = key.split(":").map(Number);
-    result.push({ day, hour, avgPnl: parseFloat((pnlSum / count).toFixed(2)), trades: count });
+  for (let day = 0; day < 7; day++) {
+    for (let hour = 0; hour < 24; hour++) {
+      const cell = grid.get(`${day}:${hour}`);
+      result.push({
+        day,
+        hour,
+        avgPnl: cell ? parseFloat((cell.pnlSum / cell.count).toFixed(2)) : 0,
+        trades: cell ? cell.count : 0,
+      });
+    }
   }
 
   res.json(result);
@@ -446,9 +459,12 @@ router.get("/analytics/streaks", requireAuth, async (req, res): Promise<void> =>
 
 router.get("/analytics/profit-factor-trend", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.id;
+  const period = String(req.query.period ?? "all");
   const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
+  const periodStart = getPeriodStart(period);
 
   const conditions = [eq(tradesTable.userId, userId)];
+  if (periodStart) conditions.push(gte(tradesTable.openTime, periodStart));
   if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions)).orderBy(tradesTable.openTime);

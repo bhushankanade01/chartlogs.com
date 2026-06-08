@@ -921,7 +921,10 @@ export const GetAnalyticsByStrategyResponse = zod.array(GetAnalyticsByStrategyRe
 /**
  * @summary Get performance grouped by trading session
  */
+export const getAnalyticsBySessionQueryPeriodDefault = `all`;
+
 export const GetAnalyticsBySessionQueryParams = zod.object({
+  "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsBySessionQueryPeriodDefault),
   "accountId": zod.coerce.number().optional()
 })
 
@@ -997,7 +1000,10 @@ export const GetAnalyticsStreaksResponse = zod.object({
 /**
  * @summary Get monthly profit factor trend
  */
+export const getAnalyticsProfitFactorTrendQueryPeriodDefault = `all`;
+
 export const GetAnalyticsProfitFactorTrendQueryParams = zod.object({
+  "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsProfitFactorTrendQueryPeriodDefault),
   "accountId": zod.coerce.number().optional()
 })
 

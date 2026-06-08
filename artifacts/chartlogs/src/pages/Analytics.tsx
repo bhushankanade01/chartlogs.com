@@ -32,6 +32,7 @@ import { useAccount } from "@/contexts/AccountContext";
 import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -57,6 +58,7 @@ export default function Analytics() {
   const [period, setPeriod] = useState<GetPerformancePeriod>("30d");
   const [dayPeriod] = useState<GetAnalyticsByDayPeriod>("30d");
   const [symPeriod] = useState<GetAnalyticsBySymbolPeriod>("30d");
+  const [strategyFilter, setStrategyFilter] = useState("");
   const { activeAccountId } = useAccount();
   const acctParam = activeAccountId ?? undefined;
 
@@ -84,16 +86,17 @@ export default function Analytics() {
     { accountId: acctParam },
     { query: { queryKey: getGetAnalyticsByStrategyQueryKey({ accountId: acctParam }) } }
   );
+
+  const hourPeriod = period === "today" ? "7d" : period as "7d" | "30d" | "3m" | "1y" | "all";
+
   const { data: bySession } = useGetAnalyticsBySession(
-    { accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsBySessionQueryKey({ accountId: acctParam }) } }
+    { period: hourPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsBySessionQueryKey({ period: hourPeriod, accountId: acctParam }) } }
   );
   const { data: compliance } = useGetChecklistCompliance(
     { accountId: acctParam },
     { query: { queryKey: getGetChecklistComplianceQueryKey({ accountId: acctParam }) } }
   );
-
-  const hourPeriod = period === "today" ? "7d" : period as "7d" | "30d" | "3m" | "1y" | "all";
   const { data: byHour } = useGetAnalyticsByHour(
     { period: hourPeriod, accountId: acctParam },
     { query: { queryKey: getGetAnalyticsByHourQueryKey({ period: hourPeriod, accountId: acctParam }) } }
@@ -107,8 +110,8 @@ export default function Analytics() {
     { query: { queryKey: getGetAnalyticsStreaksQueryKey({ period: hourPeriod, accountId: acctParam }) } }
   );
   const { data: pfTrend } = useGetAnalyticsProfitFactorTrend(
-    { accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsProfitFactorTrendQueryKey({ accountId: acctParam }) } }
+    { period: hourPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsProfitFactorTrendQueryKey({ period: hourPeriod, accountId: acctParam }) } }
   );
 
   return (
@@ -280,44 +283,65 @@ export default function Analytics() {
 
         {byStrategy && byStrategy.length > 0 && (
           <Card>
-            <CardHeader><CardTitle>Performance by Strategy</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {byStrategy.map((s, i) => (
-                  <div key={s.strategy} className="flex items-center justify-between gap-2 text-xs border-b border-border/40 pb-2 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                      <span className="truncate text-muted-foreground font-medium">{s.strategy}</span>
-                    </div>
-                    <div className="flex items-center gap-4 font-mono text-xs flex-shrink-0">
-                      <span className="text-muted-foreground">{s.trades} trades</span>
-                      <span className="text-muted-foreground">{s.winRate.toFixed(0)}% WR</span>
-                      {s.avgRMultiple != null && (
-                        <span className="text-muted-foreground">{s.avgRMultiple > 0 ? "+" : ""}{s.avgRMultiple}R avg</span>
-                      )}
-                      <span className={s.pnl >= 0 ? "text-emerald-400" : "text-red-400"}>
-                        {formatMoney(s.pnl)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+            <CardHeader>
+              <div className="flex items-center justify-between gap-4">
+                <CardTitle>Performance by Strategy</CardTitle>
+                <Input
+                  placeholder="Filter strategies…"
+                  value={strategyFilter}
+                  onChange={(e) => setStrategyFilter(e.target.value)}
+                  className="h-7 w-44 text-xs"
+                />
               </div>
-              <ResponsiveContainer width="100%" height={180} className="mt-4">
-                <BarChart data={byStrategy} layout="vertical" margin={{ top: 4, right: 8, left: 80, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" horizontal={false} />
-                  <XAxis type="number" tick={{ fill: '#6B7280', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-                  <YAxis type="category" dataKey="strategy" tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={false} width={76} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
-                    formatter={(v: number) => [`$${v.toFixed(2)}`, "P&L"]}
-                  />
-                  <Bar dataKey="pnl" radius={[0, 4, 4, 0]}>
-                    {byStrategy.map((s, i) => (
-                      <Cell key={i} fill={s.pnl >= 0 ? "#10B981" : "#EF4444"} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const filtered = strategyFilter
+                  ? byStrategy.filter(s => s.strategy.toLowerCase().includes(strategyFilter.toLowerCase()))
+                  : byStrategy;
+                return (
+                  <>
+                    <div className="space-y-2">
+                      {filtered.map((s, i) => (
+                        <div key={s.strategy} className="flex items-center justify-between gap-2 text-xs border-b border-border/40 pb-2 last:border-0 last:pb-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                            <span className="truncate text-muted-foreground font-medium">{s.strategy}</span>
+                          </div>
+                          <div className="flex items-center gap-4 font-mono text-xs flex-shrink-0">
+                            <span className="text-muted-foreground">{s.trades} trades</span>
+                            <span className="text-muted-foreground">{s.winRate.toFixed(0)}% WR</span>
+                            {s.avgRMultiple != null && (
+                              <span className="text-muted-foreground">{s.avgRMultiple > 0 ? "+" : ""}{s.avgRMultiple}R avg</span>
+                            )}
+                            <span className={s.pnl >= 0 ? "text-emerald-400" : "text-red-400"}>
+                              {formatMoney(s.pnl)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {filtered.length > 0 && (
+                      <ResponsiveContainer width="100%" height={180} className="mt-4">
+                        <BarChart data={filtered} layout="vertical" margin={{ top: 4, right: 8, left: 80, bottom: 4 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" horizontal={false} />
+                          <XAxis type="number" tick={{ fill: '#6B7280', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                          <YAxis type="category" dataKey="strategy" tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={false} width={76} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
+                            formatter={(v: number) => [`$${v.toFixed(2)}`, "P&L"]}
+                          />
+                          <Bar dataKey="pnl" radius={[0, 4, 4, 0]}>
+                            {filtered.map((s, i) => (
+                              <Cell key={i} fill={s.pnl >= 0 ? "#10B981" : "#EF4444"} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         )}
