@@ -11,12 +11,13 @@ import {
   GetDashboardStatsPeriod
 } from "@workspace/api-client-react";
 import { useAccount } from "@/contexts/AccountContext";
-import { formatMoney, formatPips, formatDate, cnClass } from "@/lib/format";
+import { formatMoney, formatDate, cnClass } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
+import { AiReportsCard } from "@/components/AiReportsCard";
 
 export default function Dashboard() {
   const [period, setPeriod] = useState<GetDashboardStatsPeriod>("1m");
@@ -175,6 +176,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <AiReportsCard />
 
       <Card>
         <CardHeader>

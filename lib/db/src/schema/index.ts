@@ -7,3 +7,4 @@ export * from "./password_reset_tokens";
 export * from "./login_history";
 export * from "./checklist_templates";
 export * from "./checklist_responses";
+export * from "./ai_reviews";

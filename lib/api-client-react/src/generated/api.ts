@@ -20,6 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AiReport,
+  AiStatus,
   AuthResponse,
   CalendarDay,
   ChecklistCompliance,
@@ -62,6 +64,7 @@ import type {
   ImportTradesResponse,
   JournalEntry,
   JournalInput,
+  ListAiReportsParams,
   ListJournalEntriesParams,
   ListTradesParams,
   LoginInput,
@@ -3371,6 +3374,377 @@ export function useGetChecklistCompliance<TData = Awaited<ReturnType<typeof getC
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetChecklistComplianceQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAiStatusUrl = () => {
+
+
+
+
+  return `/api/ai/status`
+}
+
+/**
+ * @summary Check if AI features are available
+ */
+export const getAiStatus = async ( options?: RequestInit): Promise<AiStatus> => {
+
+  return customFetch<AiStatus>(getGetAiStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAiStatusQueryKey = () => {
+    return [
+    `/api/ai/status`
+    ] as const;
+    }
+
+
+export const getGetAiStatusQueryOptions = <TData = Awaited<ReturnType<typeof getAiStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAiStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAiStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAiStatus>>> = ({ signal }) => getAiStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAiStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAiStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getAiStatus>>>
+export type GetAiStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Check if AI features are available
+ */
+
+export function useGetAiStatus<TData = Awaited<ReturnType<typeof getAiStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAiStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAiStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGenerateAiTradeReviewUrl = (tradeId: number,) => {
+
+
+
+
+  return `/api/ai/trade-review/${tradeId}`
+}
+
+/**
+ * @summary Generate an AI review for a trade (SSE stream)
+ */
+export const generateAiTradeReview = async (tradeId: number, options?: RequestInit): Promise<unknown> => {
+
+  return customFetch<unknown>(getGenerateAiTradeReviewUrl(tradeId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getGenerateAiTradeReviewMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateAiTradeReview>>, TError,{tradeId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateAiTradeReview>>, TError,{tradeId: number}, TContext> => {
+
+const mutationKey = ['generateAiTradeReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateAiTradeReview>>, {tradeId: number}> = (props) => {
+          const {tradeId} = props ?? {};
+
+          return  generateAiTradeReview(tradeId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateAiTradeReviewMutationResult = NonNullable<Awaited<ReturnType<typeof generateAiTradeReview>>>
+
+    export type GenerateAiTradeReviewMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Generate an AI review for a trade (SSE stream)
+ */
+export const useGenerateAiTradeReview = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateAiTradeReview>>, TError,{tradeId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateAiTradeReview>>,
+        TError,
+        {tradeId: number},
+        TContext
+      > => {
+      return useMutation(getGenerateAiTradeReviewMutationOptions(options));
+    }
+
+export const getGenerateWeeklyReportUrl = () => {
+
+
+
+
+  return `/api/ai/weekly-report`
+}
+
+/**
+ * @summary Generate a weekly performance report
+ */
+export const generateWeeklyReport = async ( options?: RequestInit): Promise<AiReport> => {
+
+  return customFetch<AiReport>(getGenerateWeeklyReportUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getGenerateWeeklyReportMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateWeeklyReport>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateWeeklyReport>>, TError,void, TContext> => {
+
+const mutationKey = ['generateWeeklyReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateWeeklyReport>>, void> = () => {
+
+
+          return  generateWeeklyReport(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateWeeklyReportMutationResult = NonNullable<Awaited<ReturnType<typeof generateWeeklyReport>>>
+
+    export type GenerateWeeklyReportMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Generate a weekly performance report
+ */
+export const useGenerateWeeklyReport = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateWeeklyReport>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateWeeklyReport>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getGenerateWeeklyReportMutationOptions(options));
+    }
+
+export const getGeneratePatternAnalysisUrl = () => {
+
+
+
+
+  return `/api/ai/patterns`
+}
+
+/**
+ * @summary Generate pattern analysis from last 30 trades
+ */
+export const generatePatternAnalysis = async ( options?: RequestInit): Promise<AiReport> => {
+
+  return customFetch<AiReport>(getGeneratePatternAnalysisUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getGeneratePatternAnalysisMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePatternAnalysis>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generatePatternAnalysis>>, TError,void, TContext> => {
+
+const mutationKey = ['generatePatternAnalysis'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generatePatternAnalysis>>, void> = () => {
+
+
+          return  generatePatternAnalysis(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GeneratePatternAnalysisMutationResult = NonNullable<Awaited<ReturnType<typeof generatePatternAnalysis>>>
+
+    export type GeneratePatternAnalysisMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Generate pattern analysis from last 30 trades
+ */
+export const useGeneratePatternAnalysis = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generatePatternAnalysis>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generatePatternAnalysis>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getGeneratePatternAnalysisMutationOptions(options));
+    }
+
+export const getListAiReportsUrl = (params?: ListAiReportsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/ai/reports?${stringifiedParams}` : `/api/ai/reports`
+}
+
+/**
+ * @summary List stored AI reports
+ */
+export const listAiReports = async (params?: ListAiReportsParams, options?: RequestInit): Promise<AiReport[]> => {
+
+  return customFetch<AiReport[]>(getListAiReportsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAiReportsQueryKey = (params?: ListAiReportsParams,) => {
+    return [
+    `/api/ai/reports`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAiReportsQueryOptions = <TData = Awaited<ReturnType<typeof listAiReports>>, TError = ErrorType<unknown>>(params?: ListAiReportsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAiReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAiReportsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAiReports>>> = ({ signal }) => listAiReports(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAiReports>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAiReportsQueryResult = NonNullable<Awaited<ReturnType<typeof listAiReports>>>
+export type ListAiReportsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List stored AI reports
+ */
+
+export function useListAiReports<TData = Awaited<ReturnType<typeof listAiReports>>, TError = ErrorType<unknown>>(
+ params?: ListAiReportsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAiReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAiReportsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

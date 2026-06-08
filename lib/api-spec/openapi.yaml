@@ -32,6 +32,8 @@ tags:
     description: Object storage upload and serving endpoints
   - name: checklists
     description: Checklist templates and responses
+  - name: ai
+    description: AI trade reviews and reports
 
 paths:
   /healthz:
@@ -1084,6 +1086,117 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ChecklistCompliance"
+
+  # AI
+  /ai/status:
+    get:
+      operationId: getAiStatus
+      tags: [ai]
+      summary: Check if AI features are available
+      responses:
+        "200":
+          description: AI status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiStatus"
+
+  /ai/trade-review/{tradeId}:
+    post:
+      operationId: generateAiTradeReview
+      tags: [ai]
+      summary: Generate an AI review for a trade (SSE stream)
+      parameters:
+        - name: tradeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: SSE stream of AI review content
+          content:
+            text/event-stream: {}
+        "404":
+          description: Trade not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AI not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/weekly-report:
+    post:
+      operationId: generateWeeklyReport
+      tags: [ai]
+      summary: Generate a weekly performance report
+      responses:
+        "200":
+          description: Generated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiReport"
+        "503":
+          description: AI not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/patterns:
+    post:
+      operationId: generatePatternAnalysis
+      tags: [ai]
+      summary: Generate pattern analysis from last 30 trades
+      responses:
+        "200":
+          description: Pattern analysis report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiReport"
+        "503":
+          description: AI not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/reports:
+    get:
+      operationId: listAiReports
+      tags: [ai]
+      summary: List stored AI reports
+      parameters:
+        - name: reportType
+          in: query
+          schema:
+            type: string
+            enum: [trade_review, weekly_report, pattern_analysis]
+        - name: tradeId
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of AI reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AiReport"
 
   # CHECKLISTS
   /checklists/templates:
@@ -2217,3 +2330,31 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ChecklistAnswer"
+
+    # AI
+    AiStatus:
+      type: object
+      required: [available]
+      properties:
+        available:
+          type: boolean
+        message:
+          type: string
+
+    AiReport:
+      type: object
+      required: [id, reportType, content, createdAt]
+      properties:
+        id:
+          type: integer
+        tradeId:
+          type: integer
+          nullable: true
+        reportType:
+          type: string
+          enum: [trade_review, weekly_report, pattern_analysis]
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time

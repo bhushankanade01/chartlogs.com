@@ -1032,6 +1032,68 @@ export const GetChecklistComplianceResponse = zod.array(GetChecklistComplianceRe
 
 
 /**
+ * @summary Check if AI features are available
+ */
+export const GetAiStatusResponse = zod.object({
+  "available": zod.boolean(),
+  "message": zod.string().optional()
+})
+
+
+/**
+ * @summary Generate an AI review for a trade (SSE stream)
+ */
+export const GenerateAiTradeReviewParams = zod.object({
+  "tradeId": zod.coerce.number()
+})
+
+
+/**
+ * @summary Generate a weekly performance report
+ */
+export const GenerateWeeklyReportResponse = zod.object({
+  "id": zod.number(),
+  "tradeId": zod.number().nullish(),
+  "reportType": zod.enum(['trade_review', 'weekly_report', 'pattern_analysis']),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Generate pattern analysis from last 30 trades
+ */
+export const GeneratePatternAnalysisResponse = zod.object({
+  "id": zod.number(),
+  "tradeId": zod.number().nullish(),
+  "reportType": zod.enum(['trade_review', 'weekly_report', 'pattern_analysis']),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List stored AI reports
+ */
+export const listAiReportsQueryLimitDefault = 20;
+
+export const ListAiReportsQueryParams = zod.object({
+  "reportType": zod.enum(['trade_review', 'weekly_report', 'pattern_analysis']).optional(),
+  "tradeId": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().default(listAiReportsQueryLimitDefault)
+})
+
+export const ListAiReportsResponseItem = zod.object({
+  "id": zod.number(),
+  "tradeId": zod.number().nullish(),
+  "reportType": zod.enum(['trade_review', 'weekly_report', 'pattern_analysis']),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListAiReportsResponse = zod.array(ListAiReportsResponseItem)
+
+
+/**
  * @summary List checklist templates for the current user
  */
 export const ListChecklistTemplatesResponseItem = zod.object({

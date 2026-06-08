@@ -7,6 +7,8 @@ import {
   useGetChecklistResponses,
   useListChecklistTemplates,
   useUpsertChecklistResponse,
+  useListAiReports,
+  getListAiReportsQueryKey,
 } from "@workspace/api-client-react";
 import { useAccount } from "@/contexts/AccountContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -17,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { ScreenshotUploader } from "@/components/ui/ScreenshotUploader";
+import { AiReviewPanel } from "@/components/AiReviewPanel";
 import { BookOpen, ChevronDown, ChevronUp, Edit2, Check, X, Star } from "lucide-react";
 
 const SESSION_COLORS: Record<string, string> = {
@@ -199,6 +202,15 @@ function Lightbox({ urls, initialIndex, onClose }: { urls: string[]; initialInde
   );
 }
 
+function AiReviewSection({ tradeId }: { tradeId: number }) {
+  const { data: reviews } = useListAiReports(
+    { reportType: "trade_review", tradeId, limit: 1 },
+    { query: { queryKey: getListAiReportsQueryKey({ reportType: "trade_review", tradeId, limit: 1 }) } }
+  );
+  const existingReview = reviews?.[0]?.content ?? null;
+  return <AiReviewPanel tradeId={tradeId} existingReview={existingReview} />;
+}
+
 function EntryCard({ entry }: { entry: JournalEntry }) {
   const queryClient = useQueryClient();
   const upsert = useUpsertJournalEntry();
@@ -362,6 +374,7 @@ function EntryCard({ entry }: { entry: JournalEntry }) {
                     <ThumbnailStrip screenshots={entry.screenshots} onOpen={setLightboxIndex} />
                   </div>
                 )}
+                <AiReviewSection tradeId={entry.tradeId} />
               </>
             )}
           </div>

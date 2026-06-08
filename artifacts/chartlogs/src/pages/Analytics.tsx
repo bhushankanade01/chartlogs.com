@@ -27,13 +27,20 @@ import {
   GetPerformancePeriod,
   GetAnalyticsByDayPeriod,
   GetAnalyticsBySymbolPeriod,
+  useGetAiStatus,
+  useListAiReports,
+  useGeneratePatternAnalysis,
+  getListAiReportsQueryKey,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "@/contexts/AccountContext";
 import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { Bot, TrendingUp, RefreshCw, Lock } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, ReferenceLine, Legend,
@@ -626,6 +633,119 @@ export default function Analytics() {
           </Card>
         );
       })()}
+
+      <AiInsightsSection />
     </div>
+  );
+}
+
+function renderMarkdown(text: string): string {
+  return text
+    .replace(/^### (.+)$/gm, '<h4 class="text-sm font-semibold text-foreground mt-4 mb-1">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 class="text-base font-semibold text-foreground mt-4 mb-1.5">$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2 class="text-lg font-bold text-foreground mt-2 mb-2">$1</h2>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground">$1</strong>')
+    .replace(/^(\d+)\. /gm, '<span class="text-blue-400 font-medium">$1.</span> ')
+    .replace(/\n\n/g, '<br/><br/>')
+    .replace(/\n/g, '<br/>');
+}
+
+function AiInsightsSection() {
+  const queryClient = useQueryClient();
+  const { data: aiStatus } = useGetAiStatus();
+  const { data: reports, isLoading } = useListAiReports(
+    { reportType: "pattern_analysis", limit: 3 },
+    { query: { queryKey: getListAiReportsQueryKey({ reportType: "pattern_analysis", limit: 3 }) } }
+  );
+
+  const patternMutation = useGeneratePatternAnalysis({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListAiReportsQueryKey() });
+      },
+    },
+  });
+
+  const aiAvailable = aiStatus?.available ?? false;
+  const latestReport = reports?.[0];
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="flex items-center gap-2">
+            <Bot className="h-4 w-4 text-blue-400" />
+            AI Pattern Insights
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {!aiAvailable && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3" />
+                Add ANTHROPIC_API_KEY to enable
+              </div>
+            )}
+            {latestReport && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0 text-muted-foreground"
+                onClick={() => patternMutation.mutate()}
+                disabled={!aiAvailable || patternMutation.isPending}
+                title="Refresh analysis"
+              >
+                <RefreshCw className={`h-3 w-3 ${patternMutation.isPending ? "animate-spin" : ""}`} />
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant={latestReport ? "outline" : "default"}
+              className="h-7 text-xs gap-1.5"
+              disabled={!aiAvailable || patternMutation.isPending}
+              onClick={() => patternMutation.mutate()}
+            >
+              {patternMutation.isPending ? (
+                <><Spinner className="h-3 w-3" /> Analyzing…</>
+              ) : (
+                <><TrendingUp className="h-3 w-3" /> {latestReport ? "Re-analyze" : "Analyze Patterns"}</>
+              )}
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {patternMutation.isError && (
+          <p className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded px-3 py-2 mb-3">
+            {(patternMutation.error as Error | null)?.message ?? "Analysis failed"}
+          </p>
+        )}
+        {isLoading ? (
+          <div className="flex justify-center py-6"><Spinner /></div>
+        ) : latestReport ? (
+          <div className="space-y-3">
+            <div
+              className={`text-xs text-muted-foreground leading-relaxed overflow-hidden transition-all ${expanded ? "" : "max-h-48"}`}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(latestReport.content) }}
+            />
+            <button
+              type="button"
+              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              onClick={() => setExpanded(e => !e)}
+            >
+              {expanded ? "Show less" : "Show more"}
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-8 space-y-2">
+            <Bot className="h-8 w-8 text-muted-foreground/30 mx-auto" />
+            <p className="text-sm text-muted-foreground">
+              {aiAvailable
+                ? "Run a pattern analysis to get AI insights on your trading behavior and recurring mistakes."
+                : "Configure your ANTHROPIC_API_KEY secret to unlock AI-powered pattern analysis."}
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

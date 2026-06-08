@@ -11,6 +11,7 @@ import toolsRouter from "./tools";
 import adminRouter from "./admin";
 import storageRouter from "./storage";
 import checklistsRouter from "./checklists";
+import aiRouter from "./ai.js";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(toolsRouter);
 router.use(adminRouter);
 router.use(storageRouter);
 router.use(checklistsRouter);
+router.use(aiRouter);
 
 export default router;

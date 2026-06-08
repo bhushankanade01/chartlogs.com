@@ -752,6 +752,28 @@ export interface ChecklistResponseInput {
   answers: ChecklistAnswer[];
 }
 
+export interface AiStatus {
+  available: boolean;
+  message?: string;
+}
+
+export type AiReportReportType = typeof AiReportReportType[keyof typeof AiReportReportType];
+
+
+export const AiReportReportType = {
+  trade_review: 'trade_review',
+  weekly_report: 'weekly_report',
+  pattern_analysis: 'pattern_analysis',
+} as const;
+
+export interface AiReport {
+  id: number;
+  tradeId?: number | null;
+  reportType: AiReportReportType;
+  content: string;
+  createdAt: string;
+}
+
 export type ListTradesParams = {
 symbol?: string;
 type?: ListTradesType;
@@ -1011,6 +1033,21 @@ export const GetAnalyticsProfitFactorTrendPeriod = {
 export type GetChecklistComplianceParams = {
 accountId?: number;
 };
+
+export type ListAiReportsParams = {
+reportType?: ListAiReportsReportType;
+tradeId?: number;
+limit?: number;
+};
+
+export type ListAiReportsReportType = typeof ListAiReportsReportType[keyof typeof ListAiReportsReportType];
+
+
+export const ListAiReportsReportType = {
+  trade_review: 'trade_review',
+  weekly_report: 'weekly_report',
+  pattern_analysis: 'pattern_analysis',
+} as const;
 
 export type GetMarketCalendarParams = {
 period?: GetMarketCalendarPeriod;
