@@ -36,7 +36,7 @@ interface ImportPreviewRow {
 }
 
 interface ImportPreviewResponse {
-  format: "mt4" | "mt5" | "csv" | "unknown";
+  format: "mt4" | "mt5" | "csv" | "exness" | "unknown";
   rowCount: number;
   preview: ImportPreviewRow[];
   rawHeaders: string[];
@@ -114,6 +114,7 @@ const FORMAT_LABELS: Record<string, string> = {
   mt4: "MT4",
   mt5: "MT5",
   csv: "Generic CSV",
+  exness: "Exness",
   unknown: "Unknown",
 };
 
@@ -121,6 +122,7 @@ const FORMAT_COLORS: Record<string, string> = {
   mt4: "bg-blue-500/20 text-blue-400 border-blue-500/30",
   mt5: "bg-purple-500/20 text-purple-400 border-purple-500/30",
   csv: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  exness: "bg-orange-500/20 text-orange-400 border-orange-500/30",
   unknown: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
 };
 

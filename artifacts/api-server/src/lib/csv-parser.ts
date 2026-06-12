@@ -1,4 +1,4 @@
-export type CsvFormat = "mt4" | "mt5" | "csv" | "unknown";
+export type CsvFormat = "mt4" | "mt5" | "csv" | "exness" | "unknown";
 
 export interface ParsedTradeRow {
   symbol: string;
@@ -427,6 +427,95 @@ export function parseGenericCsv(
   return results;
 }
 
+// ─── Exness ───────────────────────────────────────────────────────────────────
+// Headers: ticket, opening_time_utc, closing_time_utc, type, lots,
+//          original_position_size, symbol, opening_price, closing_price,
+//          stop_loss, take_profit, commission, swap, profit, equity,
+//          margin_level, close_reason
+function detectExness(headers: string[]): boolean {
+  const h = headers.map((x) => x.toLowerCase().trim());
+  return h.includes("opening_time_utc") && h.includes("opening_price");
+}
+
+function parseExness(headers: string[], rows: string[][]): ParsedTradeRow[] {
+  const h = headers.map((x) => x.toLowerCase().trim());
+  const idx = (name: string) => h.findIndex((x) => x === name);
+
+  const iType = idx("type");
+  const iLots = idx("lots");
+  const iSymbol = idx("symbol");
+  const iOpenTime = idx("opening_time_utc");
+  const iCloseTime = idx("closing_time_utc");
+  const iOpenPrice = idx("opening_price");
+  const iClosePrice = idx("closing_price");
+  const iCommission = idx("commission");
+  const iSwap = idx("swap");
+  const iProfit = idx("profit");
+
+  const results: ParsedTradeRow[] = [];
+
+  for (const row of rows) {
+    if (row.length < 4) continue;
+
+    const rawType = row[iType] ?? "";
+    const type = normalizeType(rawType);
+    if (!type) continue; // skip non-trade rows (balance, credit, etc.)
+
+    const openTime = parseDate(row[iOpenTime] ?? "");
+    const closeTime = iCloseTime >= 0 ? parseDate(row[iCloseTime] ?? "") : null;
+    const entryPrice = parseNum(row[iOpenPrice] ?? "");
+    const exitPrice = iClosePrice >= 0 ? parseNum(row[iClosePrice] ?? "") : null;
+    const positionSize = parseNum(row[iLots] ?? "");
+    const rawSymbol = row[iSymbol] ?? "";
+    const symbol = rawSymbol.toUpperCase().replace(/[^A-Z0-9.]/g, "");
+
+    const warns: string[] = [];
+    if (!openTime) warns.push("could not parse open time");
+    if (!entryPrice) warns.push("missing entry price");
+    if (!positionSize) warns.push("missing position size");
+    if (!symbol) warns.push("missing symbol");
+
+    if (warns.length > 0) {
+      results.push({
+        symbol: symbol || rawSymbol || "UNKNOWN",
+        type,
+        entryPrice: entryPrice ?? 0,
+        exitPrice,
+        positionSize: positionSize ?? 0,
+        openTime: openTime?.toISOString() ?? new Date(0).toISOString(),
+        closeTime: closeTime?.toISOString() ?? null,
+        pnl: null,
+        fees: null,
+        warning: warns.join("; "),
+      });
+      continue;
+    }
+
+    const commission = iCommission >= 0 ? (parseNum(row[iCommission]) ?? 0) : 0;
+    const swap = iSwap >= 0 ? (parseNum(row[iSwap]) ?? 0) : 0;
+    const profit = iProfit >= 0 ? parseNum(row[iProfit]) : null;
+
+    // Exness: profit is gross P&L; commission and swap are listed separately.
+    // Net P&L = profit + commission + swap (commission is already negative).
+    const fees = Math.abs(commission) + Math.abs(swap);
+    const pnl = profit !== null ? profit + commission + swap : null;
+
+    results.push({
+      symbol,
+      type,
+      entryPrice: entryPrice!,
+      exitPrice,
+      positionSize: positionSize!,
+      openTime: openTime!.toISOString(),
+      closeTime: closeTime?.toISOString() ?? null,
+      pnl,
+      fees: fees > 0 ? fees : null,
+    });
+  }
+
+  return results;
+}
+
 // ─── Main entry ───────────────────────────────────────────────────────────────
 export function parseTradesCsv(content: string, columnMap?: GenericColumnMap): ParseResult {
   const lines = content
@@ -455,7 +544,10 @@ export function parseTradesCsv(content: string, columnMap?: GenericColumnMap): P
   let format: CsvFormat = "unknown";
   let rows: ParsedTradeRow[] = [];
 
-  if (detectMt4(rawHeaders)) {
+  if (detectExness(rawHeaders)) {
+    format = "exness";
+    rows = parseExness(rawHeaders, rawRows);
+  } else if (detectMt4(rawHeaders)) {
     format = "mt4";
     rows = parseMt4(rawHeaders, rawRows);
   } else if (detectMt5(rawHeaders)) {

@@ -415,15 +415,18 @@ router.post(
         symbol: tradesTable.symbol,
         openTime: tradesTable.openTime,
         entryPrice: tradesTable.entryPrice,
+        closeTime: tradesTable.closeTime,
       })
       .from(tradesTable)
       .where(dedupeConditions);
 
     const existingSet = new Set(
-      existing.map(
-        (t) =>
-          `${t.symbol}|${t.openTime.toISOString().slice(0, 19)}|${parseFloat(t.entryPrice)}`
-      )
+      existing.map((t) => {
+        const closeKey = t.closeTime
+          ? t.closeTime.toISOString().slice(0, 19)
+          : "";
+        return `${t.symbol}|${t.openTime.toISOString().slice(0, 19)}|${parseFloat(t.entryPrice)}|${closeKey}`;
+      })
     );
 
     let imported = 0;
@@ -431,7 +434,7 @@ router.post(
     let invalidRows = 0;
     const errors: string[] = [];
 
-    const sourceMap = { mt4: "mt4", mt5: "mt5", csv: "csv", unknown: "csv" } as const;
+    const sourceMap = { mt4: "mt4", mt5: "mt5", csv: "csv", exness: "csv", unknown: "csv" } as const;
     const source = sourceMap[parseResult.format];
 
     for (let i = 0; i < parseResult.rows.length; i++) {
@@ -447,7 +450,12 @@ router.post(
       }
 
       const openKey = new Date(row.openTime).toISOString().slice(0, 19);
-      const key = `${row.symbol}|${openKey}|${row.entryPrice}`;
+      // For partial closes (same openTime+entryPrice, different closeTime), we
+      // append closeTime so each partial close gets a unique fingerprint.
+      const closeKey = row.closeTime
+        ? new Date(row.closeTime).toISOString().slice(0, 19)
+        : "";
+      const key = `${row.symbol}|${openKey}|${row.entryPrice}|${closeKey}`;
 
       // Duplicate of an existing trade in the same account scope
       if (existingSet.has(key)) {
