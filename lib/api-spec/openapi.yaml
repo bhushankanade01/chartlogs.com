@@ -34,6 +34,8 @@ tags:
     description: Checklist templates and responses
   - name: ai
     description: AI trade reviews and reports
+  - name: broker
+    description: Broker connection and trade sync via MetaApi
 
 paths:
   /healthz:
@@ -1374,6 +1376,72 @@ paths:
                 items:
                   $ref: "#/components/schemas/EconomicEvent"
 
+  # BROKER
+  /broker/connect:
+    post:
+      operationId: connectBroker
+      tags: [broker]
+      summary: Connect a MetaTrader broker account via MetaApi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrokerConnectInput"
+      responses:
+        "201":
+          description: Broker connection created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrokerConnection"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Connection already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: MetaApi registration failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /broker/status:
+    get:
+      operationId: getBrokerStatus
+      tags: [broker]
+      summary: Get current broker connection status
+      responses:
+        "200":
+          description: Current broker connection (or null if none)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrokerStatusResponse"
+
+  /broker/disconnect:
+    delete:
+      operationId: disconnectBroker
+      tags: [broker]
+      summary: Disconnect and remove broker account
+      responses:
+        "204":
+          description: Disconnected
+        "404":
+          description: No connection found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # TOOLS
   /tools/position-size:
     post:
@@ -2371,3 +2439,53 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    # BROKER
+    BrokerConnectInput:
+      type: object
+      required: [accountNumber, serverName, investorPassword, brokerType]
+      properties:
+        accountNumber:
+          type: string
+          description: MT4/MT5 account number
+        serverName:
+          type: string
+          description: Broker server name (e.g. ICMarkets-Live)
+        investorPassword:
+          type: string
+          description: Investor (read-only) password — never stored
+        brokerType:
+          type: string
+          enum: [mt4, mt5]
+
+    BrokerConnection:
+      type: object
+      required: [id, brokerType, accountNumber, serverName, status, createdAt]
+      properties:
+        id:
+          type: integer
+        brokerType:
+          type: string
+          enum: [mt4, mt5]
+        accountNumber:
+          type: string
+        serverName:
+          type: string
+        status:
+          type: string
+          enum: [pending, connected, error, disconnecting]
+        lastSyncAt:
+          type: ["string", "null"]
+        errorMessage:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    BrokerStatusResponse:
+      type: object
+      required: [connection]
+      properties:
+        connection:
+          oneOf:
+            - $ref: "#/components/schemas/BrokerConnection"
+            - type: "null"

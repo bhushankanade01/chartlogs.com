@@ -13,6 +13,10 @@ import {
   useUpdateChecklistTemplate,
   useDeleteChecklistTemplate,
   getListChecklistTemplatesQueryKey,
+  useConnectBroker,
+  useGetBrokerStatus,
+  useDisconnectBroker,
+  getGetBrokerStatusQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
@@ -26,6 +30,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import {
   Check, Plus, Pencil, Trash2, Wallet, X, Star, ListChecks, GripVertical,
+  Link2, Link2Off, RefreshCw, AlertCircle, CheckCircle2, Clock, ShieldAlert,
 } from "lucide-react";
 
 function ChecklistsTab() {
@@ -199,6 +204,257 @@ function ChecklistsTab() {
   );
 }
 
+function BrokerSyncTab() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const [form, setForm] = useState({
+    accountNumber: "",
+    serverName: "",
+    investorPassword: "",
+    brokerType: "mt5" as "mt4" | "mt5",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+
+  const { data: statusData, isLoading: statusLoading, refetch: refetchStatus } = useGetBrokerStatus();
+  const connection = statusData?.connection ?? null;
+
+  useEffect(() => {
+    if (connection?.status !== "pending") return;
+    const id = setInterval(() => { refetchStatus(); }, 5000);
+    return () => clearInterval(id);
+  }, [connection?.status, refetchStatus]);
+
+  const connectBroker = useConnectBroker();
+  const disconnectBroker = useDisconnectBroker();
+
+  const handleConnect = () => {
+    if (!form.accountNumber.trim() || !form.serverName.trim() || !form.investorPassword.trim()) {
+      toast({ variant: "destructive", title: "All fields are required" });
+      return;
+    }
+    connectBroker.mutate(
+      { data: form },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetBrokerStatusQueryKey() });
+          toast({ title: "Broker connected", description: "Connecting to your MT account…" });
+        },
+        onError: (e: unknown) => {
+          toast({ variant: "destructive", title: "Connection failed", description: (e as Error).message });
+        },
+      }
+    );
+  };
+
+  const handleDisconnect = () => {
+    if (!confirm("Disconnect your broker? Your synced trades will remain, but no new trades will be imported.")) return;
+    disconnectBroker.mutate(undefined, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetBrokerStatusQueryKey() });
+        toast({ title: "Broker disconnected" });
+      },
+      onError: (e: unknown) => {
+        toast({ variant: "destructive", title: "Failed to disconnect", description: (e as Error).message });
+      },
+    });
+  };
+
+  const statusConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+    pending: {
+      icon: <RefreshCw className="h-4 w-4 animate-spin" />,
+      label: "Connecting…",
+      color: "text-yellow-400",
+    },
+    connected: {
+      icon: <CheckCircle2 className="h-4 w-4" />,
+      label: "Connected",
+      color: "text-emerald-400",
+    },
+    error: {
+      icon: <AlertCircle className="h-4 w-4" />,
+      label: "Connection Error",
+      color: "text-red-400",
+    },
+    disconnecting: {
+      icon: <Clock className="h-4 w-4" />,
+      label: "Disconnecting…",
+      color: "text-muted-foreground",
+    },
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Security notice */}
+      <Card className="border-yellow-500/20 bg-yellow-500/5">
+        <CardContent className="py-3 flex items-start gap-3">
+          <ShieldAlert className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-yellow-200/80 leading-relaxed">
+            <span className="font-semibold text-yellow-300">Investor password only.</span>{" "}
+            Use your <span className="font-medium">read-only investor password</span> — not your master trading password. Your password is sent directly to MetaApi to register your account and is <span className="font-medium">never stored</span> in our database.
+          </p>
+        </CardContent>
+      </Card>
+
+      {statusLoading ? (
+        <div className="flex justify-center py-8"><Spinner /></div>
+      ) : connection ? (
+        /* Active connection card */
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Link2 className="h-4 w-4" />
+                Connected Broker
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                onClick={handleDisconnect}
+                disabled={disconnectBroker.isPending}
+              >
+                <Link2Off className="h-3.5 w-3.5 mr-1.5" />
+                {disconnectBroker.isPending ? "Disconnecting…" : "Disconnect"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Account Number</p>
+                <p className="font-mono font-medium">{connection.accountNumber}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Platform</p>
+                <p className="font-medium uppercase">{connection.brokerType}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Server</p>
+                <p className="font-medium">{connection.serverName}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Last Sync</p>
+                <p className="text-sm">
+                  {connection.lastSyncAt
+                    ? new Date(connection.lastSyncAt).toLocaleString()
+                    : "Not yet synced"}
+                </p>
+              </div>
+            </div>
+
+            <div className={`flex items-center gap-2 pt-1 ${statusConfig[connection.status]?.color ?? "text-muted-foreground"}`}>
+              {statusConfig[connection.status]?.icon}
+              <span className="text-sm font-medium">{statusConfig[connection.status]?.label ?? connection.status}</span>
+            </div>
+
+            {connection.errorMessage && (
+              <p className="text-xs text-red-400 bg-red-400/10 rounded px-3 py-2">
+                {connection.errorMessage}
+              </p>
+            )}
+
+            {connection.status === "pending" && (
+              <p className="text-xs text-muted-foreground">
+                MetaApi is connecting to your broker. This may take a few minutes for the first connection.
+              </p>
+            )}
+
+            {connection.status === "connected" && (
+              <p className="text-xs text-muted-foreground">
+                Trades sync automatically every 3 minutes.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        /* Connect form */
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Link2 className="h-4 w-4" />
+              Connect Your Broker
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Platform</Label>
+              <Select
+                value={form.brokerType}
+                onValueChange={(v) => setForm((f) => ({ ...f, brokerType: v as "mt4" | "mt5" }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mt5">MetaTrader 5</SelectItem>
+                  <SelectItem value="mt4">MetaTrader 4</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Account Number</Label>
+              <Input
+                value={form.accountNumber}
+                onChange={(e) => setForm((f) => ({ ...f, accountNumber: e.target.value }))}
+                placeholder="e.g. 50194988"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Server Name</Label>
+              <Input
+                value={form.serverName}
+                onChange={(e) => setForm((f) => ({ ...f, serverName: e.target.value }))}
+                placeholder="e.g. ICMarkets-Live01"
+              />
+              <p className="text-[11px] text-muted-foreground/70">
+                Find this in your MT4/MT5 terminal under File → Open an Account
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Investor (Read-Only) Password</Label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={form.investorPassword}
+                  onChange={(e) => setForm((f) => ({ ...f, investorPassword: e.target.value }))}
+                  placeholder="Investor password"
+                  className="pr-16"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground/70">
+                This is the investor/read-only password, not your master password. It is forwarded to MetaApi and never stored.
+              </p>
+            </div>
+
+            <Button
+              onClick={handleConnect}
+              disabled={connectBroker.isPending}
+              className="w-full"
+            >
+              {connectBroker.isPending ? (
+                <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Connecting…</>
+              ) : (
+                <><Link2 className="h-4 w-4 mr-2" />Connect Broker</>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 const TIMEZONES = [
   "UTC", "America/New_York", "America/Chicago", "America/Los_Angeles", "America/Toronto",
   "Europe/London", "Europe/Paris", "Europe/Berlin", "Asia/Tokyo", "Asia/Singapore",
@@ -229,7 +485,7 @@ const emptyAccountForm = (): AccountForm => ({
   isDefault: false,
 });
 
-type TabId = "general" | "accounts" | "checklists";
+type TabId = "general" | "accounts" | "checklists" | "broker";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -408,6 +664,7 @@ export default function Settings() {
     { id: "general", label: "General" },
     { id: "accounts", label: "Trading Accounts" },
     { id: "checklists", label: "Checklists" },
+    { id: "broker", label: "Broker Sync" },
   ];
 
   return (
@@ -491,6 +748,9 @@ export default function Settings() {
 
       {/* CHECKLISTS TAB */}
       {activeTab === "checklists" && <ChecklistsTab />}
+
+      {/* BROKER SYNC TAB */}
+      {activeTab === "broker" && <BrokerSyncTab />}
 
       {/* ACCOUNTS TAB */}
       {activeTab === "accounts" && (

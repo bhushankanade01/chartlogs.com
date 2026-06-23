@@ -774,6 +774,59 @@ export interface AiReport {
   createdAt: string;
 }
 
+export type BrokerConnectInputBrokerType = typeof BrokerConnectInputBrokerType[keyof typeof BrokerConnectInputBrokerType];
+
+
+export const BrokerConnectInputBrokerType = {
+  mt4: 'mt4',
+  mt5: 'mt5',
+} as const;
+
+export interface BrokerConnectInput {
+  /** MT4/MT5 account number */
+  accountNumber: string;
+  /** Broker server name (e.g. ICMarkets-Live) */
+  serverName: string;
+  /** Investor (read-only) password — never stored */
+  investorPassword: string;
+  brokerType: BrokerConnectInputBrokerType;
+}
+
+export type BrokerConnectionBrokerType = typeof BrokerConnectionBrokerType[keyof typeof BrokerConnectionBrokerType];
+
+
+export const BrokerConnectionBrokerType = {
+  mt4: 'mt4',
+  mt5: 'mt5',
+} as const;
+
+export type BrokerConnectionStatus = typeof BrokerConnectionStatus[keyof typeof BrokerConnectionStatus];
+
+
+export const BrokerConnectionStatus = {
+  pending: 'pending',
+  connected: 'connected',
+  error: 'error',
+  disconnecting: 'disconnecting',
+} as const;
+
+export interface BrokerConnection {
+  id: number;
+  brokerType: BrokerConnectionBrokerType;
+  accountNumber: string;
+  serverName: string;
+  status: BrokerConnectionStatus;
+  /** @nullable */
+  lastSyncAt?: string | null;
+  /** @nullable */
+  errorMessage?: string | null;
+  createdAt: string;
+}
+
+export interface BrokerStatusResponse {
+  connection: BrokerConnection | null;
+}
+
 export type ListTradesParams = {
 symbol?: string;
 type?: ListTradesType;

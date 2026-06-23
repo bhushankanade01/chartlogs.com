@@ -12,6 +12,7 @@ import adminRouter from "./admin";
 import storageRouter from "./storage";
 import checklistsRouter from "./checklists";
 import aiRouter from "./ai.js";
+import brokerRouter from "./broker.js";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(adminRouter);
 router.use(storageRouter);
 router.use(checklistsRouter);
 router.use(aiRouter);
+router.use(brokerRouter);
 
 export default router;

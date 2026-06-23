@@ -1248,6 +1248,34 @@ export const GetMarketCalendarResponse = zod.array(GetMarketCalendarResponseItem
 
 
 /**
+ * @summary Connect a MetaTrader broker account via MetaApi
+ */
+export const ConnectBrokerBody = zod.object({
+  "accountNumber": zod.string().describe('MT4\/MT5 account number'),
+  "serverName": zod.string().describe('Broker server name (e.g. ICMarkets-Live)'),
+  "investorPassword": zod.string().describe('Investor (read-only) password — never stored'),
+  "brokerType": zod.enum(['mt4', 'mt5'])
+})
+
+
+/**
+ * @summary Get current broker connection status
+ */
+export const GetBrokerStatusResponse = zod.object({
+  "connection": zod.union([zod.object({
+  "id": zod.number(),
+  "brokerType": zod.enum(['mt4', 'mt5']),
+  "accountNumber": zod.string(),
+  "serverName": zod.string(),
+  "status": zod.enum(['pending', 'connected', 'error', 'disconnecting']),
+  "lastSyncAt": zod.string().nullish(),
+  "errorMessage": zod.string().nullish(),
+  "createdAt": zod.string()
+}),zod.null()])
+})
+
+
+/**
  * @summary Calculate position size
  */
 export const CalculatePositionSizeBody = zod.object({
