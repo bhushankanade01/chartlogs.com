@@ -1,4 +1,4 @@
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, like } from "drizzle-orm";
 import { db, tradesTable, brokerConnectionsTable } from "@workspace/db";
 import type { BrokerConnection } from "@workspace/db";
 import { getDeals, getMetaApiAccount } from "./metaapi.js";
@@ -13,7 +13,12 @@ function detectSession(openTime: Date): "London" | "NewYork" | "Asian" | "Sydney
   return "Sydney";
 }
 
+function brokerNoteKey(metaapiAccountId: string, positionId: string): string {
+  return `metaapi:${metaapiAccountId}:${positionId}`;
+}
+
 interface CompleteTrade {
+  positionId: string;
   symbol: string;
   type: "long" | "short";
   entryPrice: number;
@@ -52,6 +57,7 @@ function dealsToTrades(deals: ReturnType<typeof Array.prototype.filter>): Comple
 
     if (!dealType.includes("BUY") && !dealType.includes("SELL")) continue;
     if (!deal.symbol || !deal.price || !deal.volume) continue;
+    if (!deal.positionId) continue;
 
     if (isIn && !isOut) {
       inDeals.set(deal.positionId, deal);
@@ -85,6 +91,7 @@ function dealsToTrades(deals: ReturnType<typeof Array.prototype.filter>): Comple
       const symbol = (deal.symbol ?? "").toUpperCase().replace(/[^A-Z0-9.]/g, "");
 
       results.push({
+        positionId: deal.positionId,
         symbol,
         type: tradeType,
         entryPrice,
@@ -143,30 +150,27 @@ export async function syncBrokerTrades(connection: BrokerConnection): Promise<vo
     return;
   }
 
-  const existing = await db
-    .select({ symbol: tradesTable.symbol, openTime: tradesTable.openTime, entryPrice: tradesTable.entryPrice, closeTime: tradesTable.closeTime })
+  const accountPrefix = `metaapi:${metaapiAccountId}:`;
+
+  const existingRows = await db
+    .select({ notes: tradesTable.notes })
     .from(tradesTable)
     .where(and(
       eq(tradesTable.userId, userId),
-      sql`${tradesTable.source} IN ('mt4', 'mt5')`
+      like(tradesTable.notes, `${accountPrefix}%`)
     ));
 
-  const existingSet = new Set(
-    existing.map((t) => {
-      const closeKey = t.closeTime ? t.closeTime.toISOString().slice(0, 19) : "";
-      return `${t.symbol}|${t.openTime.toISOString().slice(0, 19)}|${parseFloat(t.entryPrice)}|${closeKey}`;
-    })
+  const existingPositionIds = new Set(
+    existingRows
+      .map((r) => r.notes?.slice(accountPrefix.length) ?? "")
+      .filter(Boolean)
   );
 
   let imported = 0;
   let skipped = 0;
 
   for (const trade of completeTrades) {
-    const openKey = trade.openTime.toISOString().slice(0, 19);
-    const closeKey = trade.closeTime.toISOString().slice(0, 19);
-    const fingerprint = `${trade.symbol}|${openKey}|${trade.entryPrice}|${closeKey}`;
-
-    if (existingSet.has(fingerprint)) {
+    if (existingPositionIds.has(trade.positionId)) {
       skipped++;
       continue;
     }
@@ -192,9 +196,10 @@ export async function syncBrokerTrades(connection: BrokerConnection): Promise<vo
       session,
       tags: [],
       screenshots: [],
+      notes: brokerNoteKey(metaapiAccountId, trade.positionId),
     });
 
-    existingSet.add(fingerprint);
+    existingPositionIds.add(trade.positionId);
     imported++;
   }
 
