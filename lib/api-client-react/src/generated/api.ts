@@ -4508,6 +4508,76 @@ export function useGetBrokerStatus<TData = Awaited<ReturnType<typeof getBrokerSt
 
 
 
+export const getSyncBrokerUrl = () => {
+
+
+
+
+  return `/api/broker/sync`
+}
+
+/**
+ * @summary Manually trigger a broker trade sync
+ */
+export const syncBroker = async ( options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getSyncBrokerUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSyncBrokerMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncBroker>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncBroker>>, TError,void, TContext> => {
+
+const mutationKey = ['syncBroker'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncBroker>>, void> = () => {
+
+
+          return  syncBroker(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncBrokerMutationResult = NonNullable<Awaited<ReturnType<typeof syncBroker>>>
+
+    export type SyncBrokerMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Manually trigger a broker trade sync
+ */
+export const useSyncBroker = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncBroker>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof syncBroker>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getSyncBrokerMutationOptions(options));
+    }
+
 export const getDisconnectBrokerUrl = () => {
 
 

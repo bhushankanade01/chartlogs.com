@@ -16,6 +16,7 @@ import {
   useConnectBroker,
   useGetBrokerStatus,
   useDisconnectBroker,
+  useSyncBroker,
   getGetBrokerStatusQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -227,6 +228,7 @@ function BrokerSyncTab() {
 
   const connectBroker = useConnectBroker();
   const disconnectBroker = useDisconnectBroker();
+  const syncBroker = useSyncBroker();
 
   const handleConnect = () => {
     if (!form.accountNumber.trim() || !form.serverName.trim() || !form.investorPassword.trim()) {
@@ -260,10 +262,26 @@ function BrokerSyncTab() {
     });
   };
 
+  const handleSyncNow = () => {
+    syncBroker.mutate(undefined, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetBrokerStatusQueryKey() });
+        refetchStatus();
+        toast({ title: "Sync complete", description: "Your latest trades have been imported." });
+      },
+      onError: (e: unknown) => {
+        toast({ variant: "destructive", title: "Sync failed", description: (e as Error).message });
+      },
+    });
+  };
+
+  const metaapiState = (connection as (typeof connection & { metaapiState?: string | null }) | null)?.metaapiState;
+  const isDeploying = metaapiState === "DEPLOYING" || metaapiState === "CREATED";
+
   const statusConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
     pending: {
       icon: <RefreshCw className="h-4 w-4 animate-spin" />,
-      label: "Connecting…",
+      label: isDeploying ? "Setting up…" : "Connecting…",
       color: "text-yellow-400",
     },
     connected: {
@@ -355,15 +373,35 @@ function BrokerSyncTab() {
             )}
 
             {connection.status === "pending" && (
-              <p className="text-xs text-muted-foreground">
-                MetaApi is connecting to your broker. This may take a few minutes for the first connection.
-              </p>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">
+                  {isDeploying
+                    ? "MetaApi is provisioning a cloud instance for your broker. This takes 2–5 minutes."
+                    : "MetaApi is establishing a connection to your broker. This can take 5–15 minutes for the first connection."}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  You can close this page — trades will sync automatically once connected.
+                </p>
+              </div>
             )}
 
             {connection.status === "connected" && (
-              <p className="text-xs text-muted-foreground">
-                Trades sync automatically every 3 minutes.
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Trades sync automatically every 3 minutes.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={handleSyncNow}
+                  disabled={syncBroker.isPending}
+                >
+                  {syncBroker.isPending
+                    ? <><RefreshCw className="h-3 w-3 mr-1 animate-spin" />Syncing…</>
+                    : <><RefreshCw className="h-3 w-3 mr-1" />Sync Now</>}
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>

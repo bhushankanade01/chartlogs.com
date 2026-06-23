@@ -816,6 +816,8 @@ export interface BrokerConnection {
   accountNumber: string;
   serverName: string;
   status: BrokerConnectionStatus;
+  /** MetaApi account deployment state (DEPLOYING, DEPLOYED, etc.) */
+  metaapiState?: string;
   /** @nullable */
   lastSyncAt?: string | null;
   /** @nullable */

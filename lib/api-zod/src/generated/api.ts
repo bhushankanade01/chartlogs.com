@@ -1268,10 +1268,19 @@ export const GetBrokerStatusResponse = zod.object({
   "accountNumber": zod.string(),
   "serverName": zod.string(),
   "status": zod.enum(['pending', 'connected', 'error', 'disconnecting']),
+  "metaapiState": zod.string().optional().describe('MetaApi account deployment state (DEPLOYING, DEPLOYED, etc.)'),
   "lastSyncAt": zod.string().nullish(),
   "errorMessage": zod.string().nullish(),
   "createdAt": zod.string()
 }),zod.null()])
+})
+
+
+/**
+ * @summary Manually trigger a broker trade sync
+ */
+export const SyncBrokerResponse = zod.object({
+  "success": zod.boolean()
 })
 
 

@@ -3,7 +3,7 @@ import { db, brokerConnectionsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth.js";
 import { createMetaApiAccount, deleteMetaApiAccount, getMetaApiAccount } from "../lib/metaapi.js";
-import { syncBrokerTrades } from "../lib/metaapi-sync.js";
+import { syncBrokerTrades, checkAndUpdateConnectionStatus } from "../lib/metaapi-sync.js";
 import { logger } from "../lib/logger.js";
 
 interface ConnectBrokerBody {
@@ -30,13 +30,14 @@ function validateConnectBody(body: unknown): ConnectBrokerBody | null {
 
 const router: IRouter = Router();
 
-function formatConnection(c: typeof brokerConnectionsTable.$inferSelect) {
+function formatConnection(c: typeof brokerConnectionsTable.$inferSelect, metaapiState?: string) {
   return {
     id: c.id,
     brokerType: c.brokerType,
     accountNumber: c.accountNumber,
     serverName: c.serverName,
     status: c.status,
+    metaapiState: metaapiState ?? null,
     lastSyncAt: c.lastSyncAt?.toISOString() ?? null,
     errorMessage: c.errorMessage ?? null,
     createdAt: c.createdAt.toISOString(),
@@ -98,10 +99,12 @@ router.get("/broker/status", requireAuth, async (req, res): Promise<void> => {
 
   const conn = connections[0]!;
   let liveStatus = conn.status;
+  let metaapiState: string | undefined;
 
   if (conn.metaapiAccountId && (conn.status === "pending" || conn.status === "connected")) {
     try {
       const info = await getMetaApiAccount(conn.metaapiAccountId);
+      metaapiState = info.state;
       const isConnected = info.connectionStatus === "CONNECTED";
       liveStatus = isConnected ? "connected" : info.connectionStatus === "CONNECTING" ? "pending" : "error";
 
@@ -127,10 +130,39 @@ router.get("/broker/status", requireAuth, async (req, res): Promise<void> => {
 
   res.json({
     connection: {
-      ...formatConnection(conn),
+      ...formatConnection(conn, metaapiState),
       status: liveStatus,
     },
   });
+});
+
+router.post("/broker/sync", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.user!.id;
+
+  const [conn] = await db.select()
+    .from(brokerConnectionsTable)
+    .where(eq(brokerConnectionsTable.userId, userId));
+
+  if (!conn) {
+    res.status(404).json({ error: "No broker connection found" });
+    return;
+  }
+
+  if (conn.status === "pending") {
+    const newStatus = await checkAndUpdateConnectionStatus(conn);
+    if (newStatus !== "connected") {
+      res.status(409).json({ error: "Broker is not yet connected. Please wait for the connection to be established." });
+      return;
+    }
+    await syncBrokerTrades({ ...conn, status: "connected" });
+  } else if (conn.status === "connected") {
+    await syncBrokerTrades(conn);
+  } else {
+    res.status(409).json({ error: "Broker is in an error state. Please disconnect and reconnect." });
+    return;
+  }
+
+  res.json({ success: true });
 });
 
 router.delete("/broker/disconnect", requireAuth, async (req, res): Promise<void> => {
