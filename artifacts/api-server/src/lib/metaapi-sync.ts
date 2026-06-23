@@ -1,8 +1,8 @@
-import { eq, and, sql, like } from "drizzle-orm";
+import { eq, and, like } from "drizzle-orm";
 import { db, tradesTable, brokerConnectionsTable } from "@workspace/db";
 import type { BrokerConnection } from "@workspace/db";
 import { getDeals, getMetaApiAccount } from "./metaapi.js";
-import { calculatePnl, calculatePips, determineOutcome } from "./trade-calculations.js";
+import { calculatePips, determineOutcome } from "./trade-calculations.js";
 import { logger } from "./logger.js";
 
 function detectSession(openTime: Date): "London" | "NewYork" | "Asian" | "Sydney" | "OffHours" {
@@ -13,12 +13,12 @@ function detectSession(openTime: Date): "London" | "NewYork" | "Asian" | "Sydney
   return "Sydney";
 }
 
-function brokerNoteKey(metaapiAccountId: string, positionId: string): string {
-  return `metaapi:${metaapiAccountId}:${positionId}`;
+function dealNoteKey(metaapiAccountId: string, closingDealId: string): string {
+  return `metaapi:${metaapiAccountId}:deal:${closingDealId}`;
 }
 
 interface CompleteTrade {
-  positionId: string;
+  closingDealId: string;
   symbol: string;
   type: "long" | "short";
   entryPrice: number;
@@ -32,6 +32,7 @@ interface CompleteTrade {
 
 function dealsToTrades(deals: ReturnType<typeof Array.prototype.filter>): CompleteTrade[] {
   type RawDeal = {
+    id: string;
     positionId: string;
     time: string;
     type: string;
@@ -57,7 +58,7 @@ function dealsToTrades(deals: ReturnType<typeof Array.prototype.filter>): Comple
 
     if (!dealType.includes("BUY") && !dealType.includes("SELL")) continue;
     if (!deal.symbol || !deal.price || !deal.volume) continue;
-    if (!deal.positionId) continue;
+    if (!deal.id) continue;
 
     if (isIn && !isOut) {
       inDeals.set(deal.positionId, deal);
@@ -91,7 +92,7 @@ function dealsToTrades(deals: ReturnType<typeof Array.prototype.filter>): Comple
       const symbol = (deal.symbol ?? "").toUpperCase().replace(/[^A-Z0-9.]/g, "");
 
       results.push({
-        positionId: deal.positionId,
+        closingDealId: deal.id,
         symbol,
         type: tradeType,
         entryPrice,
@@ -150,19 +151,19 @@ export async function syncBrokerTrades(connection: BrokerConnection): Promise<vo
     return;
   }
 
-  const accountPrefix = `metaapi:${metaapiAccountId}:`;
+  const accountDealPrefix = `metaapi:${metaapiAccountId}:deal:`;
 
   const existingRows = await db
     .select({ notes: tradesTable.notes })
     .from(tradesTable)
     .where(and(
       eq(tradesTable.userId, userId),
-      like(tradesTable.notes, `${accountPrefix}%`)
+      like(tradesTable.notes, `${accountDealPrefix}%`)
     ));
 
-  const existingPositionIds = new Set(
+  const existingDealIds = new Set(
     existingRows
-      .map((r) => r.notes?.slice(accountPrefix.length) ?? "")
+      .map((r) => r.notes?.slice(accountDealPrefix.length) ?? "")
       .filter(Boolean)
   );
 
@@ -170,7 +171,7 @@ export async function syncBrokerTrades(connection: BrokerConnection): Promise<vo
   let skipped = 0;
 
   for (const trade of completeTrades) {
-    if (existingPositionIds.has(trade.positionId)) {
+    if (existingDealIds.has(trade.closingDealId)) {
       skipped++;
       continue;
     }
@@ -196,10 +197,10 @@ export async function syncBrokerTrades(connection: BrokerConnection): Promise<vo
       session,
       tags: [],
       screenshots: [],
-      notes: brokerNoteKey(metaapiAccountId, trade.positionId),
+      notes: dealNoteKey(metaapiAccountId, trade.closingDealId),
     });
 
-    existingPositionIds.add(trade.positionId);
+    existingDealIds.add(trade.closingDealId);
     imported++;
   }
 
