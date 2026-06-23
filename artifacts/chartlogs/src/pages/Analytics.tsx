@@ -64,9 +64,9 @@ function MetricCard({ label, value, sub }: { label: string; value: string; sub?:
 }
 
 export default function Analytics() {
-  const [period, setPeriod] = useState<GetPerformancePeriod>("30d");
-  const [dayPeriod] = useState<GetAnalyticsByDayPeriod>("30d");
-  const [symPeriod] = useState<GetAnalyticsBySymbolPeriod>("30d");
+  const [period, setPeriod] = useState<GetPerformancePeriod>("all");
+  const [dayPeriod] = useState<GetAnalyticsByDayPeriod>("all");
+  const [symPeriod] = useState<GetAnalyticsBySymbolPeriod>("all");
   const [strategyFilter, setStrategyFilter] = useState("");
   const { activeAccountId } = useAccount();
   const acctParam = activeAccountId ?? undefined;

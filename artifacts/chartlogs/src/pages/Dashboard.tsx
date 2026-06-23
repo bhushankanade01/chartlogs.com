@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { AiReportsCard } from "@/components/AiReportsCard";
 
 export default function Dashboard() {
-  const [period, setPeriod] = useState<GetDashboardStatsPeriod>("1m");
+  const [period, setPeriod] = useState<GetDashboardStatsPeriod>("all");
   const { activeAccountId } = useAccount();
   const acctParam = activeAccountId ?? undefined;
 

@@ -189,7 +189,7 @@ router.post("/trades", requireAuth, async (req, res): Promise<void> => {
 router.get("/trades/:id", requireAuth, async (req, res): Promise<void> => {
   const params = GetTradeParams.safeParse(req.params);
   if (!params.success) {
-    res.status(400).json({ error: params.error.message });
+    res.status(404).json({ error: "Trade not found" });
     return;
   }
 
@@ -207,7 +207,7 @@ router.get("/trades/:id", requireAuth, async (req, res): Promise<void> => {
 router.patch("/trades/:id", requireAuth, async (req, res): Promise<void> => {
   const params = UpdateTradeParams.safeParse(req.params);
   if (!params.success) {
-    res.status(400).json({ error: params.error.message });
+    res.status(404).json({ error: "Trade not found" });
     return;
   }
 
