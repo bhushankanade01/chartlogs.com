@@ -1,0 +1,1 @@
+- [MetaApi client API URL](metaapi-client-url.md) — correct domain is `agiliumtrade.ai`, regional URL must be used; old `agiliumtrade.agiliumtrade.ai` returns SSL errors or 404.

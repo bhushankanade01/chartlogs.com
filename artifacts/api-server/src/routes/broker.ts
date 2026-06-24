@@ -148,17 +148,18 @@ router.post("/broker/sync", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  if (conn.status === "pending") {
+  if (conn.status === "pending" || conn.status === "error") {
+    // Re-check live MetaApi status — a prior error may have been transient
     const newStatus = await checkAndUpdateConnectionStatus(conn);
-    if (newStatus !== "connected") {
+    if (newStatus === "pending") {
       res.status(409).json({ error: "Broker is not yet connected. Please wait for the connection to be established." });
       return;
     }
-    await syncBrokerTrades({ ...conn, status: "connected" });
+    await syncBrokerTrades({ ...conn, status: newStatus as "pending" | "connected" | "error" });
   } else if (conn.status === "connected") {
     await syncBrokerTrades(conn);
   } else {
-    res.status(409).json({ error: "Broker is in an error state. Please disconnect and reconnect." });
+    res.status(409).json({ error: "Broker is in an unknown state. Please disconnect and reconnect." });
     return;
   }
 

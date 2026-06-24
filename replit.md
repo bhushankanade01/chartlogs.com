@@ -68,6 +68,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 - The `useGetRecentTrades` hook takes 0-1 args (options only, no params)
 - `useGetAnalyticsByTag` and `useGetAnalyticsByEmotion` take no params
 - GetPerformancePeriod values: `today | 7d | 30d | 3m | 1y | all` (not `1m` etc.)
+- MetaApi client API domain is `agiliumtrade.ai` (NOT `agiliumtrade.agiliumtrade.ai`) — old domain returns SSL errors/404. The correct URL is `https://mt-client-api-v1.{region}.agiliumtrade.ai`. The domain is fetched dynamically via provisioning API `/users/current/servers/mt-client-api`. See `metaapi.ts` for implementation.
+- `metaapi.cloud-sdk` npm is blocked by Replit firewall (crypto-js dep). Use raw fetch with the provisioning + client API URLs directly.
 
 ## Pointers
 
