@@ -2,71 +2,76 @@ import { desc, eq, gte, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { usersTable, tradesTable, aiReviewsTable } from "@workspace/db";
 import { AI_AVAILABLE } from "@workspace/integrations-anthropic-ai";
-import { createAnthropicMessage, TRADING_SYSTEM_PROMPT } from "./ai.js";
+import { generateWeeklyReport, createAnthropicMessage } from "./ai.js";
 import { logger } from "./logger.js";
 
-function msUntilNextMonday(): number {
+// ── Timing helpers ─────────────────────────────────────────────────────────────
+
+/** Returns milliseconds until next Friday at 21:00 UTC. */
+function msUntilNextFriday9PM(): number {
   const now = new Date();
-  const dayOfWeek = now.getUTCDay();
-  const daysUntilMonday = dayOfWeek === 1 ? 7 : (8 - dayOfWeek) % 7 || 7;
-  const nextMonday = new Date(now);
-  nextMonday.setUTCDate(now.getUTCDate() + daysUntilMonday);
-  nextMonday.setUTCHours(6, 0, 0, 0);
-  return nextMonday.getTime() - now.getTime();
+  const dayOfWeek = now.getUTCDay(); // 0=Sun … 5=Fri … 6=Sat
+  let daysToAdd = (5 - dayOfWeek + 7) % 7; // days until Friday
+
+  const target = new Date(now);
+  target.setUTCDate(now.getUTCDate() + daysToAdd);
+  target.setUTCHours(21, 0, 0, 0);
+
+  // If we are already past Friday 21:00 UTC this week, push to next Friday
+  if (target.getTime() <= now.getTime()) {
+    target.setUTCDate(target.getUTCDate() + 7);
+  }
+
+  return target.getTime() - now.getTime();
 }
+
+// ── Email stub ─────────────────────────────────────────────────────────────────
+
+/**
+ * TODO: Wire up a real email provider (SendGrid, Resend, AWS SES, etc.)
+ * For now this logs that the email would be sent.
+ */
+async function sendReportEmail(params: {
+  to: string;
+  subject: string;
+  markdownContent: string;
+}): Promise<void> {
+  // Replace this with your email provider SDK call, e.g.:
+  //   await resend.emails.send({ from: "...", to: params.to, subject: params.subject, text: params.markdownContent });
+  logger.info(
+    { to: params.to, subject: params.subject },
+    "EMAIL STUB: weekly report would be sent here — wire up an email provider"
+  );
+}
+
+// ── Per-user generators ────────────────────────────────────────────────────────
 
 export async function generateWeeklyReportForUser(userId: number): Promise<void> {
   const since = new Date();
   since.setDate(since.getDate() - 7);
 
-  const trades = await db.select().from(tradesTable)
+  const trades = await db
+    .select()
+    .from(tradesTable)
     .where(and(eq(tradesTable.userId, userId), gte(tradesTable.openTime, since)))
     .orderBy(desc(tradesTable.openTime));
 
-  const closed = trades.filter(t => t.pnl !== null);
+  const closed = trades.filter((t) => t.pnl !== null);
   if (closed.length === 0) return;
 
-  const totalPnl = closed.reduce((s, t) => s + parseFloat(t.pnl!), 0);
-  const wins = closed.filter(t => t.outcome === "win").length;
-  const winRate = closed.length > 0 ? (wins / closed.length) * 100 : 0;
-
-  const tradeSummaries = closed.slice(0, 20).map(t =>
-    `${t.symbol} ${t.type?.toUpperCase()} | ${t.outcome?.toUpperCase()} | P&L: $${parseFloat(t.pnl!).toFixed(2)} | R: ${t.rMultiple != null ? t.rMultiple + "R" : "N/A"} | Emotion: ${t.emotion ?? "N/A"} | Strategy: ${t.strategy ?? "N/A"}`
-  ).join("\n");
-
-  const prompt = `Generate a weekly trading performance report for the past 7 days.
-
-Statistics:
-- Total trades: ${closed.length}
-- Wins: ${wins}, Win rate: ${winRate.toFixed(1)}%
-- Total P&L: $${totalPnl.toFixed(2)}
-
-Individual trades:
-${tradeSummaries}
-
-Format the report exactly as:
-
-# Weekly Trading Report — ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-
-## Performance Summary
-[3-4 sentences covering overall week performance, key metrics]
-
-## Top Mistakes This Week
-[3 specific recurring mistakes with trade examples]
-
-## Emotional Patterns
-[Analysis of emotion × outcome patterns from the data]
-
-## Best Setup
-[The single best-executed trade and why it worked]
-
-## 3 Improvement Actions for Next Week
-1. [Specific, measurable action]
-2. [Specific, measurable action]
-3. [Specific, measurable action]`;
-
-  const message = await createAnthropicMessage(prompt);
-  const content = message.content[0].type === "text" ? message.content[0].text : "";
+  const { content, usage, cost } = await generateWeeklyReport(
+    closed.map((t) => ({
+      symbol: t.symbol,
+      type: t.type,
+      outcome: t.outcome,
+      pnl: t.pnl,
+      rMultiple: t.rMultiple,
+      emotion: t.emotion,
+      strategy: t.strategy,
+      tags: t.tags,
+      session: t.session,
+    }))
+  );
 
   await db.insert(aiReviewsTable).values({
     userId,
@@ -75,21 +80,39 @@ Format the report exactly as:
     content,
   });
 
-  logger.info({ userId }, "Auto weekly report generated");
+  logger.info(
+    { userId, trades: closed.length, tokens: usage, cost: cost.formatted },
+    "Auto weekly report generated"
+  );
+
+  // Fetch user email for delivery
+  const [user] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, userId));
+  if (user) {
+    await sendReportEmail({
+      to: user.email,
+      subject: `ChartLogs: Your Weekly Trading Report — ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`,
+      markdownContent: content,
+    });
+  }
 }
 
 export async function generatePatternAnalysisForUser(userId: number): Promise<void> {
-  const trades = await db.select().from(tradesTable)
+  const trades = await db
+    .select()
+    .from(tradesTable)
     .where(eq(tradesTable.userId, userId))
     .orderBy(desc(tradesTable.openTime))
     .limit(30);
 
-  const closed = trades.filter(t => t.pnl !== null);
+  const closed = trades.filter((t) => t.pnl !== null);
   if (closed.length < 5) return;
 
-  const tradeSummaries = closed.map(t =>
-    `${t.symbol} ${t.type?.toUpperCase()} | ${t.outcome?.toUpperCase()} | P&L: $${parseFloat(t.pnl!).toFixed(2)} | R: ${t.rMultiple != null ? t.rMultiple + "R" : "N/A"} | Session: ${t.session ?? "N/A"} | Emotion: ${t.emotion ?? "N/A"} | Strategy: ${t.strategy ?? "N/A"}`
-  ).join("\n");
+  const tradeSummaries = closed
+    .map(
+      (t) =>
+        `${t.symbol} ${t.type?.toUpperCase()} | ${t.outcome?.toUpperCase()} | P&L: $${parseFloat(t.pnl!).toFixed(2)} | R: ${t.rMultiple != null ? t.rMultiple + "R" : "N/A"} | Session: ${t.session ?? "N/A"} | Emotion: ${t.emotion ?? "N/A"} | Strategy: ${t.strategy ?? "N/A"}`
+    )
+    .join("\n");
 
   const prompt = `Analyze the last ${closed.length} closed trades and detect recurring behavioral and technical patterns.
 
@@ -131,24 +154,24 @@ Provide pattern analysis in this format:
   logger.info({ userId }, "Background pattern analysis generated");
 }
 
+// ── All-user runners ───────────────────────────────────────────────────────────
+
 async function runWeeklyReportsForAllUsers(): Promise<void> {
   if (!AI_AVAILABLE) {
     logger.info("Weekly report scheduler: AI not available, skipping");
     return;
   }
 
-  logger.info("Weekly report scheduler: starting auto-generation");
+  logger.info("Weekly report scheduler: starting Friday auto-generation");
   const users = await db.select({ id: usersTable.id }).from(usersTable);
 
-  const results = await Promise.allSettled(
-    users.map(u => generateWeeklyReportForUser(u.id))
-  );
+  const results = await Promise.allSettled(users.map((u) => generateWeeklyReportForUser(u.id)));
 
-  const failed = results.filter(r => r.status === "rejected").length;
+  const failed = results.filter((r) => r.status === "rejected").length;
   if (failed > 0) {
     logger.warn({ failed, total: users.length }, "Some weekly reports failed");
   } else {
-    logger.info({ total: users.length }, "Weekly reports generated for all users");
+    logger.info({ total: users.length }, "Weekly reports generated and emailed for all users");
   }
 }
 
@@ -158,11 +181,9 @@ async function runPatternAnalysisForAllUsers(): Promise<void> {
   logger.info("Pattern analysis scheduler: starting background analysis");
   const users = await db.select({ id: usersTable.id }).from(usersTable);
 
-  const results = await Promise.allSettled(
-    users.map(u => generatePatternAnalysisForUser(u.id))
-  );
+  const results = await Promise.allSettled(users.map((u) => generatePatternAnalysisForUser(u.id)));
 
-  const failed = results.filter(r => r.status === "rejected").length;
+  const failed = results.filter((r) => r.status === "rejected").length;
   if (failed > 0) {
     logger.warn({ failed, total: users.length }, "Some pattern analyses failed");
   } else {
@@ -170,25 +191,39 @@ async function runPatternAnalysisForAllUsers(): Promise<void> {
   }
 }
 
-export function startWeeklyScheduler(): void {
-  const delay = msUntilNextMonday();
-  const days = Math.round(delay / 86400000);
-  logger.info({ delayMs: delay, daysUntilMonday: days }, "Weekly report scheduler: next run scheduled");
+// ── Scheduler exports ──────────────────────────────────────────────────────────
 
-  setTimeout(function tick() {
-    runWeeklyReportsForAllUsers().catch(err => {
+/**
+ * Starts the weekly report job. Fires every Friday at 21:00 UTC,
+ * generates an AI report for every user, and emails it.
+ */
+export function startWeeklyScheduler(): void {
+  const delay = msUntilNextFriday9PM();
+  const hours = Math.round(delay / 3_600_000);
+  logger.info(
+    { delayMs: delay, hoursUntilFriday9PM: hours },
+    "Weekly report scheduler: next run on Friday 21:00 UTC"
+  );
+
+  const tick = () => {
+    runWeeklyReportsForAllUsers().catch((err) => {
       logger.error({ err }, "Weekly report auto-generation failed");
     });
-    setTimeout(tick, 7 * 24 * 60 * 60 * 1000);
-  }, delay);
+    setTimeout(tick, 7 * 24 * 60 * 60 * 1000); // re-arm every 7 days
+  };
+
+  setTimeout(tick, delay);
 }
 
+/**
+ * Starts the pattern analysis background job (every 6 hours).
+ */
 export function startPatternAnalysisScheduler(): void {
   const SIX_HOURS = 6 * 60 * 60 * 1000;
   logger.info("Pattern analysis scheduler: runs every 6 hours");
 
   const tick = () => {
-    runPatternAnalysisForAllUsers().catch(err => {
+    runPatternAnalysisForAllUsers().catch((err) => {
       logger.error({ err }, "Background pattern analysis failed");
     });
     setTimeout(tick, SIX_HOURS);
