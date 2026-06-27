@@ -1,0 +1,334 @@
+CHARTLOGS INTERNAL APP REDESIGN
+================================
+
+The landing page looks great now, but the internal dashboard/app needs 
+a complete visual overhaul. We're targeting a modern, polished, Bloomberg-like 
+aesthetic with smooth animations and better visual hierarchy.
+
+=== COLOR PALETTE (Dark + Light Modes) ===
+
+DARK MODE (Primary):
+  Background: #0F172A (deep navy)
+  Surface: #1E293B (slightly lighter)
+  Card bg: #1E293B with rgba border
+  Text primary: #F8FAFC (off-white)
+  Text secondary: #94A3B8 (muted gray)
+  Accent: #3B82F6 (blue for CTAs)
+  Success: #10B981 (green for profits/gains)
+  Danger: #EF4444 (red for losses)
+  Warning: #F59E0B (orange for alerts)
+  Border: #334155 (subtle divider)
+
+LIGHT MODE:
+  Background: #F8FAFC
+  Surface: #FFFFFF
+  Card bg: #FFFFFF with subtle shadow
+  Text primary: #0F172A
+  Text secondary: #64748B
+  Accent: #3B82F6
+  (Keep trading colors same)
+
+=== DESIGN SYSTEM ===
+
+SPACING:
+  xs: 4px
+  sm: 8px
+  md: 16px
+  lg: 24px
+  xl: 32px
+  Use consistently across all components
+
+TYPOGRAPHY:
+  Headlines (H1): 32px, bold, letter-spacing -0.5px
+  Subheadings (H2): 24px, semibold
+  Body (p): 14px or 16px, regular
+  Labels: 12px, uppercase, letter-spacing 0.5px
+  Mono (numbers): 16px, font-family: 'Monaco' or 'Courier New'
+
+BORDER RADIUS:
+  Buttons: 8px
+  Cards: 12px
+  Inputs: 8px
+  Large elements: 16px
+
+SHADOWS (Dark Mode):
+  Subtle: 0 1px 3px rgba(0,0,0,0.3)
+  Medium: 0 4px 12px rgba(0,0,0,0.4)
+  Large: 0 12px 32px rgba(0,0,0,0.5)
+
+ANIMATIONS:
+  Hover transitions: 200ms ease-in-out
+  Page transitions: 300ms ease-in-out
+  Loading spinner: 1s linear infinite
+  Count-up numbers: 800ms cubic-bezier(0.33, 0.66, 0.66, 1)
+
+=== DASHBOARD PAGE REDESIGN ===
+
+1. HEADER/STATS SECTION
+   
+   Layout: Horizontal cards showing key metrics
+   Cards per row: 4 (desktop), 2 (tablet), 1 (mobile)
+   
+   Card 1 - Total P&L
+   ├─ Large number: "+₹84,230" (green if positive, red if negative)
+   ├─ Icon: Chart up/down
+   ├─ Subtext: "Total Profit/Loss"
+   ├─ Trend: "+12.5% this month" (smaller, secondary text)
+   └─ Animation: Number count-up on page load, subtle pulse
+
+   Card 2 - Win Rate
+   ├─ Large number: "67.3%"
+   ├─ Progress circle (animated): 67% filled
+   ├─ Subtext: "Win Rate"
+   └─ Animation: Progress circle fills on load
+
+   Card 3 - Profit Factor
+   ├─ Large number: "2.41"
+   ├─ Subtext: "Profit Factor"
+   ├─ Color: Yellow if between 1.5-2.5, green if > 2.5
+   └─ Animation: Slide-in from left on load
+
+   Card 4 - Total Trades
+   ├─ Large number: "142"
+   ├─ Subtext: "Total Trades"
+   ├─ Mini-chart: Sparkline showing trend
+   └─ Animation: Sparkline draws itself on load
+
+   Card styling:
+   - Background: Dark surface color with 1px subtle border
+   - Padding: 24px
+   - Hover state: Slight lift + shadow increase (like floating)
+   - Border: 1px rgba(255,255,255,0.1)
+   - Transition: all 0.2s ease
+
+2. CHARTS SECTION
+   
+   Row 1: Equity Curve (large, full width)
+   ├─ Title: "Account Equity Over Time"
+   ├─ Chart: Area chart showing account growth
+   ├─ Y-axis: Account balance
+   ├─ X-axis: Date
+   ├─ Hover tooltip: Shows exact value + date
+   └─ Animation: Chart line draws smoothly on load
+
+   Row 2: Two smaller charts side-by-side
+   ├─ Left: "P&L Distribution" (bar chart showing daily/weekly)
+   ├─ Right: "Trade Outcomes" (pie chart: wins/losses/breakeven)
+   └─ Animation: Bars/pie slices fill on load with stagger
+
+   Chart styling:
+   - Background: Transparent (no card bg)
+   - Grid lines: Subtle, 1px rgba(255,255,255,0.05)
+   - Tooltip: Dark bg, white text, 8px border-radius
+   - Legend: Below chart, flexbox, wrap on mobile
+
+3. RECENT TRADES TABLE
+
+   Layout: Clean table with alternating row colors
+   
+   Columns:
+   ├─ Date/Time (left)
+   ├─ Symbol (BUY/SELL indicator with icon)
+   ├─ Entry Price
+   ├─ Exit Price
+   ├─ P&L (green/red text)
+   ├─ Status (open/closed, with icon)
+   └─ Actions (expand/delete, hover reveal)
+
+   Row styling:
+   - Even rows: rgba(255,255,255,0.02) background
+   - Odd rows: Transparent
+   - Hover: rgba(59,130,246,0.1) background + slight lift
+   - Transition: 0.15s ease
+   - Border-bottom: 1px rgba(255,255,255,0.05)
+
+   P&L styling:
+   - Positive: #10B981 text + faint green bg
+   - Negative: #EF4444 text + faint red bg
+   - Font: Monospace for alignment
+
+   Expand animation:
+   - Click row → smooth slide-down of details
+   - Show: Entry reason, exit reason, screenshot, notes
+   - Z-index: Stays within table, doesn't break layout
+
+4. EMPTY STATES
+   
+   When no trades yet:
+   - Large centered icon (50px)
+   - Headline: "No trades yet"
+   - Subtext: "Connect your broker to get started"
+   - CTA button: "Connect Broker"
+   - Animation: Icon fades in + slight scale
+
+=== MARKET CALENDAR PAGE REDESIGN ===
+
+Current state: Looks like a plain list. Redesign as:
+
+1. CALENDAR HEADER
+   - "Market Calendar" title
+   - "This Week" dropdown (This Week | Next Week | This Month)
+   - Filter buttons: [High Impact] [Medium] [Low] (toggle-able)
+   - Search: Quick filter by event name/country
+   - Animation: Fade in on page load
+
+2. CALENDAR EVENT CARDS (Redesigned)
+   
+   Current: Plain horizontal cards
+   Better: Grid of calendar-day "sections"
+   
+   For each day:
+   ├─ Day header: "Monday, May 20"
+   ├─ Events list:
+   │  ├─ Event 1:
+   │  │  ├─ Time: "08:30"
+   │  │  ├─ Flag icon (country)
+   │  │  ├─ Event name: "Non-Farm Payrolls"
+   │  │  ├─ Impact badge: "High" (red)
+   │  │  ├─ Forecast/Previous/Actual
+   │  │  └─ Hover: Show mini card with full details
+   │  └─ Event 2: ...
+
+   Card styling (per event):
+   - Background: Slight tint based on impact (red for high, etc.)
+   - Left border: 3px colored border (red/yellow/blue)
+   - Padding: 16px
+   - Border-radius: 8px
+   - Hover: Scale slightly + shadow increase
+   - Transition: 0.2s ease
+
+3. COUNTRY FLAGS + ICONS
+   - Add flag emoji for each country
+   - Add mini currency icon (USD, EUR, etc.)
+   - Improves visual scanning
+
+4. ANIMATIONS
+   - Page load: Events slide in from left, staggered
+   - Filter toggle: Events fade in/out smoothly
+   - Hover: Card lifts + shadow increases
+
+=== TOOLS PAGE REDESIGN ===
+
+Current state: 3 simple calculator cards. Improve:
+
+1. CALCULATOR CARDS (Better design)
+
+   Per card:
+   ├─ Icon: Larger (48px), colored based on tool
+   ├─ Title: Bold, larger
+   ├─ Inputs: Modern form design
+   │  ├─ Label: Smaller, slightly above input
+   │  ├─ Input field: 
+   │  │  ├─ Border: 1px #334155
+   │  │  ├─ Padding: 12px 16px
+   │  │  ├─ Border-radius: 8px
+   │  │  ├─ Focus state: Border color → #3B82F6, shadow
+   │  │  └─ Transition: 0.2s ease
+   │  └─ Unit label: Smaller gray text to the right
+   ├─ Calculate button: Blue, full-width on mobile
+   └─ Result: Large number display with animation (count-up)
+
+   Card styling:
+   - Background: Dark surface
+   - Border: 1px subtle
+   - Padding: 24px
+   - Hover: Lift + shadow (same as dashboard cards)
+   - Transition: 0.2s ease
+
+2. RESULT DISPLAY
+   - Large, bold number (white)
+   - Unit text below (smaller, secondary)
+   - Color coding: Green for profit, neutral for metrics
+   - Animation: Number counts up smoothly when calculated
+
+3. LAYOUT
+   - Desktop: 3 columns
+   - Tablet: 2 columns
+   - Mobile: 1 column (stacked)
+
+=== FORMS (Settings, Broker Connect) ===
+
+1. INPUT FIELDS
+   - Label: 12px, uppercase, #94A3B8
+   - Input: 16px, white text, dark bg
+   - Border: 1px #334155
+   - Focus: Border → #3B82F6, glow effect
+   - Error: Border → #EF4444, error message below
+   - Transition: 0.2s ease
+
+2. BUTTONS
+   - Primary: #3B82F6 background, white text
+   - Hover: Slightly darker (#2563EB)
+   - Active: Even darker + tiny scale
+   - Disabled: 50% opacity, cursor not-allowed
+   - Transition: 0.2s ease
+   - Padding: 12px 24px (min)
+   - Border-radius: 8px
+
+3. CHECKBOXES/TOGGLES
+   - Modern switch design (not browser default)
+   - Smooth animation when toggled
+   - Color: #3B82F6 when ON
+
+4. SELECT/DROPDOWNS
+   - Border: 1px #334155
+   - Hover: Border → #3B82F6
+   - Focus: Glow effect
+   - Dropdown options: Smooth fade-in
+   - Selected option: Highlighted
+
+=== PAGE TRANSITIONS & LOADING ===
+
+1. PAGE LOAD ANIMATION
+   - Fade in + slight slide (0.3s)
+   - Cards/elements stagger in (each +50ms)
+   - Charts/numbers animate from 0 (count-up)
+
+2. LOADING STATE
+   - Replace content with skeleton screens (same shape)
+   - Skeleton: Pulsing animation (subtle opacity change)
+   - Faster feel than blank spinners
+
+3. DATA UPDATES
+   - Numbers that update: Smooth count-up (800ms)
+   - Charts that update: Smooth line redraw
+   - No jarring jumps
+
+=== SIDEBAR/NAVIGATION ===
+
+1. SIDEBAR STYLING
+   - Background: #1E293B (slightly lighter than page)
+   - Hover on nav item: Background → rgba(59,130,246,0.1)
+   - Active nav item: 
+     ├─ Background: rgba(59,130,246,0.15)
+     ├─ Left border: 3px #3B82F6
+     ├─ Text color: #3B82F6
+   - Transition: 0.2s ease
+
+2. ICONS
+   - All nav items have icons (consistent style)
+   - Hover: Slight color change
+   - Icons: 20px, consistent spacing
+
+=== ICONS THROUGHOUT ===
+
+- Use a consistent icon library (e.g., Feather Icons or Heroicons)
+- All icons: 20px for nav, 24px for headers, 48px for large displays
+- Color: Inherit text color unless specific meaning
+
+=== MOBILE RESPONSIVENESS ===
+
+- Cards: Full width with 16px padding
+- Charts: Single column, full width
+- Table: Horizontal scroll or card layout
+- Buttons: Full-width on mobile < 640px
+- Font sizes: Scale down by 10-15% on mobile
+
+=== IMPLEMENTATION NOTES ===
+
+1. Use CSS variables for colors (so dark/light mode works globally)
+2. All transitions: Use cubic-bezier(0.4, 0, 0.2, 1) for smoothness
+3. Test animations on lower-end devices (shouldn't be janky)
+4. Use transform + opacity for animations (GPU accelerated)
+5. Avoid box-shadow changes on hover (use transform: scale instead)
+6. Loading states: Show skeleton for 500ms minimum (feels more real)

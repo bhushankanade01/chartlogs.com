@@ -160,12 +160,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 key={item.href}
                 href={item.href}
                 onClick={onNav}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium ${
+                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 text-sm font-medium overflow-hidden ${
                   isActive
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 }`}
               >
+                {isActive && (
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-primary rounded-r-full" />
+                )}
                 <item.icon className="h-4 w-4 flex-shrink-0" />
                 {item.label}
               </Link>
