@@ -1,2 +1,15 @@
 User-agent: *
 Allow: /
+Allow: /faq
+Allow: /login
+Allow: /register
+Disallow: /dashboard
+Disallow: /trades
+Disallow: /journal
+Disallow: /analytics
+Disallow: /market
+Disallow: /tools
+Disallow: /settings
+Disallow: /admin
+
+Sitemap: https://chartlogs.replit.app/sitemap.xml

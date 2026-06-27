@@ -321,3 +321,59 @@
     inset: -1px;
   }
 }
+
+/* ─── Landing page animations ─── */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.7s ease forwards;
+  opacity: 0;
+}
+
+/* Hero gradient background */
+.hero-gradient {
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, hsl(var(--primary) / 0.12), transparent),
+              radial-gradient(ellipse 60% 40% at 80% 80%, hsl(262 80% 60% / 0.06), transparent);
+}
+
+.dark .hero-gradient {
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, hsl(var(--primary) / 0.18), transparent),
+              radial-gradient(ellipse 60% 40% at 80% 80%, hsl(262 80% 60% / 0.10), transparent);
+}
+
+/* Subtle dot-grid overlay */
+.hero-grid {
+  background-image: radial-gradient(hsl(var(--foreground) / 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(262 80% 65%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Smooth theme transition for the entire app */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.25s;
+  transition-timing-function: ease;
+}
+
+/* But keep transforms/opacity fast for hover animations */
+.transition-all,
+[class*="hover:-translate"],
+[class*="hover:shadow"] {
+  transition-duration: 200ms !important;
+}

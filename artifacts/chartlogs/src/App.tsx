@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AccountProvider } from "@/contexts/AccountContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import NotFound from "@/pages/not-found";
 
@@ -20,6 +21,7 @@ import Market from "@/pages/Market";
 import Tools from "@/pages/Tools";
 import Settings from "@/pages/Settings";
 import Admin from "@/pages/Admin";
+import FAQ from "@/pages/FAQ";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +40,7 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/faq" component={FAQ} />
 
       <Route path="/dashboard">
         <ProtectedRoute component={Dashboard} />
@@ -71,18 +74,20 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AccountProvider>
-        <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          <Toaster />
-        </TooltipProvider>
-        </AccountProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <AccountProvider>
+            <TooltipProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <Router />
+              </WouterRouter>
+              <Toaster />
+            </TooltipProvider>
+          </AccountProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

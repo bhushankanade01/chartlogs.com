@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAccount } from "@/contexts/AccountContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,6 +20,8 @@ import {
   ChevronDown,
   Wallet,
   Plus,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -55,6 +58,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
   const { accounts, activeAccountId, setActiveAccountId } = useAccount();
+  const { theme, toggleTheme } = useTheme();
   const queryClient = useQueryClient();
   const logoutMutation = useLogout();
 
@@ -134,7 +138,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     <>
       <div className="flex-1 overflow-y-auto">
         <AccountSwitcher />
-        <div className="py-2 px-3 space-y-1">
+        <div className="py-2 px-3 space-y-0.5">
           {user?.role === "admin" && (
             <Link
               href="/admin"
@@ -170,10 +174,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      <div className="p-4 border-t border-border">
-        <div className="flex items-center gap-3 mb-4">
+      <div className="p-4 border-t border-border space-y-3">
+        <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 border border-border flex-shrink-0">
-            <AvatarFallback className="bg-muted text-muted-foreground">
+            <AvatarFallback className="bg-muted text-muted-foreground text-sm">
               {user?.name ? getInitials(user.name) : "U"}
             </AvatarFallback>
           </Avatar>
@@ -181,6 +185,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <div className="text-sm font-medium truncate">{user?.name}</div>
             <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
           </div>
+          <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors flex-shrink-0"
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
         </div>
         <Button
           variant="ghost"
@@ -196,7 +207,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground flex overflow-hidden transition-colors duration-300">
       {/* Desktop Sidebar */}
       <aside className="w-64 border-r border-border bg-card flex-col flex-shrink-0 hidden md:flex">
         <div className="h-16 flex items-center px-6 border-b border-border">
@@ -250,7 +261,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-lg font-bold font-mono tracking-tighter text-primary">CHARTLOGS</span>
+          <span className="text-lg font-bold font-mono tracking-tighter text-primary flex-1">CHARTLOGS</span>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           {children}
