@@ -14,6 +14,28 @@ import { streamAnthropicMessage, createAnthropicMessage } from "../lib/ai.js";
 
 const router = Router();
 
+/**
+ * Converts an Anthropic SDK error into a user-facing HTTP status + message.
+ * Returns 402 for billing errors, 429 for rate limits, 503 for overload,
+ * and 500 for everything else.
+ */
+function resolveAnthropicError(err: unknown): { status: number; message: string } {
+  const raw = err instanceof Error ? err.message : String(err);
+  if (raw.includes("credit balance is too low") || raw.includes("insufficient_quota") || raw.includes("billing")) {
+    return {
+      status: 402,
+      message: "Anthropic account has no credits. Add credits at console.anthropic.com → Plans & Billing, then try again.",
+    };
+  }
+  if (raw.includes("rate limit") || raw.includes("rate_limit")) {
+    return { status: 429, message: "Anthropic rate limit hit. Please wait a moment and try again." };
+  }
+  if (raw.includes("overloaded")) {
+    return { status: 503, message: "Anthropic is temporarily overloaded. Please try again shortly." };
+  }
+  return { status: 500, message: "AI request failed. Please try again." };
+}
+
 function getPeriodStart(days: number): Date {
   const d = new Date();
   d.setDate(d.getDate() - days);
@@ -154,7 +176,8 @@ Provide your review in exactly this format:
     res.end();
   } catch (err) {
     req.log.error({ err }, "AI trade review failed");
-    res.write(`data: ${JSON.stringify({ error: "AI request failed" })}\n\n`);
+    const { message } = resolveAnthropicError(err);
+    res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
     res.end();
   }
 });
@@ -242,7 +265,8 @@ Format the report exactly as:
     });
   } catch (err) {
     req.log.error({ err }, "Weekly report generation failed");
-    res.status(500).json({ error: "Failed to generate report" });
+    const { status, message } = resolveAnthropicError(err);
+    res.status(status).json({ error: message });
   }
 });
 
@@ -338,7 +362,8 @@ Provide pattern analysis in this format:
     });
   } catch (err) {
     req.log.error({ err }, "Pattern analysis failed");
-    res.status(500).json({ error: "Failed to generate pattern analysis" });
+    const { status, message } = resolveAnthropicError(err);
+    res.status(status).json({ error: message });
   }
 });
 

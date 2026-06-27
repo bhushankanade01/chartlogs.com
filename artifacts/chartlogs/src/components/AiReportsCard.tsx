@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { SafeMarkdown } from "@/components/SafeMarkdown";
-import { Bot, FileText, TrendingUp, ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { Bot, FileText, TrendingUp, ChevronDown, ChevronUp, Lock, AlertTriangle, CreditCard } from "lucide-react";
 import { formatDate } from "@/lib/format";
 
 function ReportView({ report, onClose }: { report: AiReport; onClose: () => void }) {
@@ -111,11 +111,36 @@ export function AiReportsCard() {
               </Button>
             </div>
 
-            {(weeklyMutation.isError || patternMutation.isError) && (
-              <p className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded px-3 py-2">
-                {(weeklyMutation.error as Error | null)?.message ?? (patternMutation.error as Error | null)?.message ?? "Generation failed"}
-              </p>
-            )}
+            {(weeklyMutation.isError || patternMutation.isError) && (() => {
+              const err = (weeklyMutation.error ?? patternMutation.error) as (Error & { status?: number }) | null;
+              const msg = err?.message ?? "";
+              const isBilling = (err as { status?: number } | null)?.status === 402 || msg.includes("credit") || msg.includes("billing");
+              return isBilling ? (
+                <div className="flex items-start gap-2.5 bg-amber-400/10 border border-amber-400/20 rounded px-3 py-2.5">
+                  <CreditCard className="h-3.5 w-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs text-amber-300 font-medium">Anthropic account has no credits</p>
+                    <p className="text-xs text-amber-400/80">
+                      Add credits at{" "}
+                      <a
+                        href="https://console.anthropic.com/account/billing"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-2 hover:text-amber-300 transition-colors"
+                      >
+                        console.anthropic.com → Plans &amp; Billing
+                      </a>
+                      , then try again.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded px-3 py-2">
+                  <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                  {msg.replace(/^HTTP \d+ \S+\s*[—-]?\s*/i, "") || "Generation failed. Please try again."}
+                </div>
+              );
+            })()}
 
             {isLoading ? (
               <div className="flex justify-center py-4"><Spinner /></div>
