@@ -41,9 +41,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8 bg-card p-8 rounded-xl border border-border shadow-xl">
         <div className="text-center">
-          <div className="flex justify-center mb-1">
-            <img src="/logo.png" alt="ChartLogs" className="h-14 w-auto object-contain" />
-          </div>
+          <h2 className="text-3xl font-bold font-mono tracking-tighter text-primary">CHARTLOGS</h2>
           <p className="text-muted-foreground mt-2">Log in to your account</p>
         </div>
 
