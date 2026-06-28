@@ -593,8 +593,9 @@ export default function Landing() {
         }`}
       >
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="text-xl font-bold font-mono tracking-tighter text-primary">
-            CHARTLOGS
+          <div className="flex items-center gap-2">
+            <img src="/icon.png" alt="" className="h-9 w-9 object-contain flex-shrink-0" />
+            <span className="text-xl font-bold font-mono tracking-tighter text-primary">CHARTLOGS</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-6">

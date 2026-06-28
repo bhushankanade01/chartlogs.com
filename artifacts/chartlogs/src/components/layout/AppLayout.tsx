@@ -213,9 +213,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background text-foreground flex overflow-hidden transition-colors duration-300">
       {/* Desktop Sidebar */}
       <aside className="w-64 border-r border-border bg-card flex-col flex-shrink-0 hidden md:flex">
-        <div className="h-16 flex items-center px-6 border-b border-border">
-          <Link href="/dashboard" className="text-xl font-bold font-mono tracking-tighter text-primary">
-            CHARTLOGS
+        <div className="h-16 flex items-center px-4 border-b border-border">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <img src="/icon.png" alt="" className="h-8 w-8 object-contain flex-shrink-0" />
+            <span className="text-xl font-bold font-mono tracking-tighter text-primary">CHARTLOGS</span>
           </Link>
         </div>
         <SidebarContent />
@@ -238,10 +239,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <div className="h-16 flex items-center justify-between px-6 border-b border-border flex-shrink-0">
           <Link
             href="/dashboard"
-            className="text-xl font-bold font-mono tracking-tighter text-primary"
+            className="flex items-center gap-2"
             onClick={() => setMobileOpen(false)}
           >
-            CHARTLOGS
+            <img src="/icon.png" alt="" className="h-8 w-8 object-contain flex-shrink-0" />
+            <span className="text-xl font-bold font-mono tracking-tighter text-primary">CHARTLOGS</span>
           </Link>
           <button
             onClick={() => setMobileOpen(false)}
