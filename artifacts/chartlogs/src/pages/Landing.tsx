@@ -593,8 +593,8 @@ export default function Landing() {
         }`}
       >
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="text-xl font-bold font-mono tracking-tighter text-primary">
-            CHARTLOGS
+          <div className="flex items-center">
+            <img src="/logo.png" alt="ChartLogs" className="h-10 w-auto object-contain" />
           </div>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -687,8 +687,8 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
             <div>
-              <div className="text-lg font-bold font-mono tracking-tighter text-primary mb-3">
-                CHARTLOGS
+              <div className="mb-3">
+                <img src="/logo.png" alt="ChartLogs" className="h-10 w-auto object-contain" />
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 AI-powered trading journal with live MT4/MT5 sync.
