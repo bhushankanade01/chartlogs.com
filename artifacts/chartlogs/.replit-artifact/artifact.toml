@@ -4,6 +4,7 @@ title = "ChartLogs"
 version = "1.0.0"
 id = "artifacts/chartlogs"
 router = "path"
+showBadge = false
 
 [[integratedSkills]]
 name = "react-vite"
