@@ -26,7 +26,9 @@ function isSmtpConfigured(): boolean {
 
 async function sendViaResend({ to, subject, text }: SendEmailOptions): Promise<void> {
   const connectors = new ReplitConnectors();
-  const from = process.env["SMTP_FROM"] ?? process.env["RESEND_FROM"] ?? "ChartLogs <noreply@chartlogs.app>";
+  // Default sender: Resend's built-in test domain works without domain verification.
+  // Set SMTP_FROM or RESEND_FROM to use a custom verified domain in production.
+  const from = process.env["SMTP_FROM"] ?? process.env["RESEND_FROM"] ?? "ChartLogs <onboarding@resend.dev>";
 
   // Proxy the Resend API call through the Replit connectors SDK.
   // The SDK handles identity, token refresh, and auth headers automatically.
@@ -38,6 +40,13 @@ async function sendViaResend({ to, subject, text }: SendEmailOptions): Promise<v
 
   if (!response.ok) {
     const body = await response.text();
+    // Resend free-tier sandbox: can only send to the account owner's address
+    // until a custom domain is verified at resend.com/domains.
+    if (response.status === 403) {
+      throw new Error(
+        `Resend domain not verified. To send to any address, verify a domain at https://resend.com/domains and set SMTP_FROM or RESEND_FROM to an address on that domain. Raw error: ${body}`
+      );
+    }
     throw new Error(`Resend API error ${response.status}: ${body}`);
   }
 
