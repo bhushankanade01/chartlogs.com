@@ -642,6 +642,32 @@ export default function Analytics() {
 }
 
 
+interface PatternInsight {
+  criticalIssues: { stat: string; label: string; detail: string }[];
+  strengths: { stat: string; label: string; detail: string }[];
+  worstPatterns: { label: string; frequency: string }[];
+  immediateActions: { priority: "high" | "medium" | "low"; action: string }[];
+  flags: string[];
+}
+
+function parseInsight(content: string): PatternInsight | null {
+  try {
+    // Strip possible markdown code fences if Claude wraps despite instructions
+    const cleaned = content.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+    const parsed = JSON.parse(cleaned);
+    if (parsed && Array.isArray(parsed.criticalIssues)) return parsed as PatternInsight;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+const PRIORITY_CONFIG = {
+  high:   { color: "#ef4444", label: "HIGH" },
+  medium: { color: "#f59e0b", label: "MED" },
+  low:    { color: "#3b82f6", label: "LOW" },
+};
+
 function AiInsightsSection() {
   const queryClient = useQueryClient();
   const { data: aiStatus } = useGetAiStatus();
@@ -659,7 +685,7 @@ function AiInsightsSection() {
   });
 
   const aiAvailable = aiStatus?.available ?? false;
-  const [expanded, setExpanded] = useState(false);
+  const insight = latestReport ? parseInsight(latestReport.content) : null;
 
   return (
     <Card>
@@ -712,21 +738,103 @@ function AiInsightsSection() {
         )}
         {isLoading ? (
           <div className="flex justify-center py-6"><Spinner /></div>
-        ) : latestReport ? (
-          <div className="space-y-3">
-            <div className={`overflow-hidden transition-all ${expanded ? "" : "max-h-48"}`}>
-              <SafeMarkdown
-                content={latestReport.content}
-                className="text-xs text-muted-foreground leading-relaxed space-y-0.5"
-              />
+        ) : insight ? (
+          <div className="space-y-5">
+
+            {/* Flags row */}
+            {insight.flags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {insight.flags.map((f, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full border"
+                    style={{ backgroundColor: "rgba(245,158,11,0.1)", borderColor: "rgba(245,158,11,0.3)", color: "#f59e0b" }}
+                  >
+                    ⚠ {f}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Critical Issues + Strengths grid */}
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {insight.criticalIssues.map((item, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg border p-3 space-y-0.5"
+                  style={{ backgroundColor: "rgba(239,68,68,0.07)", borderColor: "rgba(239,68,68,0.25)" }}
+                >
+                  <p className="text-2xl font-bold font-mono leading-none" style={{ color: "#ef4444" }}>{item.stat}</p>
+                  <p className="text-xs font-semibold text-foreground/90">{item.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{item.detail}</p>
+                </div>
+              ))}
+              {insight.strengths.map((item, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg border p-3 space-y-0.5"
+                  style={{ backgroundColor: "rgba(34,197,94,0.07)", borderColor: "rgba(34,197,94,0.25)" }}
+                >
+                  <p className="text-2xl font-bold font-mono leading-none" style={{ color: "#22c55e" }}>{item.stat}</p>
+                  <p className="text-xs font-semibold text-foreground/90">{item.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{item.detail}</p>
+                </div>
+              ))}
             </div>
-            <button
-              type="button"
-              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-              onClick={() => setExpanded(e => !e)}
-            >
-              {expanded ? "Show less" : "Show more"}
-            </button>
+
+            {/* Worst Patterns + Immediate Actions side by side */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {insight.worstPatterns.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Worst Patterns</p>
+                  <div className="space-y-1.5">
+                    {insight.worstPatterns.map((p, i) => (
+                      <div key={i} className="flex items-center justify-between gap-3 rounded-md px-3 py-2"
+                        style={{ backgroundColor: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                        <span className="text-xs text-foreground/80 font-medium">{p.label}</span>
+                        <span className="text-[11px] font-mono shrink-0 px-1.5 py-0.5 rounded"
+                          style={{ backgroundColor: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>
+                          {p.frequency}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {insight.immediateActions.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Immediate Actions</p>
+                  <div className="space-y-1.5">
+                    {insight.immediateActions.map((a, i) => {
+                      const cfg = PRIORITY_CONFIG[a.priority] ?? PRIORITY_CONFIG.medium;
+                      return (
+                        <div key={i} className="flex items-center gap-2.5 rounded-md px-3 py-2 bg-muted/30 border border-border/40">
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cfg.color }} />
+                          <span className="text-[11px] font-bold shrink-0" style={{ color: cfg.color }}>{cfg.label}</span>
+                          <span className="text-xs text-foreground/80">{a.action}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {latestReport && (
+              <p className="text-[11px] text-muted-foreground/50 text-right">
+                Last analyzed {new Date(latestReport.createdAt).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        ) : latestReport ? (
+          /* Fallback: old markdown-format report */
+          <div className="space-y-3">
+            <SafeMarkdown
+              content={latestReport.content}
+              className="text-xs text-muted-foreground leading-relaxed"
+            />
+            <p className="text-[11px] text-yellow-500/70">Re-analyze to get the new visual format.</p>
           </div>
         ) : (
           <div className="text-center py-8 space-y-2">

@@ -315,32 +315,34 @@ router.post("/ai/patterns", requireAuth, async (req, res): Promise<void> => {
     `${t.symbol} ${t.type?.toUpperCase()} | ${t.outcome?.toUpperCase()} | P&L: $${parseFloat(t.pnl!).toFixed(2)} | R: ${t.rMultiple != null ? t.rMultiple + "R" : "N/A"} | Session: ${t.session ?? "N/A"} | Emotion: ${t.emotion ?? "N/A"} | Strategy: ${t.strategy ?? "N/A"} | Tags: ${t.tags?.join(",") || "none"}`
   ).join("\n");
 
-  const prompt = `Analyze the last ${closed.length} closed trades and detect recurring behavioral and technical patterns.
+  const prompt = `Analyze the last ${closed.length} closed trades. Respond with ONLY valid JSON — no markdown, no explanation, no code fences. Use this exact schema:
+
+{
+  "criticalIssues": [
+    { "stat": "<number or %>", "label": "<4-6 words>", "detail": "<6-8 words max>" }
+  ],
+  "strengths": [
+    { "stat": "<number or %>", "label": "<4-6 words>", "detail": "<6-8 words max>" }
+  ],
+  "worstPatterns": [
+    { "label": "<pattern name 4-6 words>", "frequency": "<e.g. 6 of last 10 trades>" }
+  ],
+  "immediateActions": [
+    { "priority": "high|medium|low", "action": "<max 8 words>" }
+  ],
+  "flags": ["<short warning badge 2-4 words>"]
+}
+
+Rules:
+- criticalIssues: 2-4 items, things hurting performance most (e.g. low win rate on direction, big losses in session)
+- strengths: 1-3 items, what is actually working
+- worstPatterns: 2-4 recurring behavioral mistakes with frequency from the data
+- immediateActions: 3 actions max, ordered by priority
+- flags: 2-5 short data-quality or risk warnings (e.g. "No R-Values", "Revenge Trading", "Overtrading Fridays")
+- Every stat must come from the actual trade data below
 
 Trades (most recent first):
-${tradeSummaries}
-
-Provide pattern analysis in this format:
-
-# Pattern Analysis — Last ${closed.length} Trades
-
-## Recurring Mistake Patterns
-[3-5 specific patterns with frequency, e.g. "You cut winners early 70% of the time when in the NY session"]
-
-## Emotional Trading Patterns  
-[Analysis of how emotions correlate with outcomes — be specific with percentages]
-
-## Best Performing Conditions
-[When / how / what you trade best — specific conditions that correlate with wins]
-
-## Worst Performing Conditions
-[The consistent losing scenarios to avoid]
-
-## Strategy Effectiveness
-[Which strategies are working and which aren't based on the data]
-
-## Overall Behavioral Assessment
-[2-3 sentence honest assessment of the trading psychology visible in the data]`;
+${tradeSummaries}`;
 
   try {
     const message = await createAnthropicMessage(prompt);
