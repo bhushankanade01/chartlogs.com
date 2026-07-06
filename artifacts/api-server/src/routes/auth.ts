@@ -2,13 +2,17 @@ import { Router, type IRouter } from "express";
 import { db, usersTable, sessionsTable, passwordResetTokensTable, loginHistoryTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
 import { RegisterBody, LoginBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + process.env.SESSION_SECRET).digest("hex");
+const BCRYPT_ROUNDS = 12;
+
+/** Returns true if the hash was created with bcrypt (starts with $2b$ or $2a$) */
+function isBcryptHash(hash: string): boolean {
+  return hash.startsWith("$2b$") || hash.startsWith("$2a$");
 }
 
 function generateToken(): string {
@@ -87,7 +91,7 @@ router.post("/auth/register", authLimiter, async (req, res): Promise<void> => {
     return;
   }
 
-  const passwordHash = hashPassword(password);
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
   const verificationToken = generateToken();
 
   const [user] = await db.insert(usersTable).values({
@@ -134,8 +138,15 @@ router.post("/auth/login", authLimiter, async (req, res): Promise<void> => {
     return;
   }
 
-  const passwordHash = hashPassword(password);
-  if (user.passwordHash !== passwordHash) {
+  // Detect legacy SHA256 hashes — reject with actionable message
+  if (!isBcryptHash(user.passwordHash)) {
+    await logLoginAttempt({ userId: user.id, email: normalizedEmail, ipAddress, userAgent, success: false, failReason: "legacy_hash" });
+    res.status(401).json({ error: "Your password needs to be reset. Please use 'Forgot Password' to set a new one." });
+    return;
+  }
+
+  const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+  if (!passwordMatch) {
     await logLoginAttempt({ userId: user.id, email: normalizedEmail, ipAddress, userAgent, success: false, failReason: "wrong_password" });
     res.status(401).json({ error: "Invalid email or password" });
     return;
@@ -274,7 +285,7 @@ router.post("/auth/reset-password", strictLimiter, async (req, res): Promise<voi
     return;
   }
 
-  const newPasswordHash = hashPassword(password);
+  const newPasswordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
   await Promise.all([
     db.update(usersTable).set({ passwordHash: newPasswordHash }).where(eq(usersTable.id, resetToken.userId)),
