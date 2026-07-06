@@ -66,6 +66,7 @@ const authLimiter = rateLimit({
   message: { error: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env["NODE_ENV"] === "test",
 });
 
 const strictLimiter = rateLimit({
@@ -74,6 +75,7 @@ const strictLimiter = rateLimit({
   message: { error: "Too many attempts, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env["NODE_ENV"] === "test",
 });
 
 router.post("/auth/register", authLimiter, async (req, res): Promise<void> => {
