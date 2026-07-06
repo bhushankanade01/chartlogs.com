@@ -259,8 +259,12 @@ router.post("/auth/forgot-password", strictLimiter, async (req, res): Promise<vo
       expiresAt,
     });
 
-    const domain = (process.env["REPLIT_DOMAINS"] ?? "localhost:80").split(",")[0]!.trim();
-    const resetLink = `https://${domain}/reset-password?token=${resetToken}`;
+    // APP_URL takes priority (set this to https://chartlogs.com in production secrets).
+    // Falls back to first Replit domain, then localhost for dev.
+    const appUrl =
+      process.env["APP_URL"] ??
+      `https://${(process.env["REPLIT_DOMAINS"] ?? "localhost:80").split(",")[0]!.trim()}`;
+    const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
 
     req.log.info({ userId: user.id, email: normalizedEmail }, "Password reset requested");
 

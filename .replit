@@ -42,3 +42,6 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
+
+[userenv.production]
+APP_URL = "https://chartlogs.com"
