@@ -262,11 +262,17 @@ router.post("/auth/forgot-password", strictLimiter, async (req, res): Promise<vo
 
     req.log.info({ userId: user.id, email: normalizedEmail }, "Password reset requested");
 
-    await sendEmail({
-      to: normalizedEmail,
-      subject: "ChartLogs — Reset your password",
-      text: `Hi ${user.name ?? "there"},\n\nClick the link below to reset your ChartLogs password. This link expires in 1 hour.\n\n${resetLink}\n\nIf you didn't request this, you can safely ignore this email.\n\n— The ChartLogs Team`,
-    });
+    try {
+      await sendEmail({
+        to: normalizedEmail,
+        subject: "ChartLogs — Reset your password",
+        text: `Hi ${user.name ?? "there"},\n\nClick the link below to reset your ChartLogs password. This link expires in 1 hour.\n\n${resetLink}\n\nIf you didn't request this, you can safely ignore this email.\n\n— The ChartLogs Team`,
+      });
+    } catch (err) {
+      // Log the failure but never surface it — always return 200 to prevent email enumeration
+      req.log.error({ err, userId: user.id }, "Failed to send password reset email");
+      req.log.info({ resetLink }, "Password reset link (email delivery failed — use this in dev/test)");
+    }
   }
 
   res.json({ success: true });
