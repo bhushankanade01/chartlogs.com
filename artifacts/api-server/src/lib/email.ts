@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { Resend } from "resend";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import { logger } from "./logger.js";
 
 interface SendEmailOptions {
@@ -9,7 +9,9 @@ interface SendEmailOptions {
 }
 
 function isResendConfigured(): boolean {
-  return !!process.env["RESEND_API_KEY"];
+  // Replit connectors SDK works when the Resend connector is bound to this Repl.
+  // REPLIT_CONNECTORS_HOSTNAME is injected automatically by the Replit runtime.
+  return !!process.env["REPLIT_CONNECTORS_HOSTNAME"];
 }
 
 function isSmtpConfigured(): boolean {
@@ -23,13 +25,22 @@ function isSmtpConfigured(): boolean {
 }
 
 async function sendViaResend({ to, subject, text }: SendEmailOptions): Promise<void> {
-  const resend = new Resend(process.env["RESEND_API_KEY"]);
+  const connectors = new ReplitConnectors();
   const from = process.env["SMTP_FROM"] ?? process.env["RESEND_FROM"] ?? "ChartLogs <noreply@chartlogs.app>";
 
-  const { error } = await resend.emails.send({ from, to, subject, text });
-  if (error) {
-    throw new Error(`Resend error: ${error.message}`);
+  // Proxy the Resend API call through the Replit connectors SDK.
+  // The SDK handles identity, token refresh, and auth headers automatically.
+  const response = await connectors.proxy("resend", "/emails", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from, to, subject, text }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Resend API error ${response.status}: ${body}`);
   }
+
   logger.info({ to, subject }, "Email sent via Resend");
 }
 
