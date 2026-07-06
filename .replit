@@ -45,3 +45,4 @@ channel = "stable-25_05"
 
 [userenv.production]
 APP_URL = "https://chartlogs.com"
+RESEND_FROM = "ChartLogs <noreply@chartlogs.com>"
