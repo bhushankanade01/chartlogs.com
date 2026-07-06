@@ -8,12 +8,6 @@ interface SendEmailOptions {
   text: string;
 }
 
-function isResendConfigured(): boolean {
-  // Replit connectors SDK works when the Resend connector is bound to this Repl.
-  // REPLIT_CONNECTORS_HOSTNAME is injected automatically by the Replit runtime.
-  return !!process.env["REPLIT_CONNECTORS_HOSTNAME"];
-}
-
 function isSmtpConfigured(): boolean {
   return !!(
     process.env["SMTP_HOST"] &&
@@ -24,33 +18,10 @@ function isSmtpConfigured(): boolean {
   );
 }
 
-async function sendViaResend({ to, subject, text }: SendEmailOptions): Promise<void> {
-  const connectors = new ReplitConnectors();
-  // Default sender: Resend's built-in test domain works without domain verification.
-  // Set SMTP_FROM or RESEND_FROM to use a custom verified domain in production.
-  const from = process.env["SMTP_FROM"] ?? process.env["RESEND_FROM"] ?? "ChartLogs <onboarding@resend.dev>";
-
-  // Proxy the Resend API call through the Replit connectors SDK.
-  // The SDK handles identity, token refresh, and auth headers automatically.
-  const response = await connectors.proxy("resend", "/emails", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to, subject, text }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    // Resend free-tier sandbox: can only send to the account owner's address
-    // until a custom domain is verified at resend.com/domains.
-    if (response.status === 403) {
-      throw new Error(
-        `Resend domain not verified. To send to any address, verify a domain at https://resend.com/domains and set SMTP_FROM or RESEND_FROM to an address on that domain. Raw error: ${body}`
-      );
-    }
-    throw new Error(`Resend API error ${response.status}: ${body}`);
-  }
-
-  logger.info({ to, subject }, "Email sent via Resend");
+function isResendConfigured(): boolean {
+  // REPLIT_CONNECTORS_HOSTNAME is auto-injected when the Resend connector
+  // is bound to this Repl via the Replit integrations system.
+  return !!process.env["REPLIT_CONNECTORS_HOSTNAME"];
 }
 
 async function sendViaSmtp({ to, subject, text }: SendEmailOptions): Promise<void> {
@@ -74,18 +45,48 @@ async function sendViaSmtp({ to, subject, text }: SendEmailOptions): Promise<voi
   logger.info({ to, subject }, "Email sent via SMTP");
 }
 
-export async function sendEmail({ to, subject, text }: SendEmailOptions): Promise<void> {
-  if (isResendConfigured()) {
-    await sendViaResend({ to, subject, text });
-    return;
+async function sendViaResend({ to, subject, text }: SendEmailOptions): Promise<void> {
+  const connectors = new ReplitConnectors();
+  // Default sender uses Resend's test domain. Set RESEND_FROM (or SMTP_FROM)
+  // to an address on a verified domain for production use (resend.com/domains).
+  const from = process.env["RESEND_FROM"] ?? process.env["SMTP_FROM"] ?? "ChartLogs <onboarding@resend.dev>";
+
+  // Proxy the Resend /emails call through the Replit connectors SDK.
+  // The SDK handles identity, token refresh, and auth headers automatically.
+  const response = await connectors.proxy("resend", "/emails", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from, to, subject, text }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    if (response.status === 403) {
+      throw new Error(
+        `Resend sandbox restriction: only the account owner's email can receive messages until a domain is verified at https://resend.com/domains. Raw: ${body}`
+      );
+    }
+    throw new Error(`Resend API error ${response.status}: ${body}`);
   }
+
+  logger.info({ to, subject }, "Email sent via Resend");
+}
+
+export async function sendEmail({ to, subject, text }: SendEmailOptions): Promise<void> {
+  // Transport priority: SMTP (explicit user config) → Resend (Replit integration) → log fallback.
+  // SMTP is tried first so that deliberately-configured credentials always take precedence.
 
   if (isSmtpConfigured()) {
     await sendViaSmtp({ to, subject, text });
     return;
   }
 
-  // Dev fallback — no email transport configured
+  if (isResendConfigured()) {
+    await sendViaResend({ to, subject, text });
+    return;
+  }
+
+  // Dev fallback — no transport configured; log email body so the flow stays testable
   logger.info({ to, subject }, "No email transport configured — logging email instead of sending");
   logger.info({ to, subject, body: text }, "=== EMAIL (dev fallback) ===");
 }
