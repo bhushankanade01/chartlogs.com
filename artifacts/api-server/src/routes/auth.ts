@@ -5,6 +5,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
 import { RegisterBody, LoginBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
+import { sendEmail } from "../lib/email.js";
 
 const router: IRouter = Router();
 
@@ -256,10 +257,16 @@ router.post("/auth/forgot-password", strictLimiter, async (req, res): Promise<vo
       expiresAt,
     });
 
-    // TODO: Send email with resetToken
-    // Reset link: https://yourdomain.com/reset-password?token=<resetToken>
+    const domain = (process.env["REPLIT_DOMAINS"] ?? "localhost:80").split(",")[0]!.trim();
+    const resetLink = `https://${domain}/reset-password?token=${resetToken}`;
+
     req.log.info({ userId: user.id, email: normalizedEmail }, "Password reset requested");
-    req.log.info({ resetToken }, "Password reset token (remove in production)");
+
+    await sendEmail({
+      to: normalizedEmail,
+      subject: "ChartLogs — Reset your password",
+      text: `Hi ${user.name ?? "there"},\n\nClick the link below to reset your ChartLogs password. This link expires in 1 hour.\n\n${resetLink}\n\nIf you didn't request this, you can safely ignore this email.\n\n— The ChartLogs Team`,
+    });
   }
 
   res.json({ success: true });
