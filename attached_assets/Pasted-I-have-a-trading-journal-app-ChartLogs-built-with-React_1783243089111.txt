@@ -1,0 +1,62 @@
+I have a trading journal app (ChartLogs) built with React + Express + PostgreSQL + Drizzle ORM. 
+
+I need you to implement the following features one by one:
+
+---
+
+## 1. CSV Trade Import
+- Add a "Import CSV" button on the Trades page
+- Open a modal where user can upload a CSV file
+- Auto-detect and map columns from common broker exports: MT4/MT5, cTrader, Binance
+- Show a preview table before confirming import
+- Map CSV columns to our trade schema: symbol, entryPrice, exitPrice, lotSize, direction (buy/sell), entryDate, exitDate, profit/loss
+- Allow user to manually map columns if auto-detect fails
+- On confirm, bulk insert trades into the database
+
+---
+
+## 2. Password Security Fix
+- Replace the current SHA256 password hashing with bcrypt (use bcryptjs package)
+- Salt rounds: 12
+- Update the register and login routes to use bcrypt.hash() and bcrypt.compare()
+- Migrate existing passwords gracefully (force re-login if hash format is old)
+
+---
+
+## 3. Password Reset Flow
+- Add "Forgot Password?" link on the login page
+- Create a /forgot-password page with an email input
+- Generate a secure random token, store it in a password_reset_tokens table with expiry (1 hour)
+- Send a reset email using Nodemailer with a reset link
+- Create a /reset-password/:token page where user sets a new password
+- Validate token expiry and mark it as used after reset
+
+---
+
+## 4. Trade Screenshot Uploads
+- Add an image upload button inside the AddTradeDrawer and EditTrade view
+- Accept JPG, PNG, WEBP — max 5MB
+- Store images in /uploads folder on the server (or use Cloudinary if configured)
+- Save the image URL/path to a screenshots column on the trades table
+- Display the screenshot thumbnail inside the trade detail view
+- Allow deleting the screenshot
+
+---
+
+## 5. Stripe Subscription Billing
+- Install stripe and @stripe/stripe-js
+- Create two plans: Free (limited to 50 trades/month) and Pro ($9/month, unlimited)
+- Add a /billing page showing current plan and an "Upgrade to Pro" button
+- On click, redirect to Stripe Checkout
+- Handle webhook for checkout.session.completed to mark user as Pro in the database
+- Add a subscriptions table with userId, stripeCustomerId, status, currentPeriodEnd
+- Gate CSV import and screenshot upload behind Pro plan (show upgrade prompt for free users)
+
+---
+
+## General rules:
+- Do not break existing features
+- Keep the existing dark Bloomberg-style UI theme
+- Use the existing Drizzle ORM schema pattern for any new tables
+- Add loading states and error handling for all new features
+- Start with Feature 1 (CSV Import) first and confirm before moving to the next
