@@ -619,12 +619,12 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.78.0
         version: 0.78.0(zod@3.25.76)
-      '@workspace/db':
-        specifier: workspace:*
-        version: link:../lib/db
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
+      pg:
+        specifier: ^8.20.0
+        version: 8.20.0
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

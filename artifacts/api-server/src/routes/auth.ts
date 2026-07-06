@@ -141,7 +141,7 @@ router.post("/auth/login", authLimiter, async (req, res): Promise<void> => {
   // Detect legacy SHA256 hashes — reject with actionable message
   if (!isBcryptHash(user.passwordHash)) {
     await logLoginAttempt({ userId: user.id, email: normalizedEmail, ipAddress, userAgent, success: false, failReason: "legacy_hash" });
-    res.status(401).json({ error: "Your password needs to be reset. Please use 'Forgot Password' to set a new one." });
+    res.status(401).json({ error: "Password format outdated — please use Forgot Password to set a new password." });
     return;
   }
 
