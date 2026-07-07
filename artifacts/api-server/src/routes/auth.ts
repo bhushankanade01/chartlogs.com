@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
-import { RegisterBody, LoginBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
+import { RegisterBody, LoginBody, ForgotPasswordBody, ResetPasswordBody, VerifyEmailBody } from "@workspace/api-zod";
 import { sendEmail } from "../lib/email.js";
 
 const router: IRouter = Router();
@@ -108,9 +108,21 @@ router.post("/auth/register", authLimiter, async (req, res): Promise<void> => {
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   await db.insert(sessionsTable).values({ userId: user.id, token, expiresAt });
 
-  // TODO: Send verification email with verificationToken
-  // In production: sendEmail({ to: normalizedEmail, subject: "Verify your email", token: verificationToken })
   req.log.info({ userId: user.id, email: normalizedEmail }, "New user registered");
+
+  // Send verification email — fire-and-forget so registration never fails due to email issues
+  const appUrl =
+    process.env["APP_URL"] ??
+    `https://${(process.env["REPLIT_DOMAINS"] ?? "localhost:80").split(",")[0]!.trim()}`;
+  const verifyLink = `${appUrl}/verify-email?token=${verificationToken}`;
+  sendEmail({
+    to: normalizedEmail,
+    subject: "ChartLogs — Verify your email",
+    text: `Hi ${name.trim()},\n\nWelcome to ChartLogs! Click the link below to verify your email address.\n\n${verifyLink}\n\nIf you didn't create this account, you can safely ignore this email.\n\n— The ChartLogs Team`,
+  }).catch((err: unknown) => {
+    req.log.error({ err, userId: user.id }, "Failed to send verification email");
+    req.log.info({ verifyLink }, "Verification link (email delivery failed — use this in dev/test)");
+  });
 
   res.status(201).json({ user: formatUser(user), token });
 });
@@ -236,6 +248,39 @@ router.patch("/auth/me/settings", async (req, res): Promise<void> => {
     .returning();
 
   res.json(formatUser(user));
+});
+
+router.post("/auth/verify-email", async (req, res): Promise<void> => {
+  const parsed = VerifyEmailBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
+
+  const { token } = parsed.data;
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.emailVerificationToken, token));
+
+  if (!user) {
+    res.status(400).json({ error: "Invalid or expired verification link. Please request a new one." });
+    return;
+  }
+
+  if (user.emailVerified) {
+    res.json({ success: true });
+    return;
+  }
+
+  await db
+    .update(usersTable)
+    .set({ emailVerified: true, emailVerificationToken: null })
+    .where(eq(usersTable.id, user.id));
+
+  req.log.info({ userId: user.id }, "Email verified");
+  res.json({ success: true });
 });
 
 router.post("/auth/forgot-password", strictLimiter, async (req, res): Promise<void> => {

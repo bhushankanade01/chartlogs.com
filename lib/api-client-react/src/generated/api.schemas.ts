@@ -80,6 +80,10 @@ export interface ResetPasswordInput {
   password: string;
 }
 
+export interface VerifyEmailInput {
+  token: string;
+}
+
 export interface UserSettingsUpdate {
   name?: string;
   timezone?: string;

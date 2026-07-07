@@ -116,6 +116,18 @@ export const ResetPasswordResponse = zod.object({
 
 
 /**
+ * @summary Verify email address with token
+ */
+export const VerifyEmailBody = zod.object({
+  "token": zod.string()
+})
+
+export const VerifyEmailResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary Update user settings
  */
 export const UpdateSettingsBody = zod.object({
