@@ -25,12 +25,12 @@ export function estimateHaikuCost(
 
 // ── Core API wrappers ──────────────────────────────────────────────────────────
 
-export function createAnthropicMessage(prompt: string) {
+export function createAnthropicMessage(prompt: string, opts?: { system?: string }) {
   const client = getAnthropicClient();
   return client.messages.create({
     model: HAIKU_MODEL,
     max_tokens: 4096,
-    system: TRADING_SYSTEM_PROMPT,
+    system: opts?.system ?? TRADING_SYSTEM_PROMPT,
     messages: [{ role: "user", content: prompt }],
   });
 }

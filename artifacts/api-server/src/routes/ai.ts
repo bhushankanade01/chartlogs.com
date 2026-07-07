@@ -302,7 +302,7 @@ router.post("/ai/patterns", requireAuth, async (req, res): Promise<void> => {
   const trades = await db.select().from(tradesTable)
     .where(eq(tradesTable.userId, userId))
     .orderBy(desc(tradesTable.openTime))
-    .limit(30);
+    .limit(50);
 
   const closed = trades.filter(t => t.pnl !== null);
 
@@ -311,41 +311,92 @@ router.post("/ai/patterns", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const tradeSummaries = closed.map(t =>
-    `${t.symbol} ${t.type?.toUpperCase()} | ${t.outcome?.toUpperCase()} | P&L: $${parseFloat(t.pnl!).toFixed(2)} | R: ${t.rMultiple != null ? t.rMultiple + "R" : "N/A"} | Session: ${t.session ?? "N/A"} | Emotion: ${t.emotion ?? "N/A"} | Strategy: ${t.strategy ?? "N/A"} | Tags: ${t.tags?.join(",") || "none"}`
-  ).join("\n");
+  // Compute summary stats to anchor AI responses in real numbers
+  const winners = closed.filter(t => t.outcome === "win");
+  const losers  = closed.filter(t => t.outcome === "loss");
+  const totalPnl = closed.reduce((s, t) => s + parseFloat(t.pnl!), 0);
+  const winRate  = ((winners.length / closed.length) * 100).toFixed(1);
+  const avgWin   = winners.length > 0
+    ? (winners.reduce((s, t) => s + parseFloat(t.pnl!), 0) / winners.length).toFixed(2)
+    : "0.00";
+  const avgLoss  = losers.length > 0
+    ? (losers.reduce((s, t) => s + parseFloat(t.pnl!), 0) / losers.length).toFixed(2)
+    : "0.00";
+  const grossProfit = winners.reduce((s, t) => s + parseFloat(t.pnl!), 0);
+  const grossLoss   = Math.abs(losers.reduce((s, t) => s + parseFloat(t.pnl!), 0));
+  const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : grossProfit > 0 ? "∞" : "0.00";
 
-  const prompt = `Analyze the last ${closed.length} closed trades. Respond with ONLY valid JSON — no markdown, no explanation, no code fences. Use this exact schema:
+  // Sort by P&L ascending to get worst 3 trades
+  const sortedByPnl = [...closed].sort((a, b) => parseFloat(a.pnl!) - parseFloat(b.pnl!));
+  const worstThree  = sortedByPnl.slice(0, 3);
+
+  // Per-trade detail rows — include prices, timing, size for the AI to reason about
+  const tradeRows = closed.slice(0, 40).map((t, i) => {
+    const pnl = parseFloat(t.pnl!).toFixed(2);
+    const open  = t.openTime  ? new Date(t.openTime).toISOString().slice(0, 16).replace("T", " ") : "?";
+    const close = t.closeTime ? new Date(t.closeTime).toISOString().slice(0, 16).replace("T", " ") : "open";
+    return `#${i + 1} ${t.symbol} ${(t.type ?? "").toUpperCase()} | entry=${t.entryPrice ?? "?"} exit=${t.exitPrice ?? "?"} | size=${t.positionSize ?? "?"}lots | pnl=$${pnl} | ${(t.outcome ?? "?").toUpperCase()} | opened=${open} closed=${close} | emotion=${t.emotion ?? "none"} | strategy=${t.strategy ?? "none"} | tags=${t.tags?.join(",") || "none"}`;
+  }).join("\n");
+
+  const worstRows = worstThree.map((t, i) => {
+    const open  = t.openTime  ? new Date(t.openTime).toISOString().slice(0, 10) : "?";
+    return `WORST_${i + 1}: ${t.symbol} ${(t.type ?? "").toUpperCase()} | entry=${t.entryPrice ?? "?"} exit=${t.exitPrice ?? "?"} | pnl=$${parseFloat(t.pnl!).toFixed(2)} | date=${open} | emotion=${t.emotion ?? "none"} | strategy=${t.strategy ?? "none"}`;
+  }).join("\n");
+
+  const systemPrompt = `You are a trading coach. Analyze ONLY the data provided. Never use generic phrases like "execution quality drifted" or "market conditions". Every insight must reference specific numbers from the trades. For worst trades, explain WHY that specific trade lost based on its entry/exit prices, timing, and how it compares to the user's average winners. Return JSON only — no markdown, no explanation, no code fences.`;
+
+  const userPrompt = `Analyze these ${closed.length} closed trades. Return ONLY valid JSON matching this exact schema:
 
 {
-  "criticalIssues": [
-    { "stat": "<number or %>", "label": "<4-6 words>", "detail": "<6-8 words max>" }
+  "blindspots": [
+    {
+      "title": "<4-6 word problem title>",
+      "severity": "warning|critical",
+      "explanation": "<1 sentence using actual numbers from the data — max 15 words>",
+      "evidence": "<specific numbers, e.g. 'Avg loss $${Math.abs(parseFloat(avgLoss)).toFixed(2)} vs avg win $${parseFloat(avgWin).toFixed(2)}'>",
+      "tip": "<1 actionable sentence — specific rule the trader can follow>"
+    }
   ],
-  "strengths": [
-    { "stat": "<number or %>", "label": "<4-6 words>", "detail": "<6-8 words max>" }
+  "worstTrades": [
+    {
+      "symbol": "<e.g. EURUSD>",
+      "direction": "<LONG|SHORT>",
+      "date": "<e.g. Jun 12>",
+      "pnl": "<e.g. -$120.50>",
+      "whatWentWrong": "<1 sentence referencing entry price, exit, or timing — no generic phrases>",
+      "lesson": "<1 sentence actionable rule derived from this specific trade>"
+    }
   ],
-  "worstPatterns": [
-    { "label": "<pattern name 4-6 words>", "frequency": "<e.g. 6 of last 10 trades>" }
-  ],
-  "immediateActions": [
-    { "priority": "high|medium|low", "action": "<max 8 words>" }
-  ],
-  "flags": ["<short warning badge 2-4 words>"]
+  "actionPlan": [
+    {
+      "title": "<bold 3-5 word rule>",
+      "why": "<1 sentence with a specific stat from the data>",
+      "measure": "<1 sentence: how to know if it's working>"
+    }
+  ]
 }
 
 Rules:
-- criticalIssues: 2-4 items, things hurting performance most (e.g. low win rate on direction, big losses in session)
-- strengths: 1-3 items, what is actually working
-- worstPatterns: 2-4 recurring behavioral mistakes with frequency from the data
-- immediateActions: 3 actions max, ordered by priority
-- flags: 2-5 short data-quality or risk warnings (e.g. "No R-Values", "Revenge Trading", "Overtrading Fridays")
-- Every stat must come from the actual trade data below
+- blindspots: 2-4 items ordered by severity. severity="critical" if it's costing more than 30% of total losses.
+- worstTrades: exactly 3 items for WORST_1, WORST_2, WORST_3 below.
+- actionPlan: exactly 3 steps numbered by impact.
+- NEVER use phrases like "execution quality", "market conditions", "be more disciplined", "improve your mindset".
+- Every stat must be a real number from the trade data.
 
-Trades (most recent first):
-${tradeSummaries}`;
+Account summary:
+- Total trades: ${closed.length} | Winners: ${winners.length} | Losers: ${losers.length}
+- Win rate: ${winRate}% | Total P&L: $${totalPnl.toFixed(2)}
+- Avg winner: $${parseFloat(avgWin).toFixed(2)} | Avg loser: $${parseFloat(avgLoss).toFixed(2)}
+- Profit factor: ${profitFactor}
+
+Worst 3 trades to analyze:
+${worstRows}
+
+All trades (most recent first):
+${tradeRows}`;
 
   try {
-    const message = await createAnthropicMessage(prompt);
+    const message = await createAnthropicMessage(userPrompt, { system: systemPrompt });
     const content = message.content[0].type === "text" ? message.content[0].text : "";
 
     const [report] = await db.insert(aiReviewsTable).values({
