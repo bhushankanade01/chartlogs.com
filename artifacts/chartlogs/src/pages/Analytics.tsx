@@ -25,7 +25,8 @@ import {
   getGetAnalyticsStreaksQueryKey,
   getGetAnalyticsProfitFactorTrendQueryKey,
   GetPerformancePeriod,
-  GetPerformanceFilter,
+  GetAnalyticsByDayPeriod,
+  GetAnalyticsBySymbolPeriod,
   useGetAiStatus,
   useGeneratePatternAnalysis,
   useGetPatternAnalysis,
@@ -36,7 +37,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "@/contexts/AccountContext";
 import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -44,107 +45,19 @@ import { Bot, TrendingUp, Lock, AlertTriangle, DollarSign, Activity, Target, Zap
 import { SafeMarkdown } from "@/components/SafeMarkdown";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, ReferenceLine, Legend, AreaChart, Area,
+  PieChart, Pie, Cell, LineChart, Line, ReferenceLine, Legend,
 } from "recharts";
 
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#06B6D4"];
 const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const PERIOD_OPTIONS: { value: GetPerformancePeriod; label: string }[] = [
-  { value: "today", label: "Today" },
-  { value: "7d", label: "7D" },
-  { value: "30d", label: "30D" },
-  { value: "3m", label: "3M" },
-  { value: "1y", label: "1Y" },
-  { value: "all", label: "All" },
-];
-
-const OUTCOME_OPTIONS: { value: GetPerformanceFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "winners", label: "Winners" },
-  { value: "losers", label: "Losers" },
-];
-
-function MetricCard({ label, value, sub, prominent }: { label: string; value: string; sub?: string; prominent?: boolean }) {
+function MetricCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <Card>
-      <CardContent className={prominent ? "pt-6" : "pt-4 pb-4"}>
+      <CardContent className="pt-6">
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">{label}</p>
-        <p className={prominent ? "text-3xl font-bold font-mono mt-1.5" : "text-xl font-bold font-mono mt-1"}>{value}</p>
+        <p className="text-2xl font-bold font-mono mt-1">{value}</p>
         {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
-      </CardContent>
-    </Card>
-  );
-}
-
-function EquityDrawdownChart({
-  equityCurve, drawdown,
-}: {
-  equityCurve: { date: string; equity: number; pnl: number }[];
-  drawdown: { date: string; drawdown: number }[];
-}) {
-  const [view, setView] = useState<"equity" | "drawdown">("equity");
-  const hasData = view === "equity" ? equityCurve.length > 0 : drawdown.length > 0;
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <CardTitle>{view === "equity" ? "Equity Curve" : "Drawdown"}</CardTitle>
-          <Tabs value={view} onValueChange={(v) => setView(v as "equity" | "drawdown")}>
-            <TabsList className="h-8">
-              <TabsTrigger value="equity" className="text-xs px-3 py-1">Equity Curve</TabsTrigger>
-              <TabsTrigger value="drawdown" className="text-xs px-3 py-1">Drawdown</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {!hasData ? (
-          <div className="flex items-center justify-center h-[260px] text-sm text-muted-foreground">
-            No data for this selection
-          </div>
-        ) : view === "equity" ? (
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={equityCurve} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
-              <XAxis dataKey="date" stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} />
-              <YAxis stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
-                formatter={(v: number) => [formatMoney(v), "Equity"]}
-              />
-              <ReferenceLine y={0} stroke="#6B7280" strokeDasharray="4 4" />
-              <Area type="monotone" dataKey="equity" stroke="#3B82F6" strokeWidth={2} fill="url(#equityGradient)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={drawdown} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#EF4444" stopOpacity={0} />
-                  <stop offset="95%" stopColor="#EF4444" stopOpacity={0.35} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
-              <XAxis dataKey="date" stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} />
-              <YAxis stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
-                formatter={(v: number) => [`${v.toFixed(2)}%`, "Drawdown"]}
-              />
-              <ReferenceLine y={0} stroke="#6B7280" strokeDasharray="4 4" />
-              <Area type="monotone" dataKey="drawdown" stroke="#EF4444" strokeWidth={2} fill="url(#drawdownGradient)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
       </CardContent>
     </Card>
   );
@@ -152,112 +65,110 @@ function EquityDrawdownChart({
 
 export default function Analytics() {
   const [period, setPeriod] = useState<GetPerformancePeriod>("all");
-  const [outcomeFilter, setOutcomeFilter] = useState<GetPerformanceFilter>("all");
+  const [dayPeriod] = useState<GetAnalyticsByDayPeriod>("all");
+  const [symPeriod] = useState<GetAnalyticsBySymbolPeriod>("all");
   const [strategyFilter, setStrategyFilter] = useState("");
   const { activeAccountId } = useAccount();
   const acctParam = activeAccountId ?? undefined;
 
-  // Several analytics endpoints only support 7d/30d/3m/1y/all (no "today"); map "today" to "7d" for those.
-  const subPeriod = period === "today" ? "7d" : period as "7d" | "30d" | "3m" | "1y" | "all";
-
   const { data: perf, isLoading: perfLoading } = useGetPerformance(
-    { period, filter: outcomeFilter, accountId: acctParam },
-    { query: { queryKey: getGetPerformanceQueryKey({ period, filter: outcomeFilter, accountId: acctParam }) } }
+    { period, accountId: acctParam },
+    { query: { queryKey: getGetPerformanceQueryKey({ period, accountId: acctParam }) } }
   );
   const { data: bySymbol } = useGetAnalyticsBySymbol(
-    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsBySymbolQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
+    { period: symPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsBySymbolQueryKey({ period: symPeriod, accountId: acctParam }) } }
   );
   const { data: byDay } = useGetAnalyticsByDay(
-    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsByDayQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
+    { period: dayPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByDayQueryKey({ period: dayPeriod, accountId: acctParam }) } }
   );
   const { data: byTag } = useGetAnalyticsByTag(
-    { outcome: outcomeFilter, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsByTagQueryKey({ outcome: outcomeFilter, accountId: acctParam }) } }
+    { accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByTagQueryKey({ accountId: acctParam }) } }
   );
   const { data: byEmotion } = useGetAnalyticsByEmotion(
-    { outcome: outcomeFilter, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsByEmotionQueryKey({ outcome: outcomeFilter, accountId: acctParam }) } }
+    { accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByEmotionQueryKey({ accountId: acctParam }) } }
   );
   const { data: byStrategy } = useGetAnalyticsByStrategy(
-    { outcome: outcomeFilter, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsByStrategyQueryKey({ outcome: outcomeFilter, accountId: acctParam }) } }
+    { accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByStrategyQueryKey({ accountId: acctParam }) } }
   );
 
+  const hourPeriod = period === "today" ? "7d" : period as "7d" | "30d" | "3m" | "1y" | "all";
+
   const { data: bySession } = useGetAnalyticsBySession(
-    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsBySessionQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
+    { period: hourPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsBySessionQueryKey({ period: hourPeriod, accountId: acctParam }) } }
   );
   const { data: compliance } = useGetChecklistCompliance(
     { accountId: acctParam },
     { query: { queryKey: getGetChecklistComplianceQueryKey({ accountId: acctParam }) } }
   );
   const { data: byHour } = useGetAnalyticsByHour(
-    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsByHourQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
+    { period: hourPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByHourQueryKey({ period: hourPeriod, accountId: acctParam }) } }
   );
   const { data: rMultiples } = useGetAnalyticsRMultiples(
-    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsRMultiplesQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
+    { period: hourPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsRMultiplesQueryKey({ period: hourPeriod, accountId: acctParam }) } }
   );
   const { data: streaks } = useGetAnalyticsStreaks(
-    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsStreaksQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
+    { period: hourPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsStreaksQueryKey({ period: hourPeriod, accountId: acctParam }) } }
   );
   const { data: pfTrend } = useGetAnalyticsProfitFactorTrend(
-    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsProfitFactorTrendQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
+    { period: hourPeriod, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsProfitFactorTrendQueryKey({ period: hourPeriod, accountId: acctParam }) } }
   );
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
           <p className="text-sm text-muted-foreground mt-1">Deep insights into your trading performance</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Tabs value={outcomeFilter} onValueChange={(v) => setOutcomeFilter(v as GetPerformanceFilter)}>
-            <TabsList>
-              {OUTCOME_OPTIONS.map((o) => (
-                <TabsTrigger key={o.value} value={o.value} className="text-xs px-3">{o.label}</TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          <Tabs value={period} onValueChange={(v) => setPeriod(v as GetPerformancePeriod)}>
-            <TabsList>
-              {PERIOD_OPTIONS.map((o) => (
-                <TabsTrigger key={o.value} value={o.value} className="text-xs px-3">{o.label}</TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
+        <Select value={period} onValueChange={(v: GetPerformancePeriod) => setPeriod(v)}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="7d">Past 7 Days</SelectItem>
+            <SelectItem value="30d">Past 30 Days</SelectItem>
+            <SelectItem value="3m">Past 3 Months</SelectItem>
+            <SelectItem value="1y">Past Year</SelectItem>
+            <SelectItem value="all">All Time</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {perfLoading ? (
         <div className="flex justify-center py-20"><Spinner /></div>
       ) : perf ? (
         <>
-          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-            <MetricCard prominent label="Total P&L" value={formatMoney(perf.totalPnl)} />
-            <MetricCard prominent label="Win Rate" value={`${perf.winRate.toFixed(1)}%`} />
-            <MetricCard prominent label="Profit Factor" value={perf.profitFactor?.toFixed(2) ?? "—"} />
-            <MetricCard prominent label="Expectancy" value={formatMoney(perf.expectancy)} sub="avg P&L per trade" />
-          </div>
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+            <MetricCard label="Total P&L" value={formatMoney(perf.totalPnl)} />
+            <MetricCard label="Win Rate" value={`${perf.winRate.toFixed(1)}%`} />
+            <MetricCard label="Profit Factor" value={perf.profitFactor?.toFixed(2) ?? "—"} />
+            <MetricCard label="Expectancy" value={formatMoney(perf.expectancy)} />
             <MetricCard label="Winners" value={String(perf.winners)} sub="closed profitable" />
             <MetricCard label="Losers" value={String(perf.losers)} sub="closed at loss" />
-            <MetricCard label="Breakeven" value={String(perf.breakeven ?? 0)} sub="no gain/loss" />
+          </div>
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
             <MetricCard label="Total Trades" value={String(perf.totalTrades)} />
             <MetricCard label="Long Trades" value={String(perf.longTrades)} sub={perf.longWinRate != null ? `${perf.longWinRate.toFixed(0)}% WR` : undefined} />
             <MetricCard label="Short Trades" value={String(perf.shortTrades)} sub={perf.shortWinRate != null ? `${perf.shortWinRate.toFixed(0)}% WR` : undefined} />
             <MetricCard label="Max Drawdown" value={perf.drawdown?.length > 0 ? formatMoney(Math.min(...perf.drawdown.map(d => d.drawdown))) : "—"} />
+          </div>
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+            <MetricCard label="Breakeven" value={String(perf.breakeven ?? 0)} sub="no gain/loss" />
             <MetricCard label="Max Consec. Losses" value={String(perf.maxConsecutiveLosses ?? 0)} sub="in a row" />
             <MetricCard label="Max DD Duration" value={perf.maxDrawdownDuration ? `${perf.maxDrawdownDuration}d` : "—"} sub="calendar days" />
+            <MetricCard label="Expectancy / Trade" value={formatMoney(perf.expectancy)} sub="avg P&L per trade" />
           </div>
-
-          <EquityDrawdownChart equityCurve={perf.equityCurve ?? []} drawdown={perf.drawdown ?? []} />
         </>
       ) : null}
 

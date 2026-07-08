@@ -43,9 +43,12 @@ const navItems = [
   { href: "/journal", label: "Journal", icon: BookOpen },
   {
     href: "/analytics",
-    label: "Analytics",
+    label: "Analysis",
     icon: LineChart,
-    children: [{ href: "/analytics/trade-analysis", label: "Trade Analysis" }],
+    children: [
+      { href: "/analytics", label: "Performance" },
+      { href: "/analytics/trade-analysis", label: "Trade Analysis" },
+    ],
   },
   { href: "/ai-report", label: "AI Report", icon: Sparkles },
   { href: "/market", label: "Market", icon: Calendar },
@@ -187,7 +190,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 {hasChildren && (childActive || isActive) && (
                   <div className="ml-[26px] mt-0.5 mb-0.5 space-y-0.5 border-l border-border/60 pl-3">
                     {item.children!.map((child) => {
-                      const isChildActive = location.startsWith(child.href);
+                      const bestMatch = item.children!
+                        .filter((c) => location.startsWith(c.href))
+                        .sort((a, b) => b.href.length - a.href.length)[0];
+                      const isChildActive = bestMatch?.href === child.href;
                       return (
                         <Link
                           key={child.href}
