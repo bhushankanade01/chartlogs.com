@@ -1,3 +1,9 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="180" height="180" rx="36" fill="#FF3C00"/>
+<rect width="180" height="180" rx="36" fill="#0F1117"/>
+<line x1="52" y1="46" x2="52" y2="134" stroke="#22C55E" stroke-width="6" stroke-linecap="round"/>
+<rect x="40" y="66" width="24" height="46" rx="4" fill="#22C55E"/>
+<line x1="90" y1="38" x2="90" y2="142" stroke="#EF4444" stroke-width="6" stroke-linecap="round"/>
+<rect x="78" y="58" width="24" height="60" rx="4" fill="#EF4444"/>
+<line x1="128" y1="52" x2="128" y2="120" stroke="#22C55E" stroke-width="6" stroke-linecap="round"/>
+<rect x="116" y="72" width="24" height="36" rx="4" fill="#22C55E"/>
 </svg>
