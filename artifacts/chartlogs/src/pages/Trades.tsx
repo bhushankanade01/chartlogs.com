@@ -189,7 +189,7 @@ export default function Trades() {
                     <th className="py-3 px-4 text-right font-medium">Checklist</th>
                     <th className="py-3 px-4 text-right font-medium">Tags</th>
                     <th className="py-3 px-4 text-right font-medium">Charts</th>
-                    <th className="py-3 px-4 text-right font-medium">Actions</th>
+                    <th className="py-3 px-4 text-right font-medium sticky right-0 bg-muted/10 backdrop-blur-sm">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -242,7 +242,7 @@ export default function Trades() {
                         </div>
                       </td>
                       <ScreenshotPreviewCell screenshots={trade.screenshots} />
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3 px-4 text-right sticky right-0 bg-card">
                         <Button
                           variant="ghost"
                           size="icon"
