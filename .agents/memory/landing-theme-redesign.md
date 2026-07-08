@@ -21,6 +21,12 @@ description: How dark/light mode toggle works and how the landing page is struct
 - Route `/faq` added to `App.tsx`, renders `FAQ.tsx`.
 - Accordion pattern: local `open` state per question (not using shadcn accordion).
 
+## Black theme + button color split (TradeFXBook-style redesign)
+- `.dark` palette in `index.css` uses neutral blacks (no blue-tinted hue) for background/card/sidebar/border/muted/accent. `--primary` stays blue (217 91% 60%) — it is intentionally kept ONLY as an accent color (active nav left border, "Most Popular" pricing highlight, links), not for button backgrounds.
+- `Button` component's `default` variant is hardcoded to `bg-white text-black` (not `bg-primary`), decoupling "primary action" styling from the "accent" color. `outline`/`secondary` variants also hardcoded rather than derived from `--primary`.
+
+**Why:** The reference design (TradeFXBook) uses solid white/black CTA buttons but blue only for highlights/active-states. The app's `--primary` var was previously overloaded for both roles; keep this split in mind before reintroducing `bg-primary` on buttons — it would put blue back on all buttons app-wide.
+
 ## SEO
 - `index.html` updated with real title, description, OG/Twitter tags, JSON-LD schema.
 - `public/sitemap.xml` and `public/robots.txt` added (disallow /dashboard etc.).

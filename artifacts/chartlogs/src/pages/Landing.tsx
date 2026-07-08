@@ -438,15 +438,15 @@ function PricingSection({ onRegister }: { onRegister: () => void }) {
             <RevealDiv
               key={tier.name}
               delay={i * 100}
-              className={`relative rounded-2xl border p-6 flex flex-col transition-all duration-300 hover:-translate-y-1 ${
+              className={`relative rounded-lg border p-6 flex flex-col transition-all duration-300 hover:-translate-y-1 ${
                 tier.popular
-                  ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                  : "border-border bg-card hover:border-primary/30"
+                  ? "border-[#3b82f6] bg-card"
+                  : "border-[#222] bg-card hover:border-white/20"
               }`}
             >
               {tier.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <div className="bg-primary text-primary-foreground text-xs font-semibold px-4 py-1 rounded-full shadow">
+                  <div className="bg-[#3b82f6] text-white text-xs font-semibold px-4 py-1 rounded-lg">
                     Most Popular
                   </div>
                 </div>
@@ -454,7 +454,7 @@ function PricingSection({ onRegister }: { onRegister: () => void }) {
               <div className="mb-6">
                 <div className="text-sm font-medium text-muted-foreground mb-1">{tier.name}</div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">{tier.price}</span>
+                  <span className="text-4xl md:text-5xl font-extrabold text-white stat-number">{tier.price}</span>
                   <span className="text-muted-foreground text-sm">{tier.period}</span>
                 </div>
                 <p className="text-muted-foreground text-sm mt-2">{tier.description}</p>
@@ -462,14 +462,14 @@ function PricingSection({ onRegister }: { onRegister: () => void }) {
               <ul className="space-y-3 flex-1 mb-8">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-sm">
-                    <Check className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <Check className="h-4 w-4 text-[#22c55e] flex-shrink-0 mt-0.5" />
                     {f}
                   </li>
                 ))}
               </ul>
               <Button
-                variant={tier.popular ? "default" : "outline"}
-                className={`w-full ${tier.popular ? "shadow-md shadow-primary/20" : ""}`}
+                variant={tier.popular ? "default" : "secondary"}
+                className="w-full"
                 onClick={onRegister}
               >
                 {tier.cta}

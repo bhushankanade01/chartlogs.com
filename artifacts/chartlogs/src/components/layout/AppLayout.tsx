@@ -160,16 +160,18 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 key={item.href}
                 href={item.href}
                 onClick={onNav}
-                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 text-sm font-medium overflow-hidden ${
+                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium overflow-hidden ${
                   isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-white/5 text-white"
+                    : "text-muted-foreground/70 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-primary rounded-r-full" />
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-[#3b82f6] rounded-r-full" />
                 )}
-                <item.icon className="h-4 w-4 flex-shrink-0" />
+                <item.icon
+                  className={`h-4 w-4 flex-shrink-0 text-white ${isActive ? "opacity-100" : "opacity-60"}`}
+                />
                 {item.label}
               </Link>
             );
@@ -210,11 +212,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Desktop Sidebar */}
-      <aside className="w-64 border-r border-border bg-card flex-col flex-shrink-0 hidden md:flex">
-        <div className="h-16 flex items-center px-6 border-b border-border">
-          <Link href="/dashboard" className="text-xl font-bold font-mono tracking-tighter text-primary">
+      <aside className="fixed top-0 left-0 h-screen w-64 border-r border-border bg-sidebar flex-col z-50 hidden md:flex overflow-y-auto">
+        <div className="h-16 flex items-center px-6 border-b border-border flex-shrink-0">
+          <Link href="/dashboard" className="text-xl font-bold tracking-tight uppercase text-white">
             CHARTLOGS
           </Link>
         </div>
@@ -231,14 +233,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Mobile Sidebar Drawer */}
       <aside
-        className={`fixed top-0 left-0 h-full w-72 z-50 bg-card border-r border-border flex flex-col transform transition-transform duration-300 ease-in-out md:hidden ${
+        className={`fixed top-0 left-0 h-full w-72 z-50 bg-sidebar border-r border-border flex flex-col transform transition-transform duration-300 ease-in-out md:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="h-16 flex items-center justify-between px-6 border-b border-border flex-shrink-0">
           <Link
             href="/dashboard"
-            className="text-xl font-bold font-mono tracking-tighter text-primary"
+            className="text-xl font-bold tracking-tight uppercase text-white"
             onClick={() => setMobileOpen(false)}
           >
             CHARTLOGS
@@ -254,20 +256,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex flex-col min-w-0 md:ml-64 min-h-screen">
         {/* Mobile Header */}
         <header className="h-16 border-b border-border bg-card flex items-center px-4 md:hidden flex-shrink-0">
           <button
             onClick={() => setMobileOpen(true)}
-            className="mr-3 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="mr-3 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             aria-label="Open navigation"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-lg font-bold font-mono tracking-tighter text-primary flex-1">CHARTLOGS</span>
+          <span className="text-lg font-bold tracking-tight uppercase text-white flex-1">CHARTLOGS</span>
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             aria-label="Toggle theme"
           >
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
