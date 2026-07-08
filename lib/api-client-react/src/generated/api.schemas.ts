@@ -985,6 +985,7 @@ export const GetPerformanceFilter = {
 
 export type GetAnalyticsBySymbolParams = {
 period?: GetAnalyticsBySymbolPeriod;
+outcome?: GetAnalyticsBySymbolOutcome;
 accountId?: number;
 };
 
@@ -999,8 +1000,18 @@ export const GetAnalyticsBySymbolPeriod = {
   all: 'all',
 } as const;
 
+export type GetAnalyticsBySymbolOutcome = typeof GetAnalyticsBySymbolOutcome[keyof typeof GetAnalyticsBySymbolOutcome];
+
+
+export const GetAnalyticsBySymbolOutcome = {
+  all: 'all',
+  winners: 'winners',
+  losers: 'losers',
+} as const;
+
 export type GetAnalyticsByDayParams = {
 period?: GetAnalyticsByDayPeriod;
+outcome?: GetAnalyticsByDayOutcome;
 accountId?: number;
 };
 
@@ -1015,20 +1026,60 @@ export const GetAnalyticsByDayPeriod = {
   all: 'all',
 } as const;
 
+export type GetAnalyticsByDayOutcome = typeof GetAnalyticsByDayOutcome[keyof typeof GetAnalyticsByDayOutcome];
+
+
+export const GetAnalyticsByDayOutcome = {
+  all: 'all',
+  winners: 'winners',
+  losers: 'losers',
+} as const;
+
 export type GetAnalyticsByTagParams = {
+outcome?: GetAnalyticsByTagOutcome;
 accountId?: number;
 };
+
+export type GetAnalyticsByTagOutcome = typeof GetAnalyticsByTagOutcome[keyof typeof GetAnalyticsByTagOutcome];
+
+
+export const GetAnalyticsByTagOutcome = {
+  all: 'all',
+  winners: 'winners',
+  losers: 'losers',
+} as const;
 
 export type GetAnalyticsByEmotionParams = {
+outcome?: GetAnalyticsByEmotionOutcome;
 accountId?: number;
 };
 
+export type GetAnalyticsByEmotionOutcome = typeof GetAnalyticsByEmotionOutcome[keyof typeof GetAnalyticsByEmotionOutcome];
+
+
+export const GetAnalyticsByEmotionOutcome = {
+  all: 'all',
+  winners: 'winners',
+  losers: 'losers',
+} as const;
+
 export type GetAnalyticsByStrategyParams = {
+outcome?: GetAnalyticsByStrategyOutcome;
 accountId?: number;
 };
+
+export type GetAnalyticsByStrategyOutcome = typeof GetAnalyticsByStrategyOutcome[keyof typeof GetAnalyticsByStrategyOutcome];
+
+
+export const GetAnalyticsByStrategyOutcome = {
+  all: 'all',
+  winners: 'winners',
+  losers: 'losers',
+} as const;
 
 export type GetAnalyticsBySessionParams = {
 period?: GetAnalyticsBySessionPeriod;
+outcome?: GetAnalyticsBySessionOutcome;
 accountId?: number;
 };
 
@@ -1043,8 +1094,18 @@ export const GetAnalyticsBySessionPeriod = {
   all: 'all',
 } as const;
 
+export type GetAnalyticsBySessionOutcome = typeof GetAnalyticsBySessionOutcome[keyof typeof GetAnalyticsBySessionOutcome];
+
+
+export const GetAnalyticsBySessionOutcome = {
+  all: 'all',
+  winners: 'winners',
+  losers: 'losers',
+} as const;
+
 export type GetAnalyticsByHourParams = {
 period?: GetAnalyticsByHourPeriod;
+outcome?: GetAnalyticsByHourOutcome;
 accountId?: number;
 };
 
@@ -1059,8 +1120,18 @@ export const GetAnalyticsByHourPeriod = {
   all: 'all',
 } as const;
 
+export type GetAnalyticsByHourOutcome = typeof GetAnalyticsByHourOutcome[keyof typeof GetAnalyticsByHourOutcome];
+
+
+export const GetAnalyticsByHourOutcome = {
+  all: 'all',
+  winners: 'winners',
+  losers: 'losers',
+} as const;
+
 export type GetAnalyticsRMultiplesParams = {
 period?: GetAnalyticsRMultiplesPeriod;
+outcome?: GetAnalyticsRMultiplesOutcome;
 accountId?: number;
 };
 
@@ -1075,8 +1146,18 @@ export const GetAnalyticsRMultiplesPeriod = {
   all: 'all',
 } as const;
 
+export type GetAnalyticsRMultiplesOutcome = typeof GetAnalyticsRMultiplesOutcome[keyof typeof GetAnalyticsRMultiplesOutcome];
+
+
+export const GetAnalyticsRMultiplesOutcome = {
+  all: 'all',
+  winners: 'winners',
+  losers: 'losers',
+} as const;
+
 export type GetAnalyticsStreaksParams = {
 period?: GetAnalyticsStreaksPeriod;
+outcome?: GetAnalyticsStreaksOutcome;
 accountId?: number;
 };
 
@@ -1091,8 +1172,18 @@ export const GetAnalyticsStreaksPeriod = {
   all: 'all',
 } as const;
 
+export type GetAnalyticsStreaksOutcome = typeof GetAnalyticsStreaksOutcome[keyof typeof GetAnalyticsStreaksOutcome];
+
+
+export const GetAnalyticsStreaksOutcome = {
+  all: 'all',
+  winners: 'winners',
+  losers: 'losers',
+} as const;
+
 export type GetAnalyticsProfitFactorTrendParams = {
 period?: GetAnalyticsProfitFactorTrendPeriod;
+outcome?: GetAnalyticsProfitFactorTrendOutcome;
 accountId?: number;
 };
 
@@ -1105,6 +1196,15 @@ export const GetAnalyticsProfitFactorTrendPeriod = {
   '3m': '3m',
   '1y': '1y',
   all: 'all',
+} as const;
+
+export type GetAnalyticsProfitFactorTrendOutcome = typeof GetAnalyticsProfitFactorTrendOutcome[keyof typeof GetAnalyticsProfitFactorTrendOutcome];
+
+
+export const GetAnalyticsProfitFactorTrendOutcome = {
+  all: 'all',
+  winners: 'winners',
+  losers: 'losers',
 } as const;
 
 export type GetChecklistComplianceParams = {

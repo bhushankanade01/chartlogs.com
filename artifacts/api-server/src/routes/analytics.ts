@@ -1,11 +1,20 @@
 import { Router, type IRouter } from "express";
 import { db, tradesTable, checklistTemplatesTable, checklistResponsesTable } from "@workspace/db";
+import type { InferSelectModel } from "drizzle-orm";
 import { eq, and, gte } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import {
   GetPerformanceQueryParams,
   GetAnalyticsBySymbolQueryParams,
   GetAnalyticsByDayQueryParams,
+  GetAnalyticsByTagQueryParams,
+  GetAnalyticsByEmotionQueryParams,
+  GetAnalyticsByStrategyQueryParams,
+  GetAnalyticsBySessionQueryParams,
+  GetAnalyticsByHourQueryParams,
+  GetAnalyticsRMultiplesQueryParams,
+  GetAnalyticsStreaksQueryParams,
+  GetAnalyticsProfitFactorTrendQueryParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -21,6 +30,15 @@ function getPeriodStart(period: string): Date | null {
     case "all": return null;
     default: return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   }
+}
+
+function filterByOutcome<T extends { outcome: InferSelectModel<typeof tradesTable>["outcome"] }>(
+  trades: T[],
+  outcome: string,
+): T[] {
+  if (outcome === "winners") return trades.filter(t => t.outcome === "win");
+  if (outcome === "losers") return trades.filter(t => t.outcome === "loss");
+  return trades;
 }
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -128,6 +146,7 @@ router.get("/analytics/performance", requireAuth, async (req, res): Promise<void
 router.get("/analytics/by-symbol", requireAuth, async (req, res): Promise<void> => {
   const params = GetAnalyticsBySymbolQueryParams.safeParse(req.query);
   const period = params.success ? (params.data.period ?? "all") : "all";
+  const outcome = params.success ? (params.data.outcome ?? "all") : "all";
   const accountId = params.success ? params.data.accountId : undefined;
   const userId = req.user!.id;
   const periodStart = getPeriodStart(period);
@@ -137,7 +156,7 @@ router.get("/analytics/by-symbol", requireAuth, async (req, res): Promise<void> 
   if (accountId) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
-  const closed = trades.filter(t => t.pnl !== null);
+  const closed = filterByOutcome(trades.filter(t => t.pnl !== null), outcome);
 
   const bySymbol = new Map<string, { pnl: number; count: number; wins: number }>();
   for (const t of closed) {
@@ -165,6 +184,7 @@ router.get("/analytics/by-symbol", requireAuth, async (req, res): Promise<void> 
 router.get("/analytics/by-day", requireAuth, async (req, res): Promise<void> => {
   const params = GetAnalyticsByDayQueryParams.safeParse(req.query);
   const period = params.success ? (params.data.period ?? "all") : "all";
+  const outcome = params.success ? (params.data.outcome ?? "all") : "all";
   const accountId = params.success ? params.data.accountId : undefined;
   const userId = req.user!.id;
   const periodStart = getPeriodStart(period);
@@ -174,7 +194,7 @@ router.get("/analytics/by-day", requireAuth, async (req, res): Promise<void> => 
   if (accountId) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
-  const closed = trades.filter(t => t.pnl !== null);
+  const closed = filterByOutcome(trades.filter(t => t.pnl !== null), outcome);
 
   const byDay = new Map<number, { pnl: number; count: number; wins: number }>();
   for (const t of closed) {
@@ -201,6 +221,8 @@ router.get("/analytics/by-day", requireAuth, async (req, res): Promise<void> => 
 });
 
 router.get("/analytics/by-tag", requireAuth, async (req, res): Promise<void> => {
+  const params = GetAnalyticsByTagQueryParams.safeParse(req.query);
+  const outcome = params.success ? (params.data.outcome ?? "all") : "all";
   const userId = req.user!.id;
   const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
 
@@ -208,7 +230,7 @@ router.get("/analytics/by-tag", requireAuth, async (req, res): Promise<void> => 
   if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
-  const closed = trades.filter(t => t.pnl !== null);
+  const closed = filterByOutcome(trades.filter(t => t.pnl !== null), outcome);
 
   const byTag = new Map<string, { pnl: number; count: number; wins: number }>();
   for (const t of closed) {
@@ -235,6 +257,8 @@ router.get("/analytics/by-tag", requireAuth, async (req, res): Promise<void> => 
 });
 
 router.get("/analytics/by-emotion", requireAuth, async (req, res): Promise<void> => {
+  const params = GetAnalyticsByEmotionQueryParams.safeParse(req.query);
+  const outcome = params.success ? (params.data.outcome ?? "all") : "all";
   const userId = req.user!.id;
   const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
 
@@ -242,7 +266,7 @@ router.get("/analytics/by-emotion", requireAuth, async (req, res): Promise<void>
   if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
-  const closed = trades.filter(t => t.pnl !== null && t.emotion);
+  const closed = filterByOutcome(trades.filter(t => t.pnl !== null && t.emotion), outcome);
 
   const byEmotion = new Map<string, { pnl: number; count: number; wins: number }>();
   for (const t of closed) {
@@ -267,6 +291,8 @@ router.get("/analytics/by-emotion", requireAuth, async (req, res): Promise<void>
 });
 
 router.get("/analytics/by-strategy", requireAuth, async (req, res): Promise<void> => {
+  const params = GetAnalyticsByStrategyQueryParams.safeParse(req.query);
+  const outcome = params.success ? (params.data.outcome ?? "all") : "all";
   const userId = req.user!.id;
   const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
 
@@ -274,7 +300,7 @@ router.get("/analytics/by-strategy", requireAuth, async (req, res): Promise<void
   if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
-  const withStrategy = trades.filter(t => t.strategy && t.pnl !== null);
+  const withStrategy = filterByOutcome(trades.filter(t => t.strategy && t.pnl !== null), outcome);
 
   const byStrategy = new Map<string, { pnl: number; count: number; wins: number; rMultiples: number[] }>();
   for (const t of withStrategy) {
@@ -304,8 +330,10 @@ router.get("/analytics/by-strategy", requireAuth, async (req, res): Promise<void
 });
 
 router.get("/analytics/by-session", requireAuth, async (req, res): Promise<void> => {
+  const params = GetAnalyticsBySessionQueryParams.safeParse(req.query);
   const userId = req.user!.id;
-  const period = String(req.query.period ?? "all");
+  const period = String(params.success ? (params.data.period ?? "all") : "all");
+  const outcome = params.success ? (params.data.outcome ?? "all") : "all";
   const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
   const periodStart = getPeriodStart(period);
 
@@ -314,7 +342,7 @@ router.get("/analytics/by-session", requireAuth, async (req, res): Promise<void>
   if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
-  const closed = trades.filter(t => t.pnl !== null && t.session);
+  const closed = filterByOutcome(trades.filter(t => t.pnl !== null && t.session), outcome);
 
   const bySession = new Map<string, { pnl: number; count: number; wins: number }>();
   for (const t of closed) {
@@ -340,8 +368,10 @@ router.get("/analytics/by-session", requireAuth, async (req, res): Promise<void>
 });
 
 router.get("/analytics/by-hour", requireAuth, async (req, res): Promise<void> => {
+  const params = GetAnalyticsByHourQueryParams.safeParse(req.query);
   const userId = req.user!.id;
-  const period = String(req.query.period ?? "all");
+  const period = String(params.success ? (params.data.period ?? "all") : "all");
+  const outcome = params.success ? (params.data.outcome ?? "all") : "all";
   const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
   const periodStart = getPeriodStart(period);
 
@@ -350,7 +380,7 @@ router.get("/analytics/by-hour", requireAuth, async (req, res): Promise<void> =>
   if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
-  const closed = trades.filter(t => t.pnl !== null);
+  const closed = filterByOutcome(trades.filter(t => t.pnl !== null), outcome);
 
   const grid = new Map<string, { pnlSum: number; count: number }>();
   for (const t of closed) {
@@ -380,8 +410,10 @@ router.get("/analytics/by-hour", requireAuth, async (req, res): Promise<void> =>
 });
 
 router.get("/analytics/r-multiples", requireAuth, async (req, res): Promise<void> => {
+  const params = GetAnalyticsRMultiplesQueryParams.safeParse(req.query);
   const userId = req.user!.id;
-  const period = String(req.query.period ?? "all");
+  const period = String(params.success ? (params.data.period ?? "all") : "all");
+  const outcome = params.success ? (params.data.outcome ?? "all") : "all";
   const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
   const periodStart = getPeriodStart(period);
 
@@ -390,7 +422,7 @@ router.get("/analytics/r-multiples", requireAuth, async (req, res): Promise<void
   if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions));
-  const withR = trades.filter(t => t.rMultiple !== null && t.pnl !== null);
+  const withR = filterByOutcome(trades.filter(t => t.rMultiple !== null && t.pnl !== null), outcome);
 
   const bucketDefs = [
     { label: "<-3R", min: -Infinity, max: -3 },
@@ -421,8 +453,10 @@ router.get("/analytics/r-multiples", requireAuth, async (req, res): Promise<void
 });
 
 router.get("/analytics/streaks", requireAuth, async (req, res): Promise<void> => {
+  const params = GetAnalyticsStreaksQueryParams.safeParse(req.query);
   const userId = req.user!.id;
-  const period = String(req.query.period ?? "all");
+  const period = String(params.success ? (params.data.period ?? "all") : "all");
+  const outcome = params.success ? (params.data.outcome ?? "all") : "all";
   const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
   const periodStart = getPeriodStart(period);
 
@@ -431,7 +465,7 @@ router.get("/analytics/streaks", requireAuth, async (req, res): Promise<void> =>
   if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions)).orderBy(tradesTable.openTime);
-  const closed = trades.filter(t => t.pnl !== null && t.outcome);
+  const closed = filterByOutcome(trades.filter(t => t.pnl !== null && t.outcome), outcome);
 
   let bestWin = 0, worstLoss = 0;
   let curWin = 0, curLoss = 0;
@@ -458,8 +492,10 @@ router.get("/analytics/streaks", requireAuth, async (req, res): Promise<void> =>
 });
 
 router.get("/analytics/profit-factor-trend", requireAuth, async (req, res): Promise<void> => {
+  const params = GetAnalyticsProfitFactorTrendQueryParams.safeParse(req.query);
   const userId = req.user!.id;
-  const period = String(req.query.period ?? "all");
+  const period = String(params.success ? (params.data.period ?? "all") : "all");
+  const outcome = params.success ? (params.data.outcome ?? "all") : "all";
   const accountId = req.query.accountId ? parseInt(String(req.query.accountId)) : undefined;
   const periodStart = getPeriodStart(period);
 
@@ -468,7 +504,7 @@ router.get("/analytics/profit-factor-trend", requireAuth, async (req, res): Prom
   if (accountId && !isNaN(accountId)) conditions.push(eq(tradesTable.accountId, accountId));
 
   const trades = await db.select().from(tradesTable).where(and(...conditions)).orderBy(tradesTable.openTime);
-  const closed = trades.filter(t => t.pnl !== null);
+  const closed = filterByOutcome(trades.filter(t => t.pnl !== null), outcome);
 
   const byMonth = new Map<string, { gross: number; loss: number; count: number }>();
   for (const t of closed) {

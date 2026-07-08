@@ -849,9 +849,11 @@ export const GetPerformanceResponse = zod.object({
  * @summary Get performance grouped by symbol
  */
 export const getAnalyticsBySymbolQueryPeriodDefault = `all`;
+export const getAnalyticsBySymbolQueryOutcomeDefault = `all`;
 
 export const GetAnalyticsBySymbolQueryParams = zod.object({
   "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsBySymbolQueryPeriodDefault),
+  "outcome": zod.enum(['all', 'winners', 'losers']).default(getAnalyticsBySymbolQueryOutcomeDefault),
   "accountId": zod.coerce.number().optional()
 })
 
@@ -868,9 +870,11 @@ export const GetAnalyticsBySymbolResponse = zod.array(GetAnalyticsBySymbolRespon
  * @summary Get performance grouped by day of week
  */
 export const getAnalyticsByDayQueryPeriodDefault = `all`;
+export const getAnalyticsByDayQueryOutcomeDefault = `all`;
 
 export const GetAnalyticsByDayQueryParams = zod.object({
   "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsByDayQueryPeriodDefault),
+  "outcome": zod.enum(['all', 'winners', 'losers']).default(getAnalyticsByDayQueryOutcomeDefault),
   "accountId": zod.coerce.number().optional()
 })
 
@@ -886,7 +890,10 @@ export const GetAnalyticsByDayResponse = zod.array(GetAnalyticsByDayResponseItem
 /**
  * @summary Get performance grouped by tag
  */
+export const getAnalyticsByTagQueryOutcomeDefault = `all`;
+
 export const GetAnalyticsByTagQueryParams = zod.object({
+  "outcome": zod.enum(['all', 'winners', 'losers']).default(getAnalyticsByTagQueryOutcomeDefault),
   "accountId": zod.coerce.number().optional()
 })
 
@@ -902,7 +909,10 @@ export const GetAnalyticsByTagResponse = zod.array(GetAnalyticsByTagResponseItem
 /**
  * @summary Get performance grouped by emotion
  */
+export const getAnalyticsByEmotionQueryOutcomeDefault = `all`;
+
 export const GetAnalyticsByEmotionQueryParams = zod.object({
+  "outcome": zod.enum(['all', 'winners', 'losers']).default(getAnalyticsByEmotionQueryOutcomeDefault),
   "accountId": zod.coerce.number().optional()
 })
 
@@ -918,7 +928,10 @@ export const GetAnalyticsByEmotionResponse = zod.array(GetAnalyticsByEmotionResp
 /**
  * @summary Get performance grouped by strategy
  */
+export const getAnalyticsByStrategyQueryOutcomeDefault = `all`;
+
 export const GetAnalyticsByStrategyQueryParams = zod.object({
+  "outcome": zod.enum(['all', 'winners', 'losers']).default(getAnalyticsByStrategyQueryOutcomeDefault),
   "accountId": zod.coerce.number().optional()
 })
 
@@ -936,9 +949,11 @@ export const GetAnalyticsByStrategyResponse = zod.array(GetAnalyticsByStrategyRe
  * @summary Get performance grouped by trading session
  */
 export const getAnalyticsBySessionQueryPeriodDefault = `all`;
+export const getAnalyticsBySessionQueryOutcomeDefault = `all`;
 
 export const GetAnalyticsBySessionQueryParams = zod.object({
   "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsBySessionQueryPeriodDefault),
+  "outcome": zod.enum(['all', 'winners', 'losers']).default(getAnalyticsBySessionQueryOutcomeDefault),
   "accountId": zod.coerce.number().optional()
 })
 
@@ -955,9 +970,11 @@ export const GetAnalyticsBySessionResponse = zod.array(GetAnalyticsBySessionResp
  * @summary Get performance heatmap by hour-of-day and day-of-week
  */
 export const getAnalyticsByHourQueryPeriodDefault = `all`;
+export const getAnalyticsByHourQueryOutcomeDefault = `all`;
 
 export const GetAnalyticsByHourQueryParams = zod.object({
   "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsByHourQueryPeriodDefault),
+  "outcome": zod.enum(['all', 'winners', 'losers']).default(getAnalyticsByHourQueryOutcomeDefault),
   "accountId": zod.coerce.number().optional()
 })
 
@@ -974,9 +991,11 @@ export const GetAnalyticsByHourResponse = zod.array(GetAnalyticsByHourResponseIt
  * @summary Get R-multiple distribution histogram
  */
 export const getAnalyticsRMultiplesQueryPeriodDefault = `all`;
+export const getAnalyticsRMultiplesQueryOutcomeDefault = `all`;
 
 export const GetAnalyticsRMultiplesQueryParams = zod.object({
   "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsRMultiplesQueryPeriodDefault),
+  "outcome": zod.enum(['all', 'winners', 'losers']).default(getAnalyticsRMultiplesQueryOutcomeDefault),
   "accountId": zod.coerce.number().optional()
 })
 
@@ -994,9 +1013,11 @@ export const GetAnalyticsRMultiplesResponse = zod.object({
  * @summary Get win/loss streak statistics
  */
 export const getAnalyticsStreaksQueryPeriodDefault = `all`;
+export const getAnalyticsStreaksQueryOutcomeDefault = `all`;
 
 export const GetAnalyticsStreaksQueryParams = zod.object({
   "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsStreaksQueryPeriodDefault),
+  "outcome": zod.enum(['all', 'winners', 'losers']).default(getAnalyticsStreaksQueryOutcomeDefault),
   "accountId": zod.coerce.number().optional()
 })
 
@@ -1015,9 +1036,11 @@ export const GetAnalyticsStreaksResponse = zod.object({
  * @summary Get monthly profit factor trend
  */
 export const getAnalyticsProfitFactorTrendQueryPeriodDefault = `all`;
+export const getAnalyticsProfitFactorTrendQueryOutcomeDefault = `all`;
 
 export const GetAnalyticsProfitFactorTrendQueryParams = zod.object({
   "period": zod.enum(['7d', '30d', '3m', '1y', 'all']).default(getAnalyticsProfitFactorTrendQueryPeriodDefault),
+  "outcome": zod.enum(['all', 'winners', 'losers']).default(getAnalyticsProfitFactorTrendQueryOutcomeDefault),
   "accountId": zod.coerce.number().optional()
 })
 

@@ -866,6 +866,12 @@ paths:
             type: string
             enum: [7d, 30d, 3m, 1y, all]
             default: all
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [all, winners, losers]
+            default: all
         - name: accountId
           in: query
           schema:
@@ -892,6 +898,12 @@ paths:
             type: string
             enum: [7d, 30d, 3m, 1y, all]
             default: all
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [all, winners, losers]
+            default: all
         - name: accountId
           in: query
           schema:
@@ -912,6 +924,12 @@ paths:
       tags: [analytics]
       summary: Get performance grouped by tag
       parameters:
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [all, winners, losers]
+            default: all
         - name: accountId
           in: query
           schema:
@@ -932,6 +950,12 @@ paths:
       tags: [analytics]
       summary: Get performance grouped by emotion
       parameters:
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [all, winners, losers]
+            default: all
         - name: accountId
           in: query
           schema:
@@ -952,6 +976,12 @@ paths:
       tags: [analytics]
       summary: Get performance grouped by strategy
       parameters:
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [all, winners, losers]
+            default: all
         - name: accountId
           in: query
           schema:
@@ -977,6 +1007,12 @@ paths:
           schema:
             type: string
             enum: [7d, 30d, 3m, 1y, all]
+            default: all
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [all, winners, losers]
             default: all
         - name: accountId
           in: query
@@ -1004,6 +1040,12 @@ paths:
             type: string
             enum: [7d, 30d, 3m, 1y, all]
             default: all
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [all, winners, losers]
+            default: all
         - name: accountId
           in: query
           schema:
@@ -1030,6 +1072,12 @@ paths:
             type: string
             enum: [7d, 30d, 3m, 1y, all]
             default: all
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [all, winners, losers]
+            default: all
         - name: accountId
           in: query
           schema:
@@ -1054,6 +1102,12 @@ paths:
             type: string
             enum: [7d, 30d, 3m, 1y, all]
             default: all
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [all, winners, losers]
+            default: all
         - name: accountId
           in: query
           schema:
@@ -1077,6 +1131,12 @@ paths:
           schema:
             type: string
             enum: [7d, 30d, 3m, 1y, all]
+            default: all
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [all, winners, losers]
             default: all
         - name: accountId
           in: query

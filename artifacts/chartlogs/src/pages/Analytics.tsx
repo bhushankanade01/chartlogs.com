@@ -26,8 +26,6 @@ import {
   getGetAnalyticsProfitFactorTrendQueryKey,
   GetPerformancePeriod,
   GetPerformanceFilter,
-  GetAnalyticsByDayPeriod,
-  GetAnalyticsBySymbolPeriod,
   useGetAiStatus,
   useGeneratePatternAnalysis,
   useGetPatternAnalysis,
@@ -155,62 +153,61 @@ function EquityDrawdownChart({
 export default function Analytics() {
   const [period, setPeriod] = useState<GetPerformancePeriod>("all");
   const [outcomeFilter, setOutcomeFilter] = useState<GetPerformanceFilter>("all");
-  const [dayPeriod] = useState<GetAnalyticsByDayPeriod>("all");
-  const [symPeriod] = useState<GetAnalyticsBySymbolPeriod>("all");
   const [strategyFilter, setStrategyFilter] = useState("");
   const { activeAccountId } = useAccount();
   const acctParam = activeAccountId ?? undefined;
+
+  // Several analytics endpoints only support 7d/30d/3m/1y/all (no "today"); map "today" to "7d" for those.
+  const subPeriod = period === "today" ? "7d" : period as "7d" | "30d" | "3m" | "1y" | "all";
 
   const { data: perf, isLoading: perfLoading } = useGetPerformance(
     { period, filter: outcomeFilter, accountId: acctParam },
     { query: { queryKey: getGetPerformanceQueryKey({ period, filter: outcomeFilter, accountId: acctParam }) } }
   );
   const { data: bySymbol } = useGetAnalyticsBySymbol(
-    { period: symPeriod, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsBySymbolQueryKey({ period: symPeriod, accountId: acctParam }) } }
+    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsBySymbolQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
   );
   const { data: byDay } = useGetAnalyticsByDay(
-    { period: dayPeriod, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsByDayQueryKey({ period: dayPeriod, accountId: acctParam }) } }
+    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByDayQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
   );
   const { data: byTag } = useGetAnalyticsByTag(
-    { accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsByTagQueryKey({ accountId: acctParam }) } }
+    { outcome: outcomeFilter, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByTagQueryKey({ outcome: outcomeFilter, accountId: acctParam }) } }
   );
   const { data: byEmotion } = useGetAnalyticsByEmotion(
-    { accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsByEmotionQueryKey({ accountId: acctParam }) } }
+    { outcome: outcomeFilter, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByEmotionQueryKey({ outcome: outcomeFilter, accountId: acctParam }) } }
   );
   const { data: byStrategy } = useGetAnalyticsByStrategy(
-    { accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsByStrategyQueryKey({ accountId: acctParam }) } }
+    { outcome: outcomeFilter, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByStrategyQueryKey({ outcome: outcomeFilter, accountId: acctParam }) } }
   );
 
-  const hourPeriod = period === "today" ? "7d" : period as "7d" | "30d" | "3m" | "1y" | "all";
-
   const { data: bySession } = useGetAnalyticsBySession(
-    { period: hourPeriod, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsBySessionQueryKey({ period: hourPeriod, accountId: acctParam }) } }
+    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsBySessionQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
   );
   const { data: compliance } = useGetChecklistCompliance(
     { accountId: acctParam },
     { query: { queryKey: getGetChecklistComplianceQueryKey({ accountId: acctParam }) } }
   );
   const { data: byHour } = useGetAnalyticsByHour(
-    { period: hourPeriod, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsByHourQueryKey({ period: hourPeriod, accountId: acctParam }) } }
+    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsByHourQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
   );
   const { data: rMultiples } = useGetAnalyticsRMultiples(
-    { period: hourPeriod, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsRMultiplesQueryKey({ period: hourPeriod, accountId: acctParam }) } }
+    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsRMultiplesQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
   );
   const { data: streaks } = useGetAnalyticsStreaks(
-    { period: hourPeriod, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsStreaksQueryKey({ period: hourPeriod, accountId: acctParam }) } }
+    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsStreaksQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
   );
   const { data: pfTrend } = useGetAnalyticsProfitFactorTrend(
-    { period: hourPeriod, accountId: acctParam },
-    { query: { queryKey: getGetAnalyticsProfitFactorTrendQueryKey({ period: hourPeriod, accountId: acctParam }) } }
+    { period: subPeriod, outcome: outcomeFilter, accountId: acctParam },
+    { query: { queryKey: getGetAnalyticsProfitFactorTrendQueryKey({ period: subPeriod, outcome: outcomeFilter, accountId: acctParam }) } }
   );
 
   return (
