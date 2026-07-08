@@ -41,7 +41,12 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/trades", label: "Trades", icon: List },
   { href: "/journal", label: "Journal", icon: BookOpen },
-  { href: "/analytics", label: "Analytics", icon: LineChart },
+  {
+    href: "/analytics",
+    label: "Analytics",
+    icon: LineChart,
+    children: [{ href: "/analytics/trade-analysis", label: "Trade Analysis" }],
+  },
   { href: "/ai-report", label: "AI Report", icon: Sparkles },
   { href: "/market", label: "Market", icon: Calendar },
   { href: "/tools", label: "Tools", icon: Calculator },
@@ -156,26 +161,51 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </Link>
           )}
           {navItems.map((item) => {
-            const isActive = location.startsWith(item.href);
+            const hasChildren = "children" in item && !!item.children?.length;
+            const childActive = hasChildren && item.children!.some((c) => location.startsWith(c.href));
+            const isActive = location === item.href || (!hasChildren && location.startsWith(item.href));
+            const sectionActive = isActive || childActive;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onNav}
-                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium overflow-hidden ${
-                  isActive
-                    ? "bg-white/5 text-white"
-                    : "text-muted-foreground/70 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                {isActive && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-[#3b82f6] rounded-r-full" />
+              <div key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={onNav}
+                  className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium overflow-hidden ${
+                    sectionActive
+                      ? "bg-white/5 text-white"
+                      : "text-muted-foreground/70 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  {sectionActive && (
+                    <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-[#3b82f6] rounded-r-full" />
+                  )}
+                  <item.icon
+                    className={`h-4 w-4 flex-shrink-0 text-white ${sectionActive ? "opacity-100" : "opacity-60"}`}
+                  />
+                  {item.label}
+                </Link>
+                {hasChildren && (childActive || isActive) && (
+                  <div className="ml-[26px] mt-0.5 mb-0.5 space-y-0.5 border-l border-border/60 pl-3">
+                    {item.children!.map((child) => {
+                      const isChildActive = location.startsWith(child.href);
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={onNav}
+                          className={`block px-3 py-2 rounded-md transition-colors text-xs font-medium ${
+                            isChildActive
+                              ? "text-white bg-white/5"
+                              : "text-muted-foreground/60 hover:bg-white/5 hover:text-white"
+                          }`}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
-                <item.icon
-                  className={`h-4 w-4 flex-shrink-0 text-white ${isActive ? "opacity-100" : "opacity-60"}`}
-                />
-                {item.label}
-              </Link>
+              </div>
             );
           })}
         </div>

@@ -18,6 +18,7 @@ import Dashboard from "@/pages/Dashboard";
 import Trades from "@/pages/Trades";
 import Journal from "@/pages/Journal";
 import Analytics from "@/pages/Analytics";
+import TradeAnalysis from "@/pages/TradeAnalysis";
 import AiReport from "@/pages/AiReport";
 import Market from "@/pages/Market";
 import Tools from "@/pages/Tools";
@@ -56,6 +57,9 @@ function Router() {
       </Route>
       <Route path="/analytics">
         <ProtectedRoute component={Analytics} />
+      </Route>
+      <Route path="/analytics/trade-analysis">
+        <ProtectedRoute component={TradeAnalysis} />
       </Route>
       <Route path="/ai-report">
         <ProtectedRoute component={AiReport} />
