@@ -27,22 +27,13 @@ import {
   GetPerformancePeriod,
   GetAnalyticsByDayPeriod,
   GetAnalyticsBySymbolPeriod,
-  useGetAiStatus,
-  useGeneratePatternAnalysis,
-  useGetPatternAnalysis,
-  getListAiReportsQueryKey,
-  getGetPatternAnalysisQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "@/contexts/AccountContext";
 import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { Button } from "@/components/ui/button";
-import { Bot, TrendingUp, Lock, AlertTriangle, DollarSign, Activity, Target, Zap, ChevronRight } from "lucide-react";
-import { SafeMarkdown } from "@/components/SafeMarkdown";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, ReferenceLine, Legend,
@@ -183,7 +174,7 @@ export default function Analytics() {
                   <XAxis dataKey="symbol" stroke="#6B7280" fontSize={11} />
                   <YAxis stroke="#6B7280" fontSize={11} tickFormatter={(v) => `$${v}`} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
+                    contentStyle={{ backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--popover-border))', color: 'hsl(var(--popover-foreground))', borderRadius: 8 }}
                     formatter={(v: number) => [formatMoney(v), "P&L"]}
                   />
                   <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
@@ -207,7 +198,7 @@ export default function Analytics() {
                   <XAxis dataKey="day" stroke="#6B7280" fontSize={11} />
                   <YAxis stroke="#6B7280" fontSize={11} tickFormatter={(v) => `$${v}`} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
+                    contentStyle={{ backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--popover-border))', color: 'hsl(var(--popover-foreground))', borderRadius: 8 }}
                     formatter={(v: number) => [formatMoney(v), "P&L"]}
                   />
                   <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
@@ -267,7 +258,7 @@ export default function Analytics() {
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
+                      contentStyle={{ backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--popover-border))', color: 'hsl(var(--popover-foreground))', borderRadius: 8 }}
                       formatter={(v: number, name: string) => [v + " trades", name]}
                     />
                   </PieChart>
@@ -337,7 +328,7 @@ export default function Analytics() {
                           <XAxis type="number" tick={{ fill: '#6B7280', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                           <YAxis type="category" dataKey="strategy" tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={false} width={76} />
                           <Tooltip
-                            contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
+                            contentStyle={{ backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--popover-border))', color: 'hsl(var(--popover-foreground))', borderRadius: 8 }}
                             formatter={(v: number) => [`$${v.toFixed(2)}`, "P&L"]}
                           />
                           <Bar dataKey="pnl" radius={[0, 4, 4, 0]}>
@@ -395,7 +386,7 @@ export default function Analytics() {
                     <XAxis dataKey="session" tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={false} />
                     <YAxis tick={{ fill: '#6B7280', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
+                      contentStyle={{ backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--popover-border))', color: 'hsl(var(--popover-foreground))', borderRadius: 8 }}
                       formatter={(v: number) => [`$${v.toFixed(2)}`, "P&L"]}
                     />
                     <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
@@ -449,7 +440,7 @@ export default function Analytics() {
                       <Cell fill="#EF4444" />
                       <Cell fill="#6B7280" />
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }} />
+                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--popover-border))', color: 'hsl(var(--popover-foreground))', borderRadius: 8 }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="flex-1 space-y-3">
@@ -495,7 +486,7 @@ export default function Analytics() {
                   <XAxis dataKey="label" tick={{ fill: '#9CA3AF', fontSize: 9 }} tickLine={false} axisLine={false} interval={0} />
                   <YAxis tick={{ fill: '#6B7280', fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
+                    contentStyle={{ backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--popover-border))', color: 'hsl(var(--popover-foreground))', borderRadius: 8 }}
                     formatter={(v: number, _: string, props: { payload?: { label?: string } }) => [v + " trades", props?.payload?.label ?? ""]}
                   />
                   {rMultiples.avgRMultiple != null && (
@@ -523,7 +514,7 @@ export default function Analytics() {
                   <XAxis dataKey="month" tick={{ fill: '#9CA3AF', fontSize: 10 }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fill: '#6B7280', fontSize: 10 }} tickLine={false} axisLine={false} domain={[0, 'auto']} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0D1117', borderColor: '#1F2937', color: '#F9FAFB', borderRadius: 8 }}
+                    contentStyle={{ backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--popover-border))', color: 'hsl(var(--popover-foreground))', borderRadius: 8 }}
                     formatter={(v: number, name: string) => [name === "profitFactor" ? v.toFixed(2) : v, name === "profitFactor" ? "Profit Factor" : "Trades"]}
                   />
                   <Legend formatter={(v) => v === "profitFactor" ? "Profit Factor" : "Trades"} wrapperStyle={{ fontSize: 10, color: '#9CA3AF' }} />
@@ -607,7 +598,7 @@ export default function Analytics() {
                       const alpha = cell ? Math.max(0.1 + intensity * 0.85, 0.1) : 0;
                       const bg = cell
                         ? `rgba(${isPos ? "16,185,129" : "239,68,68"},${alpha.toFixed(2)})`
-                        : "rgba(255,255,255,0.03)";
+                        : "hsl(var(--muted))";
                       return (
                         <div
                           key={hour}
@@ -624,7 +615,7 @@ export default function Analytics() {
                     <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(239,68,68,0.7)' }} /> Loss
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <div className="w-3 h-3 rounded-sm bg-white/5 rounded-sm" /> No data
+                    <div className="w-3 h-3 rounded-sm bg-muted" /> No data
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(16,185,129,0.7)' }} /> Profit
@@ -635,310 +626,6 @@ export default function Analytics() {
           </Card>
         );
       })()}
-
-      <AiInsightsSection />
     </div>
-  );
-}
-
-
-interface PatternInsight {
-  blindspots: {
-    title: string;
-    severity: "warning" | "critical";
-    explanation: string;
-    evidence: string;
-    tip: string;
-  }[];
-  worstTrades: {
-    symbol: string;
-    direction: string;
-    date: string;
-    pnl: string;
-    whatWentWrong: string;
-    lesson: string;
-  }[];
-  actionPlan: {
-    title: string;
-    why: string;
-    measure: string;
-  }[];
-}
-
-function parseInsight(content: string): PatternInsight | null {
-  try {
-    const cleaned = content
-      .replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-    const parsed = JSON.parse(cleaned);
-    if (parsed && Array.isArray(parsed.blindspots)) return parsed as PatternInsight;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-// ── Stat card used in the top row ─────────────────────────────────────────────
-function AiStatCard({
-  icon: Icon, label, value, color,
-}: { icon: React.ElementType; label: string; value: string; color: string }) {
-  return (
-    <div
-      className="rounded-xl border p-4 flex flex-col gap-2"
-      style={{ backgroundColor: "#1a1f2e", borderColor: "rgba(255,255,255,0.06)" }}
-    >
-      <div className="flex items-center gap-2">
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `${color}18` }}
-        >
-          <Icon className="h-3.5 w-3.5" style={{ color }} />
-        </div>
-        <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">{label}</span>
-      </div>
-      <p className="text-2xl font-bold font-mono leading-none" style={{ color }}>{value}</p>
-    </div>
-  );
-}
-
-function AiInsightsSection() {
-  const queryClient = useQueryClient();
-  const { activeAccountId } = useAccount();
-  const acctParam = activeAccountId ?? undefined;
-  const { data: aiStatus } = useGetAiStatus();
-  const { data: latestReport, isLoading } = useGetPatternAnalysis({
-    query: { queryKey: getGetPatternAnalysisQueryKey() },
-  });
-  const { data: perf } = useGetPerformance(
-    { period: "all" as const, accountId: acctParam },
-    { query: { queryKey: getGetPerformanceQueryKey({ period: "all", accountId: acctParam }) } }
-  );
-
-  const patternMutation = useGeneratePatternAnalysis({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetPatternAnalysisQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getListAiReportsQueryKey() });
-      },
-    },
-  });
-
-  const aiAvailable = aiStatus?.available ?? false;
-  const insight = latestReport ? parseInsight(latestReport.content) : null;
-
-  const pnlColor = (perf?.totalPnl ?? 0) >= 0 ? "#22c55e" : "#ef4444";
-  const pnlStr = perf
-    ? `${perf.totalPnl >= 0 ? "+" : ""}${formatMoney(perf.totalPnl)}`
-    : "—";
-
-  return (
-    <Card style={{ backgroundColor: "#12161f", borderColor: "rgba(255,255,255,0.06)" }}>
-      {/* Header */}
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Bot className="h-4 w-4 text-blue-400" />
-            AI Pattern Insights
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            {!aiAvailable && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Lock className="h-3 w-3" />
-                Add ANTHROPIC_API_KEY to enable
-              </div>
-            )}
-            {!latestReport && (
-              <Button
-                size="sm"
-                variant="default"
-                className="h-7 text-xs gap-1.5"
-                disabled={!aiAvailable || patternMutation.isPending}
-                onClick={() => patternMutation.mutate()}
-              >
-                {patternMutation.isPending ? (
-                  <><Spinner className="h-3 w-3" /> Analyzing…</>
-                ) : (
-                  <><TrendingUp className="h-3 w-3" /> Analyze Patterns</>
-                )}
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6">
-        {patternMutation.isError && (
-          <p className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
-            {(patternMutation.error as Error | null)?.message ?? "Analysis failed"}
-          </p>
-        )}
-
-        {/* ── Section 1: Stat Cards (always shown when perf data available) ── */}
-        {perf && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <AiStatCard icon={DollarSign} label="Total P&L" value={pnlStr} color={pnlColor} />
-            <AiStatCard icon={Activity} label="Total Trades" value={String(perf.totalTrades)} color="#60a5fa" />
-            <AiStatCard icon={Target} label="Win Rate" value={`${perf.winRate.toFixed(1)}%`}
-              color={perf.winRate >= 50 ? "#22c55e" : "#ef4444"} />
-            <AiStatCard icon={Zap} label="Profit Factor" value={perf.profitFactor.toFixed(2)}
-              color={perf.profitFactor >= 1.5 ? "#22c55e" : perf.profitFactor >= 1 ? "#f59e0b" : "#ef4444"} />
-          </div>
-        )}
-
-        {/* ── Loading ── */}
-        {isLoading && <div className="flex justify-center py-8"><Spinner /></div>}
-
-        {/* ── AI content ── */}
-        {!isLoading && insight ? (
-          <div className="space-y-6">
-
-            {/* Section 2: Blindspots */}
-            {insight.blindspots.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                  <AlertTriangle className="h-3 w-3 text-yellow-500" /> Your Blindspots
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {insight.blindspots.map((b, i) => {
-                    const isCrit = b.severity === "critical";
-                    const borderColor = isCrit ? "rgba(239,68,68,0.3)" : "rgba(245,158,11,0.3)";
-                    const bgColor    = isCrit ? "rgba(239,68,68,0.06)" : "rgba(245,158,11,0.06)";
-                    const badgeColor = isCrit ? "#ef4444" : "#f59e0b";
-                    const badgeBg    = isCrit ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)";
-                    return (
-                      <div
-                        key={i}
-                        className="rounded-xl p-4 space-y-2.5"
-                        style={{ backgroundColor: bgColor, border: `1px solid ${borderColor}` }}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-foreground/95 leading-tight">{b.title}</p>
-                          <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wide"
-                            style={{ color: badgeColor, backgroundColor: badgeBg }}
-                          >
-                            {isCrit ? "CRITICAL" : "WARNING"}
-                          </span>
-                        </div>
-                        <p className="text-xs text-foreground/70 leading-relaxed">{b.explanation}</p>
-                        <p className="text-[11px] font-mono" style={{ color: badgeColor }}>{b.evidence}</p>
-                        <p className="text-[11px] leading-relaxed" style={{ color: "#34d399" }}>
-                          <ChevronRight className="h-3 w-3 inline -mt-0.5 mr-0.5" />
-                          {b.tip}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Section 3: Worst Trades */}
-            {insight.worstTrades.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Your Worst Trades
-                </p>
-                <div className="space-y-2.5">
-                  {insight.worstTrades.map((t, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl p-4 space-y-2"
-                      style={{ backgroundColor: "#1a1f2e", border: "1px solid rgba(255,255,255,0.06)" }}
-                    >
-                      {/* Header row */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className="text-[11px] font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: "rgba(239,68,68,0.15)", color: "#ef4444" }}
-                        >
-                          #{i + 1}
-                        </span>
-                        <span className="text-sm font-bold font-mono text-foreground">{t.symbol}</span>
-                        <span
-                          className="text-[10px] font-bold px-2 py-0.5 rounded uppercase"
-                          style={{
-                            backgroundColor: t.direction === "LONG" ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
-                            color: t.direction === "LONG" ? "#22c55e" : "#ef4444",
-                          }}
-                        >
-                          {t.direction}
-                        </span>
-                        <span className="text-xs text-muted-foreground">{t.date}</span>
-                        <span className="ml-auto text-sm font-bold font-mono" style={{ color: "#ef4444" }}>{t.pnl}</span>
-                      </div>
-                      {/* What went wrong */}
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">What went wrong</p>
-                        <p className="text-xs text-foreground/75 leading-relaxed">{t.whatWentWrong}</p>
-                      </div>
-                      {/* Lesson */}
-                      <div className="flex items-start gap-1.5">
-                        <ChevronRight className="h-3 w-3 mt-0.5 shrink-0" style={{ color: "#34d399" }} />
-                        <p className="text-[11px] leading-relaxed" style={{ color: "#34d399" }}>{t.lesson}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Section 4: Action Plan */}
-            {insight.actionPlan.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Your Action Plan
-                </p>
-                <div className="space-y-2.5">
-                  {insight.actionPlan.map((a, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl p-4 flex gap-4"
-                      style={{ backgroundColor: "#1a1f2e", border: "1px solid rgba(255,255,255,0.06)" }}
-                    >
-                      <span
-                        className="text-base font-black font-mono shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: "rgba(96,165,250,0.12)", color: "#60a5fa" }}
-                      >
-                        {i + 1}
-                      </span>
-                      <div className="space-y-1.5 min-w-0">
-                        <p className="text-sm font-bold text-foreground">{a.title}</p>
-                        <p className="text-xs text-foreground/65 leading-relaxed">{a.why}</p>
-                        <p className="text-[11px]" style={{ color: "#34d399" }}>
-                          Measure: {a.measure}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {latestReport && (
-              <p className="text-[11px] text-muted-foreground/40 text-right">
-                Last analyzed {new Date(latestReport.createdAt).toLocaleDateString()}
-              </p>
-            )}
-          </div>
-
-        ) : !isLoading && latestReport ? (
-          /* Fallback: old-format report — prompt user to re-analyze */
-          <div className="space-y-3">
-            <SafeMarkdown content={latestReport.content} className="text-xs text-muted-foreground leading-relaxed" />
-            <p className="text-[11px] text-yellow-500/70">Future analyses will use the new visual format automatically.</p>
-          </div>
-
-        ) : !isLoading && (
-          <div className="text-center py-10 space-y-3">
-            <Bot className="h-10 w-10 text-muted-foreground/20 mx-auto" />
-            <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-              {aiAvailable
-                ? "Run a pattern analysis to get personalized coaching based on your actual trade data."
-                : "Configure your ANTHROPIC_API_KEY secret to unlock AI-powered pattern analysis."}
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }

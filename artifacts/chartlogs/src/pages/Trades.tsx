@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useListTrades, getListTradesQueryKey, useGetChecklistResponses, useListChecklistTemplates } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useListTrades, getListTradesQueryKey, useGetChecklistResponses, useListChecklistTemplates, useDeleteTrade } from "@workspace/api-client-react";
 import { useAccount } from "@/contexts/AccountContext";
 import { formatMoney, formatDate, cnClass } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
-import { Search, Plus, Upload, Star } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Search, Plus, Upload, Star, Trash2 } from "lucide-react";
 import { AddTradeDrawer } from "@/components/trades/AddTradeDrawer";
 import { ImportTradesModal } from "@/components/trades/ImportTradesModal";
 import { getStorageUrl, Lightbox } from "@/components/ui/ScreenshotUploader";
@@ -109,12 +111,32 @@ export default function Trades() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const { activeAccountId } = useAccount();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const params = { symbol: searchTerm || undefined, accountId: activeAccountId ?? undefined };
+  const queryKey = getListTradesQueryKey(params);
   const { data, isLoading } = useListTrades(
     params,
-    { query: { queryKey: getListTradesQueryKey(params) } }
+    { query: { queryKey } }
   );
+
+  const deleteTrade = useDeleteTrade({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListTradesQueryKey() });
+        toast({ title: "Trade deleted" });
+      },
+      onError: (e: any) => {
+        toast({ variant: "destructive", title: "Delete failed", description: e?.message ?? "Please try again." });
+      },
+    },
+  });
+
+  const handleDelete = (id: number, symbol: string) => {
+    if (!confirm(`Delete this ${symbol} trade? This cannot be undone.`)) return;
+    deleteTrade.mutate({ id });
+  };
 
   const trades = data?.trades || [];
 
@@ -167,6 +189,7 @@ export default function Trades() {
                     <th className="py-3 px-4 text-right font-medium">Checklist</th>
                     <th className="py-3 px-4 text-right font-medium">Tags</th>
                     <th className="py-3 px-4 text-right font-medium">Charts</th>
+                    <th className="py-3 px-4 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -219,6 +242,19 @@ export default function Trades() {
                         </div>
                       </td>
                       <ScreenshotPreviewCell screenshots={trade.screenshots} />
+                      <td className="py-3 px-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
+                          onClick={() => handleDelete(trade.id, trade.symbol)}
+                          disabled={deleteTrade.isPending}
+                          aria-label={`Delete ${trade.symbol} trade`}
+                          title="Delete trade"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

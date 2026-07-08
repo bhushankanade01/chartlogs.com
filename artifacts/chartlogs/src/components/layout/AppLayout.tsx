@@ -175,15 +175,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   onClick={onNav}
                   className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium overflow-hidden ${
                     sectionActive
-                      ? "bg-white/5 text-white"
-                      : "text-muted-foreground/70 hover:bg-white/5 hover:text-white"
+                      ? "bg-sidebar-accent text-sidebar-foreground"
+                      : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   }`}
                 >
                   {sectionActive && (
                     <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-[#3b82f6] rounded-r-full" />
                   )}
                   <item.icon
-                    className={`h-4 w-4 flex-shrink-0 text-white ${sectionActive ? "opacity-100" : "opacity-60"}`}
+                    className={`h-4 w-4 flex-shrink-0 text-sidebar-foreground ${sectionActive ? "opacity-100" : "opacity-60"}`}
                   />
                   {item.label}
                 </Link>
@@ -201,8 +201,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
                           onClick={onNav}
                           className={`block px-3 py-2 rounded-md transition-colors text-xs font-medium ${
                             isChildActive
-                              ? "text-white bg-white/5"
-                              : "text-muted-foreground/60 hover:bg-white/5 hover:text-white"
+                              ? "text-sidebar-foreground bg-sidebar-accent"
+                              : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                           }`}
                         >
                           {child.label}
@@ -254,7 +254,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="fixed top-0 left-0 h-screen w-64 border-r border-border bg-sidebar flex-col z-50 hidden md:flex overflow-y-auto">
         <div className="h-16 flex items-center px-6 border-b border-border flex-shrink-0">
-          <Link href="/dashboard" className="text-xl font-bold tracking-tight uppercase text-white">
+          <Link href="/dashboard" className="text-xl font-bold tracking-tight uppercase text-sidebar-foreground">
             CHARTLOGS
           </Link>
         </div>
@@ -278,7 +278,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <div className="h-16 flex items-center justify-between px-6 border-b border-border flex-shrink-0">
           <Link
             href="/dashboard"
-            className="text-xl font-bold tracking-tight uppercase text-white"
+            className="text-xl font-bold tracking-tight uppercase text-sidebar-foreground"
             onClick={() => setMobileOpen(false)}
           >
             CHARTLOGS
@@ -304,7 +304,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-lg font-bold tracking-tight uppercase text-white flex-1">CHARTLOGS</span>
+          <span className="text-lg font-bold tracking-tight uppercase text-foreground flex-1">CHARTLOGS</span>
           <button
             onClick={toggleTheme}
             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"

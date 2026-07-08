@@ -2627,6 +2627,10 @@ components:
           type: string
           format: date-time
           description: Timestamp when the quota resets (next Monday 00:00 UTC)
+        unlimited:
+          type: boolean
+          description: True when the current user (admin) is exempt from the weekly quota
+          default: false
 
     # BROKER
     BrokerConnectInput:

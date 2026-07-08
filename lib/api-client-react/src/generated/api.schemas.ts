@@ -806,6 +806,8 @@ export interface AiQuota {
   limit: number;
   /** Timestamp when the quota resets (next Monday 00:00 UTC) */
   resetsAt: string;
+  /** True when the current user (admin) is exempt from the weekly quota */
+  unlimited?: boolean;
 }
 
 export type BrokerConnectInputBrokerType = typeof BrokerConnectInputBrokerType[keyof typeof BrokerConnectInputBrokerType];

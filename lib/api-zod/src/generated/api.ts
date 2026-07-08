@@ -1106,10 +1106,13 @@ export const GenerateWeeklyReportResponse = zod.object({
 /**
  * @summary Get the current user's weekly AI report quota usage
  */
+export const getAiQuotaResponseUnlimitedDefault = false;
+
 export const GetAiQuotaResponse = zod.object({
   "used": zod.number().describe('AI reports (weekly report + pattern analysis) generated so far this week'),
   "limit": zod.number(),
-  "resetsAt": zod.coerce.date().describe('Timestamp when the quota resets (next Monday 00:00 UTC)')
+  "resetsAt": zod.coerce.date().describe('Timestamp when the quota resets (next Monday 00:00 UTC)'),
+  "unlimited": zod.boolean().default(getAiQuotaResponseUnlimitedDefault).describe('True when the current user (admin) is exempt from the weekly quota')
 })
 
 

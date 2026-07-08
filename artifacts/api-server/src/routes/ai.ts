@@ -253,6 +253,7 @@ router.get("/ai/quota", requireAuth, async (req, res): Promise<void> => {
     used,
     limit: WEEKLY_AI_REPORT_LIMIT,
     resetsAt: getWeekResetAt().toISOString(),
+    unlimited: req.user!.role === "admin",
   });
 });
 
@@ -263,8 +264,9 @@ router.post("/ai/weekly-report", requireAuth, async (req, res): Promise<void> =>
   }
 
   const userId = req.user!.id;
+  const isAdmin = req.user!.role === "admin";
 
-  if ((await getWeeklyAiReportUsage(userId)) >= WEEKLY_AI_REPORT_LIMIT) {
+  if (!isAdmin && (await getWeeklyAiReportUsage(userId)) >= WEEKLY_AI_REPORT_LIMIT) {
     res.status(429).json({ error: WEEKLY_QUOTA_MESSAGE });
     return;
   }
@@ -375,8 +377,9 @@ router.post("/ai/patterns", requireAuth, async (req, res): Promise<void> => {
   }
 
   const userId = req.user!.id;
+  const isAdmin = req.user!.role === "admin";
 
-  if ((await getWeeklyAiReportUsage(userId)) >= WEEKLY_AI_REPORT_LIMIT) {
+  if (!isAdmin && (await getWeeklyAiReportUsage(userId)) >= WEEKLY_AI_REPORT_LIMIT) {
     res.status(429).json({ error: WEEKLY_QUOTA_MESSAGE });
     return;
   }
