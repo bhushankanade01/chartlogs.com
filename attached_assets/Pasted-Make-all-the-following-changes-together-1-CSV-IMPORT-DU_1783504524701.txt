@@ -1,0 +1,69 @@
+Make all the following changes together:
+
+---
+
+## 1. CSV IMPORT — DUPLICATE TRADE PREVENTION
+
+When a user uploads a CSV file:
+- Before inserting, check each trade against existing trades in the DB
+- Match duplicates using: symbol + entryTime + exitTime + direction + lotSize
+- If a trade already exists → skip it, do NOT insert
+- After import show a summary modal:
+  "✅ 12 new trades added. ⚠️ 5 trades already existed and were skipped."
+- Also validate that the CSV belongs to the same account/broker as existing 
+  trades — compare symbol format and account ID if available. If mismatch 
+  detected, warn the user:
+  "This file looks like a different account or broker. Are you sure?"
+
+---
+
+## 2. PRICING PLANS — UPDATE ALL THREE TIERS
+
+### Free — $0/month
+- Up to 20 trades per month
+- 1 month chart data
+- News data (today only)
+
+### Pro — $9/month
+- Unlimited trade entries
+- AI trade insights
+- Full trading reports
+- Complete news data
+- MT5 CSV file import
+- Advanced analytics
+
+### Elite — $22.99/month (COMING SOON — not purchasable yet)
+- Everything in Pro
+- Auto broker sync (Coming Soon)
+- Unlimited MT accounts
+- VIP access
+- Mentor support
+- Priority support
+- Chart support
+- Mark the entire Elite card with a "Coming Soon" banner
+- Disable the upgrade button, show: "Coming Soon"
+
+---
+
+## 3. BROKER SYNC — MARK AS COMING SOON
+
+- Find all MT4/MT5 broker sync / auto-journal features
+- Do NOT remove them — grey out (opacity: 0.5, cursor: not-allowed)
+- Add yellow "Coming Soon" badge next to any broker sync option
+- If clicked show toast: "Broker sync coming soon! Use CSV import for now."
+- On pricing page next to any auto-sync feature add 🔜 Coming Soon badge
+- On any broker connection page add banner:
+  "🔜 Broker sync is coming soon. Import trades via CSV in the meantime."
+
+---
+
+## 4. AI REPORT — LIMITS & UI CHANGES
+
+- Max 2 AI reports per week per user
+- Track report count in DB with a weekly reset (reset every Monday)
+- If user tries to generate more than 2 show message:
+  "You've used both AI reports this week. Resets Monday."
+- REMOVE the "Re-analyze" button from the AI Pattern Insights section completely
+- Add "AI Report" as a nav item in the LEFT SIDEBAR, placed directly 
+  below "Analytics" in the menu list
+- Sidebar nav item: same style as other items, with a sparkle or chart icon
