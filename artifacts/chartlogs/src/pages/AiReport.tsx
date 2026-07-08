@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import {
   useGetAiStatus,
   useGetAiQuota,
   useListAiReports,
   getGetAiQuotaQueryKey,
+  AiReport as AiReportType,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWeeklyReport, usePatternAnalysis } from "@/hooks/useAI";
@@ -11,11 +13,104 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { SafeMarkdown } from "@/components/SafeMarkdown";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Lock, FileText, TrendingUp, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sparkles, Lock, FileText, TrendingUp, Clock, ArrowUpRight, ArrowDownRight, Target } from "lucide-react";
 
 function formatResetDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+}
+
+function formatCountdown(resetsAt: string): string {
+  const diffMs = new Date(resetsAt).getTime() - Date.now();
+  if (diffMs <= 0) return "Resetting now";
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h until reset`;
+  if (hours > 0) return `${hours}h ${minutes}m until reset`;
+  return `${minutes}m until reset`;
+}
+
+function formatDateRange(report: AiReportType): string {
+  if (report.periodStart && report.periodEnd) {
+    const start = new Date(report.periodStart);
+    const end = new Date(report.periodEnd);
+    const sameYear = start.getFullYear() === end.getFullYear();
+    const startFmt = start.toLocaleDateString(undefined, { month: "short", day: "numeric", year: sameYear ? undefined : "numeric" });
+    const endFmt = end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    return `${startFmt} – ${endFmt}`;
+  }
+  return new Date(report.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function reportTypeMeta(reportType: AiReportType["reportType"]) {
+  if (reportType === "weekly_report") {
+    return { label: "Weekly Report", icon: FileText };
+  }
+  if (reportType === "pattern_analysis") {
+    return { label: "Pattern Analysis", icon: TrendingUp };
+  }
+  return { label: "Trade Review", icon: Target };
+}
+
+function isNew(createdAt: string): boolean {
+  return Date.now() - new Date(createdAt).getTime() < 24 * 60 * 60 * 1000;
+}
+
+function ReportCard({ report, onOpen }: { report: AiReportType; onOpen: (report: AiReportType) => void }) {
+  const { label, icon: Icon } = reportTypeMeta(report.reportType);
+  const pnl = report.totalPnl;
+  const pnlPositive = pnl != null && pnl >= 0;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(report)}
+      className="text-left rounded-lg p-4 space-y-3 transition-colors hover-elevate"
+      style={{ backgroundColor: "#1a1f2e", border: "1px solid rgba(255,255,255,0.06)" }}
+      data-testid={`card-report-${report.id}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <Icon className="h-3.5 w-3.5 text-blue-400" />
+          {label}
+        </span>
+        {isNew(report.createdAt) && (
+          <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/30 text-[10px]">New</Badge>
+        )}
+      </div>
+
+      <h3 className="text-sm font-semibold leading-snug line-clamp-2">
+        {report.title ?? label}
+      </h3>
+
+      <p className="text-xs text-muted-foreground">{formatDateRange(report)}</p>
+
+      <div className="grid grid-cols-3 gap-2 pt-1">
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">P&L</p>
+          {pnl != null ? (
+            <p className={`text-sm font-semibold flex items-center gap-0.5 ${pnlPositive ? "text-emerald-400" : "text-red-400"}`}>
+              {pnlPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+              ${Math.abs(pnl).toFixed(0)}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">—</p>
+          )}
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Win Rate</p>
+          <p className="text-sm font-semibold">{report.winRate != null ? `${report.winRate.toFixed(0)}%` : "—"}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Trades</p>
+          <p className="text-sm font-semibold">{report.tradeCount ?? "—"}</p>
+        </div>
+      </div>
+    </button>
+  );
 }
 
 export default function AiReport() {
@@ -23,6 +118,8 @@ export default function AiReport() {
   const { data: aiStatus } = useGetAiStatus();
   const { data: quota } = useGetAiQuota();
   const { data: reports, isLoading: reportsLoading } = useListAiReports({ limit: 10 });
+  const [selectedReport, setSelectedReport] = useState<AiReportType | null>(null);
+  const [, forceRerender] = useState(0);
 
   const weeklyReport = useWeeklyReport();
   const patternAnalysis = usePatternAnalysis();
@@ -30,6 +127,12 @@ export default function AiReport() {
   const aiAvailable = aiStatus?.available ?? false;
   const quotaExhausted = quota ? quota.used >= quota.limit : false;
   const isGenerating = weeklyReport.isGenerating || patternAnalysis.isGenerating;
+
+  useEffect(() => {
+    if (!quota) return;
+    const interval = setInterval(() => forceRerender((n) => n + 1), 60_000);
+    return () => clearInterval(interval);
+  }, [quota]);
 
   const handleGenerateWeekly = () => {
     weeklyReport.generate();
@@ -81,11 +184,14 @@ export default function AiReport() {
                 </p>
               </div>
             </div>
-            {quotaExhausted && (
-              <Badge variant="outline" className="text-amber-400 border-amber-500/30 bg-amber-500/10">
-                Weekly limit reached
-              </Badge>
-            )}
+            <Badge
+              variant="outline"
+              className={quotaExhausted ? "text-amber-400 border-amber-500/30 bg-amber-500/10" : "text-blue-300 border-blue-500/30 bg-blue-500/10"}
+              data-testid="badge-next-report-countdown"
+            >
+              {quotaExhausted ? "Weekly limit reached — " : "Next report window: "}
+              {formatCountdown(quota.resetsAt)}
+            </Badge>
           </CardContent>
         </Card>
       )}
@@ -173,28 +279,46 @@ export default function AiReport() {
               <p className="text-sm text-muted-foreground">No AI reports generated yet.</p>
             </div>
           )}
-          {reports?.map((report) => (
-            <details key={report.id} className="rounded-lg" style={{ backgroundColor: "#1a1f2e", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <summary className="cursor-pointer px-4 py-3 flex items-center justify-between gap-2 text-sm">
-                <span className="flex items-center gap-2 font-medium">
-                  {report.reportType === "weekly_report" ? (
-                    <FileText className="h-3.5 w-3.5 text-blue-400" />
-                  ) : (
-                    <TrendingUp className="h-3.5 w-3.5 text-blue-400" />
-                  )}
-                  {report.reportType === "weekly_report" ? "Weekly Report" : "Pattern Analysis"}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(report.createdAt).toLocaleDateString()}
-                </span>
-              </summary>
-              <div className="px-4 pb-4">
-                <SafeMarkdown content={report.content} className="text-xs text-muted-foreground leading-relaxed" />
-              </div>
-            </details>
-          ))}
+          {reports && reports.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {reports.map((report) => (
+                <ReportCard key={report.id} report={report} onOpen={setSelectedReport} />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      <Dialog open={selectedReport !== null} onOpenChange={(open) => !open && setSelectedReport(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" data-testid="dialog-report-detail">
+          {selectedReport && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 pr-6">
+                  {(() => {
+                    const Icon = reportTypeMeta(selectedReport.reportType).icon;
+                    return <Icon className="h-4 w-4 text-blue-400 flex-shrink-0" />;
+                  })()}
+                  <span>{selectedReport.title ?? reportTypeMeta(selectedReport.reportType).label}</span>
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground -mt-2">
+                <span>{formatDateRange(selectedReport)}</span>
+                {selectedReport.totalPnl != null && (
+                  <span className={selectedReport.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"}>
+                    P&L: {selectedReport.totalPnl >= 0 ? "+" : ""}${selectedReport.totalPnl.toFixed(2)}
+                  </span>
+                )}
+                {selectedReport.winRate != null && <span>Win Rate: {selectedReport.winRate.toFixed(1)}%</span>}
+                {selectedReport.tradeCount != null && <span>{selectedReport.tradeCount} trades</span>}
+              </div>
+              <div className="rounded-lg p-4" style={{ backgroundColor: "#1a1f2e", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <SafeMarkdown content={selectedReport.content} className="text-sm text-muted-foreground leading-relaxed" />
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -2584,6 +2584,32 @@ components:
           enum: [trade_review, weekly_report, pattern_analysis]
         content:
           type: string
+        title:
+          type: string
+          nullable: true
+          description: Short AI-generated title summarizing the report
+        periodStart:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start of the date range this report covers
+        periodEnd:
+          type: string
+          format: date-time
+          nullable: true
+          description: End of the date range this report covers
+        totalPnl:
+          type: number
+          nullable: true
+          description: Total P&L across trades covered by this report
+        winRate:
+          type: number
+          nullable: true
+          description: Win rate percentage (0-100) across trades covered by this report
+        tradeCount:
+          type: integer
+          nullable: true
+          description: Number of trades covered by this report
         createdAt:
           type: string
           format: date-time

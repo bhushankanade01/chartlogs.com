@@ -785,6 +785,18 @@ export interface AiReport {
   tradeId?: number | null;
   reportType: AiReportReportType;
   content: string;
+  /** Short AI-generated title summarizing the report */
+  title?: string | null;
+  /** Start of the date range this report covers */
+  periodStart?: string | null;
+  /** End of the date range this report covers */
+  periodEnd?: string | null;
+  /** Total P&L across trades covered by this report */
+  totalPnl?: number | null;
+  /** Win rate percentage (0-100) across trades covered by this report */
+  winRate?: number | null;
+  /** Number of trades covered by this report */
+  tradeCount?: number | null;
   createdAt: string;
 }
 

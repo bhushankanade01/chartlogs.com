@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, pgEnum, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -12,6 +12,12 @@ export const aiReviewsTable = pgTable("ai_reviews", {
   tradeId: integer("trade_id").references(() => tradesTable.id, { onDelete: "set null" }),
   reportType: aiReportTypeEnum("report_type").notNull(),
   content: text("content").notNull(),
+  title: text("title"),
+  periodStart: timestamp("period_start", { withTimezone: true }),
+  periodEnd: timestamp("period_end", { withTimezone: true }),
+  totalPnl: numeric("total_pnl"),
+  winRate: numeric("win_rate"),
+  tradeCount: integer("trade_count"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

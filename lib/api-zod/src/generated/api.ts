@@ -1093,6 +1093,12 @@ export const GenerateWeeklyReportResponse = zod.object({
   "tradeId": zod.number().nullish(),
   "reportType": zod.enum(['trade_review', 'weekly_report', 'pattern_analysis']),
   "content": zod.string(),
+  "title": zod.string().nullish().describe('Short AI-generated title summarizing the report'),
+  "periodStart": zod.coerce.date().nullish().describe('Start of the date range this report covers'),
+  "periodEnd": zod.coerce.date().nullish().describe('End of the date range this report covers'),
+  "totalPnl": zod.number().nullish().describe('Total P&L across trades covered by this report'),
+  "winRate": zod.number().nullish().describe('Win rate percentage (0-100) across trades covered by this report'),
+  "tradeCount": zod.number().nullish().describe('Number of trades covered by this report'),
   "createdAt": zod.coerce.date()
 })
 
@@ -1115,6 +1121,12 @@ export const GetPatternAnalysisResponse = zod.union([zod.object({
   "tradeId": zod.number().nullish(),
   "reportType": zod.enum(['trade_review', 'weekly_report', 'pattern_analysis']),
   "content": zod.string(),
+  "title": zod.string().nullish().describe('Short AI-generated title summarizing the report'),
+  "periodStart": zod.coerce.date().nullish().describe('Start of the date range this report covers'),
+  "periodEnd": zod.coerce.date().nullish().describe('End of the date range this report covers'),
+  "totalPnl": zod.number().nullish().describe('Total P&L across trades covered by this report'),
+  "winRate": zod.number().nullish().describe('Win rate percentage (0-100) across trades covered by this report'),
+  "tradeCount": zod.number().nullish().describe('Number of trades covered by this report'),
   "createdAt": zod.coerce.date()
 }),zod.null()])
 
@@ -1127,6 +1139,12 @@ export const GeneratePatternAnalysisResponse = zod.object({
   "tradeId": zod.number().nullish(),
   "reportType": zod.enum(['trade_review', 'weekly_report', 'pattern_analysis']),
   "content": zod.string(),
+  "title": zod.string().nullish().describe('Short AI-generated title summarizing the report'),
+  "periodStart": zod.coerce.date().nullish().describe('Start of the date range this report covers'),
+  "periodEnd": zod.coerce.date().nullish().describe('End of the date range this report covers'),
+  "totalPnl": zod.number().nullish().describe('Total P&L across trades covered by this report'),
+  "winRate": zod.number().nullish().describe('Win rate percentage (0-100) across trades covered by this report'),
+  "tradeCount": zod.number().nullish().describe('Number of trades covered by this report'),
   "createdAt": zod.coerce.date()
 })
 
@@ -1147,6 +1165,12 @@ export const ListAiReportsResponseItem = zod.object({
   "tradeId": zod.number().nullish(),
   "reportType": zod.enum(['trade_review', 'weekly_report', 'pattern_analysis']),
   "content": zod.string(),
+  "title": zod.string().nullish().describe('Short AI-generated title summarizing the report'),
+  "periodStart": zod.coerce.date().nullish().describe('Start of the date range this report covers'),
+  "periodEnd": zod.coerce.date().nullish().describe('End of the date range this report covers'),
+  "totalPnl": zod.number().nullish().describe('Total P&L across trades covered by this report'),
+  "winRate": zod.number().nullish().describe('Win rate percentage (0-100) across trades covered by this report'),
+  "tradeCount": zod.number().nullish().describe('Number of trades covered by this report'),
   "createdAt": zod.coerce.date()
 })
 export const ListAiReportsResponse = zod.array(ListAiReportsResponseItem)

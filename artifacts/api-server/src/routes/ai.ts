@@ -11,8 +11,38 @@ import {
 import { requireAuth } from "../middlewares/auth.js";
 import { AI_AVAILABLE } from "@workspace/integrations-anthropic-ai";
 import { streamAnthropicMessage, createAnthropicMessage } from "../lib/ai.js";
+import type { AiReview } from "@workspace/db";
 
 const router = Router();
+
+/**
+ * Parses a `TITLE: ...` leading line off an AI response, returning the
+ * title (trimmed, quotes stripped) and the remaining content. Falls back
+ * to `fallbackTitle` if no title line is present.
+ */
+function extractTitleAndContent(raw: string, fallbackTitle: string): { title: string; content: string } {
+  const match = raw.match(/^\s*TITLE:\s*(.+?)\s*\n+([\s\S]*)$/i);
+  if (!match) return { title: fallbackTitle, content: raw.trim() };
+  const title = match[1].replace(/^["']|["']$/g, "").trim() || fallbackTitle;
+  return { title, content: match[2].trim() };
+}
+
+/** Serializes a DB ai_reviews row into the API-facing AiReport shape. */
+function serializeReport(report: AiReview) {
+  return {
+    id: report.id,
+    tradeId: report.tradeId,
+    reportType: report.reportType,
+    content: report.content,
+    title: report.title,
+    periodStart: report.periodStart ? report.periodStart.toISOString() : null,
+    periodEnd: report.periodEnd ? report.periodEnd.toISOString() : null,
+    totalPnl: report.totalPnl != null ? parseFloat(report.totalPnl) : null,
+    winRate: report.winRate != null ? parseFloat(report.winRate) : null,
+    tradeCount: report.tradeCount,
+    createdAt: report.createdAt.toISOString(),
+  };
+}
 
 /**
  * Converts an Anthropic SDK error into a user-facing HTTP status + message.
@@ -271,7 +301,9 @@ Statistics:
 Individual trades:
 ${tradeSummaries}
 
-Format the report exactly as:
+Format your response EXACTLY as follows, starting with a title line then the report body:
+
+TITLE: [a short, specific 3-6 word title capturing the week's defining theme, e.g. "Strong Week Despite Late Slippage" — no generic titles like "Weekly Report"]
 
 # Weekly Trading Report — ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
 
@@ -297,22 +329,23 @@ Format the report exactly as:
 
   try {
     const message = await createAnthropicMessage(prompt);
-    const content = message.content[0].type === "text" ? message.content[0].text : "";
+    const raw = message.content[0].type === "text" ? message.content[0].text : "";
+    const { title, content } = extractTitleAndContent(raw, "Weekly Trading Report");
 
     const [report] = await db.insert(aiReviewsTable).values({
       userId,
       tradeId: null,
       reportType: "weekly_report",
       content,
+      title,
+      periodStart: since,
+      periodEnd: new Date(),
+      totalPnl: totalPnl.toFixed(2),
+      winRate: winRate.toFixed(2),
+      tradeCount: closed.length,
     }).returning();
 
-    res.json({
-      id: report.id,
-      tradeId: null,
-      reportType: "weekly_report",
-      content,
-      createdAt: report.createdAt.toISOString(),
-    });
+    res.json(serializeReport(report));
   } catch (err) {
     req.log.error({ err }, "Weekly report generation failed");
     const { status, message } = resolveAnthropicError(err);
@@ -332,13 +365,7 @@ router.get("/ai/patterns", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  res.json({
-    id: latest.id,
-    tradeId: latest.tradeId,
-    reportType: latest.reportType,
-    content: latest.content,
-    createdAt: latest.createdAt.toISOString(),
-  });
+  res.json(serializeReport(latest));
 });
 
 router.post("/ai/patterns", requireAuth, async (req, res): Promise<void> => {
@@ -403,6 +430,7 @@ router.post("/ai/patterns", requireAuth, async (req, res): Promise<void> => {
   const userPrompt = `Analyze these ${closed.length} closed trades. Return ONLY valid JSON matching this exact schema:
 
 {
+  "title": "<a short, specific 3-6 word title summarizing the dominant pattern found, e.g. 'Overtrading After Losses' — no generic titles like 'Pattern Analysis'>",
   "blindspots": [
     {
       "title": "<4-6 word problem title>",
@@ -454,20 +482,36 @@ ${tradeRows}`;
     const message = await createAnthropicMessage(userPrompt, { system: systemPrompt });
     const content = message.content[0].type === "text" ? message.content[0].text : "";
 
+    let title = "Pattern Analysis";
+    try {
+      const cleaned = content.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+      const parsed: unknown = JSON.parse(cleaned);
+      if (parsed && typeof parsed === "object" && "title" in parsed && typeof (parsed as { title: unknown }).title === "string") {
+        title = (parsed as { title: string }).title;
+      }
+    } catch {
+      // Fall back to the default title if the AI response isn't valid JSON.
+    }
+
+    const openTimes = closed.map(t => new Date(t.openTime).getTime()).filter(n => !isNaN(n));
+    const closeTimes = closed.map(t => t.closeTime ? new Date(t.closeTime).getTime() : new Date(t.openTime).getTime()).filter(n => !isNaN(n));
+    const periodStart = openTimes.length > 0 ? new Date(Math.min(...openTimes)) : null;
+    const periodEnd = closeTimes.length > 0 ? new Date(Math.max(...closeTimes)) : null;
+
     const [report] = await db.insert(aiReviewsTable).values({
       userId,
       tradeId: null,
       reportType: "pattern_analysis",
       content,
+      title,
+      periodStart,
+      periodEnd,
+      totalPnl: totalPnl.toFixed(2),
+      winRate,
+      tradeCount: closed.length,
     }).returning();
 
-    res.json({
-      id: report.id,
-      tradeId: null,
-      reportType: "pattern_analysis",
-      content,
-      createdAt: report.createdAt.toISOString(),
-    });
+    res.json(serializeReport(report));
   } catch (err) {
     req.log.error({ err }, "Pattern analysis failed");
     const { status, message } = resolveAnthropicError(err);
@@ -490,13 +534,7 @@ router.get("/ai/reports", requireAuth, async (req, res): Promise<void> => {
     .orderBy(desc(aiReviewsTable.createdAt))
     .limit(limit);
 
-  res.json(reports.map(r => ({
-    id: r.id,
-    tradeId: r.tradeId,
-    reportType: r.reportType,
-    content: r.content,
-    createdAt: r.createdAt.toISOString(),
-  })));
+  res.json(reports.map(serializeReport));
 });
 
 export default router;
