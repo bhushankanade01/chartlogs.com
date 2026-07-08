@@ -459,6 +459,28 @@ paths:
         "204":
           description: Deleted
 
+  /trades/clear-all:
+    delete:
+      operationId: clearAllTrades
+      tags: [trades]
+      summary: Delete all of the current user's trades (optionally scoped to an account)
+      parameters:
+        - name: accountId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Number of trades deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deletedCount]
+                properties:
+                  deletedCount:
+                    type: integer
+
   # STORAGE
   /storage/uploads/request-url:
     post:

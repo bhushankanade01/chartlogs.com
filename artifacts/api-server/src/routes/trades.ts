@@ -10,6 +10,7 @@ import {
   GetTradeParams,
   UpdateTradeParams,
   DeleteTradeParams,
+  ClearAllTradesQueryParams,
 } from "@workspace/api-zod";
 import {
   calculatePnl,
@@ -336,6 +337,25 @@ router.patch("/trades/:id", requireAuth, async (req, res): Promise<void> => {
     .returning();
 
   res.json(formatTrade(trade));
+});
+
+router.delete("/trades/clear-all", requireAuth, async (req, res): Promise<void> => {
+  const params = ClearAllTradesQueryParams.safeParse(req.query);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const conditions = [eq(tradesTable.userId, req.user!.id)];
+  if (params.data.accountId !== undefined) {
+    conditions.push(eq(tradesTable.accountId, params.data.accountId));
+  }
+
+  const deleted = await db.delete(tradesTable)
+    .where(and(...conditions))
+    .returning({ id: tradesTable.id });
+
+  res.json({ deletedCount: deleted.length });
 });
 
 router.delete("/trades/:id", requireAuth, async (req, res): Promise<void> => {

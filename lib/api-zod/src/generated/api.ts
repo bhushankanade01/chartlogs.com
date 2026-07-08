@@ -429,6 +429,18 @@ export const DeleteTradeParams = zod.object({
 
 
 /**
+ * @summary Delete all of the current user's trades (optionally scoped to an account)
+ */
+export const ClearAllTradesQueryParams = zod.object({
+  "accountId": zod.coerce.number().optional()
+})
+
+export const ClearAllTradesResponse = zod.object({
+  "deletedCount": zod.number()
+})
+
+
+/**
  * @summary Request a presigned URL for file upload
  */
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useListTrades, getListTradesQueryKey, useGetChecklistResponses, useListChecklistTemplates, useDeleteTrade } from "@workspace/api-client-react";
+import { useListTrades, getListTradesQueryKey, useGetChecklistResponses, useListChecklistTemplates, useDeleteTrade, useClearAllTrades } from "@workspace/api-client-react";
 import { useAccount } from "@/contexts/AccountContext";
 import { formatMoney, formatDate, cnClass } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -138,13 +138,40 @@ export default function Trades() {
     deleteTrade.mutate({ id });
   };
 
+  const clearAllTrades = useClearAllTrades({
+    mutation: {
+      onSuccess: (res) => {
+        queryClient.invalidateQueries({ queryKey: getListTradesQueryKey() });
+        toast({ title: `${res.deletedCount} trade${res.deletedCount === 1 ? "" : "s"} deleted` });
+      },
+      onError: (e: any) => {
+        toast({ variant: "destructive", title: "Clear all failed", description: e?.message ?? "Please try again." });
+      },
+    },
+  });
+
   const trades = data?.trades || [];
+
+  const handleClearAll = () => {
+    if (trades.length === 0) return;
+    if (!confirm(`Delete all ${trades.length} trade${trades.length === 1 ? "" : "s"}${activeAccountId ? " for this account" : ""}? This cannot be undone.`)) return;
+    clearAllTrades.mutate({ params: { accountId: activeAccountId ?? undefined } });
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Trades</h1>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="text-red-400 border-red-400/30 hover:bg-red-400/10 hover:text-red-400"
+            onClick={handleClearAll}
+            disabled={clearAllTrades.isPending || trades.length === 0}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Clear All
+          </Button>
           <Button variant="outline" onClick={() => setIsImportOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />
             Import

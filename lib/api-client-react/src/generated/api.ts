@@ -34,6 +34,8 @@ import type {
   ChecklistTemplate,
   ChecklistTemplateInput,
   ChecklistTemplateUpdate,
+  ClearAllTrades200,
+  ClearAllTradesParams,
   DashboardStats,
   DayPerformance,
   DeleteObjectRequest,
@@ -1425,6 +1427,83 @@ export const useDeleteTrade = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteTradeMutationOptions(options));
+    }
+
+export const getClearAllTradesUrl = (params?: ClearAllTradesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/trades/clear-all?${stringifiedParams}` : `/api/trades/clear-all`
+}
+
+/**
+ * @summary Delete all of the current user's trades (optionally scoped to an account)
+ */
+export const clearAllTrades = async (params?: ClearAllTradesParams, options?: RequestInit): Promise<ClearAllTrades200> => {
+
+  return customFetch<ClearAllTrades200>(getClearAllTradesUrl(params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getClearAllTradesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearAllTrades>>, TError,{params?: ClearAllTradesParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof clearAllTrades>>, TError,{params?: ClearAllTradesParams}, TContext> => {
+
+const mutationKey = ['clearAllTrades'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof clearAllTrades>>, {params?: ClearAllTradesParams}> = (props) => {
+          const {params} = props ?? {};
+
+          return  clearAllTrades(params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClearAllTradesMutationResult = NonNullable<Awaited<ReturnType<typeof clearAllTrades>>>
+
+    export type ClearAllTradesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete all of the current user's trades (optionally scoped to an account)
+ */
+export const useClearAllTrades = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearAllTrades>>, TError,{params?: ClearAllTradesParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof clearAllTrades>>,
+        TError,
+        {params?: ClearAllTradesParams},
+        TContext
+      > => {
+      return useMutation(getClearAllTradesMutationOptions(options));
     }
 
 export const getRequestUploadUrlUrl = () => {

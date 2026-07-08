@@ -894,6 +894,14 @@ export const ListTradesOutcome = {
   breakeven: 'breakeven',
 } as const;
 
+export type ClearAllTradesParams = {
+accountId?: number;
+};
+
+export type ClearAllTrades200 = {
+  deletedCount: number;
+};
+
 export type PreviewImportParams = {
 accountId?: number;
 };
