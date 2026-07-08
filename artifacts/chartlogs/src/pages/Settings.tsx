@@ -16,7 +16,6 @@ import {
   useConnectBroker,
   useGetBrokerStatus,
   useDisconnectBroker,
-  useSyncBroker,
   getGetBrokerStatusQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -228,25 +227,12 @@ function BrokerSyncTab() {
 
   const connectBroker = useConnectBroker();
   const disconnectBroker = useDisconnectBroker();
-  const syncBroker = useSyncBroker();
+
+  const BROKER_COMING_SOON_MESSAGE = "Broker sync coming soon! Use CSV import for now.";
 
   const handleConnect = () => {
-    if (!form.accountNumber.trim() || !form.serverName.trim() || !form.investorPassword.trim()) {
-      toast({ variant: "destructive", title: "All fields are required" });
-      return;
-    }
-    connectBroker.mutate(
-      { data: form },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetBrokerStatusQueryKey() });
-          toast({ title: "Broker connected", description: "Connecting to your MT account…" });
-        },
-        onError: (e: unknown) => {
-          toast({ variant: "destructive", title: "Connection failed", description: (e as Error).message });
-        },
-      }
-    );
+    toast({ title: "Coming Soon", description: BROKER_COMING_SOON_MESSAGE });
+    return;
   };
 
   const handleDisconnect = () => {
@@ -263,16 +249,8 @@ function BrokerSyncTab() {
   };
 
   const handleSyncNow = () => {
-    syncBroker.mutate(undefined, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetBrokerStatusQueryKey() });
-        refetchStatus();
-        toast({ title: "Sync complete", description: "Your latest trades have been imported." });
-      },
-      onError: (e: unknown) => {
-        toast({ variant: "destructive", title: "Sync failed", description: (e as Error).message });
-      },
-    });
+    toast({ title: "Coming Soon", description: BROKER_COMING_SOON_MESSAGE });
+    return;
   };
 
   const metaapiState = (connection as (typeof connection & { metaapiState?: string | null }) | null)?.metaapiState;
@@ -303,6 +281,17 @@ function BrokerSyncTab() {
 
   return (
     <div className="space-y-5">
+      {/* Coming soon banner */}
+      <Card className="border-amber-500/30 bg-amber-500/10">
+        <CardContent className="py-3 flex items-start gap-3">
+          <Clock className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-amber-200/90 leading-relaxed">
+            <span className="font-semibold text-amber-300">Broker sync coming soon!</span>{" "}
+            Live MT4/MT5 syncing is still in development. Use CSV import to bring in your trade history for now.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Security notice */}
       <Card className="border-yellow-500/20 bg-yellow-500/5">
         <CardContent className="py-3 flex items-start gap-3">
@@ -393,25 +382,29 @@ function BrokerSyncTab() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs h-7 px-2"
+                  className="text-xs h-7 px-2 opacity-60"
                   onClick={handleSyncNow}
-                  disabled={syncBroker.isPending}
+                  title="Coming Soon"
                 >
-                  {syncBroker.isPending
-                    ? <><RefreshCw className="h-3 w-3 mr-1 animate-spin" />Syncing…</>
-                    : <><RefreshCw className="h-3 w-3 mr-1" />Sync Now</>}
+                  <RefreshCw className="h-3 w-3 mr-1" />Sync Now
+                  <Badge variant="outline" className="ml-1.5 text-[9px] px-1 py-0 h-3.5 bg-amber-500/10 text-amber-400 border-amber-500/30">
+                    Soon
+                  </Badge>
                 </Button>
               </div>
             )}
           </CardContent>
         </Card>
       ) : (
-        /* Connect form */
-        <Card>
+        /* Connect form (greyed out — coming soon) */
+        <Card className="opacity-60 pointer-events-none select-none">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Link2 className="h-4 w-4" />
               Connect Your Broker
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-400 border-amber-500/30">
+                Coming Soon
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -698,11 +691,11 @@ export default function Settings() {
     </div>
   );
 
-  const tabs: { id: TabId; label: string }[] = [
+  const tabs: { id: TabId; label: string; comingSoon?: boolean }[] = [
     { id: "general", label: "General" },
     { id: "accounts", label: "Trading Accounts" },
     { id: "checklists", label: "Checklists" },
-    { id: "broker", label: "Broker Sync" },
+    { id: "broker", label: "Broker Sync", comingSoon: true },
   ];
 
   return (
@@ -718,13 +711,18 @@ export default function Settings() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
               activeTab === tab.id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.label}
+            {tab.comingSoon && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-400 border-amber-500/30">
+                Coming Soon
+              </Badge>
+            )}
           </button>
         ))}
       </div>

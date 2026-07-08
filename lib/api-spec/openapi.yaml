@@ -1169,12 +1169,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AiReport"
+        "429":
+          description: Weekly AI report quota exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "503":
           description: AI not available
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/quota:
+    get:
+      operationId: getAiQuota
+      tags: [ai]
+      summary: Get the current user's weekly AI report quota usage
+      responses:
+        "200":
+          description: Weekly AI report quota
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiQuota"
 
   /ai/patterns:
     get:
@@ -1201,6 +1220,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AiReport"
+        "429":
+          description: Weekly AI report quota exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "503":
           description: AI not available
           content:
@@ -2172,6 +2197,9 @@ components:
             type: array
             items:
               type: string
+        accountMismatch:
+          type: ["string", "null"]
+          description: Warning message if the file's broker/symbol format doesn't match the target account's existing trades
 
     ImportTradesResponse:
       type: object
@@ -2192,6 +2220,9 @@ components:
         format:
           type: string
           enum: [mt4, mt5, csv, unknown]
+        accountMismatch:
+          type: ["string", "null"]
+          description: Warning message if the file's broker/symbol format doesn't match the target account's existing trades
 
     # STORAGE
     UploadUrlRequest:
@@ -2496,6 +2527,20 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    AiQuota:
+      type: object
+      required: [used, limit, resetsAt]
+      properties:
+        used:
+          type: integer
+          description: AI reports (weekly report + pattern analysis) generated so far this week
+        limit:
+          type: integer
+        resetsAt:
+          type: string
+          format: date-time
+          description: Timestamp when the quota resets (next Monday 00:00 UTC)
 
     # BROKER
     BrokerConnectInput:

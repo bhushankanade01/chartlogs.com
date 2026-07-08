@@ -41,7 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-import { Bot, TrendingUp, RefreshCw, Lock, AlertTriangle, DollarSign, Activity, Target, Zap, ChevronRight } from "lucide-react";
+import { Bot, TrendingUp, Lock, AlertTriangle, DollarSign, Activity, Target, Zap, ChevronRight } from "lucide-react";
 import { SafeMarkdown } from "@/components/SafeMarkdown";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -746,30 +746,21 @@ function AiInsightsSection() {
                 Add ANTHROPIC_API_KEY to enable
               </div>
             )}
-            {latestReport && (
+            {!latestReport && (
               <Button
-                size="sm" variant="ghost"
-                className="h-7 w-7 p-0 text-muted-foreground"
-                onClick={() => patternMutation.mutate()}
+                size="sm"
+                variant="default"
+                className="h-7 text-xs gap-1.5"
                 disabled={!aiAvailable || patternMutation.isPending}
-                title="Refresh analysis"
+                onClick={() => patternMutation.mutate()}
               >
-                <RefreshCw className={`h-3 w-3 ${patternMutation.isPending ? "animate-spin" : ""}`} />
+                {patternMutation.isPending ? (
+                  <><Spinner className="h-3 w-3" /> Analyzing…</>
+                ) : (
+                  <><TrendingUp className="h-3 w-3" /> Analyze Patterns</>
+                )}
               </Button>
             )}
-            <Button
-              size="sm"
-              variant={latestReport ? "outline" : "default"}
-              className="h-7 text-xs gap-1.5"
-              disabled={!aiAvailable || patternMutation.isPending}
-              onClick={() => patternMutation.mutate()}
-            >
-              {patternMutation.isPending ? (
-                <><Spinner className="h-3 w-3" /> Analyzing…</>
-              ) : (
-                <><TrendingUp className="h-3 w-3" /> {latestReport ? "Re-analyze" : "Analyze Patterns"}</>
-              )}
-            </Button>
           </div>
         </div>
       </CardHeader>
@@ -934,7 +925,7 @@ function AiInsightsSection() {
           /* Fallback: old-format report — prompt user to re-analyze */
           <div className="space-y-3">
             <SafeMarkdown content={latestReport.content} className="text-xs text-muted-foreground leading-relaxed" />
-            <p className="text-[11px] text-yellow-500/70">Re-analyze to get the new visual format.</p>
+            <p className="text-[11px] text-yellow-500/70">Future analyses will use the new visual format automatically.</p>
           </div>
 
         ) : !isLoading && (

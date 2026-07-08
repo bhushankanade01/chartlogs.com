@@ -506,7 +506,8 @@ export const PreviewImportResponse = zod.object({
   "warning": zod.string().optional()
 })),
   "rawHeaders": zod.array(zod.string()),
-  "rawRows": zod.array(zod.array(zod.string()))
+  "rawRows": zod.array(zod.array(zod.string())),
+  "accountMismatch": zod.string().nullish().describe('Warning message if the file\'s broker\/symbol format doesn\'t match the target account\'s existing trades')
 })
 
 
@@ -527,7 +528,8 @@ export const ImportTradesResponse = zod.object({
   "skipped": zod.number().describe('Number of rows skipped because they are duplicates of existing trades'),
   "invalidRows": zod.number().describe('Number of rows skipped because of missing or unparseable fields'),
   "errors": zod.array(zod.string()),
-  "format": zod.enum(['mt4', 'mt5', 'csv', 'unknown'])
+  "format": zod.enum(['mt4', 'mt5', 'csv', 'unknown']),
+  "accountMismatch": zod.string().nullish().describe('Warning message if the file\'s broker\/symbol format doesn\'t match the target account\'s existing trades')
 })
 
 
@@ -1069,6 +1071,16 @@ export const GenerateWeeklyReportResponse = zod.object({
   "reportType": zod.enum(['trade_review', 'weekly_report', 'pattern_analysis']),
   "content": zod.string(),
   "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get the current user's weekly AI report quota usage
+ */
+export const GetAiQuotaResponse = zod.object({
+  "used": zod.number().describe('AI reports (weekly report + pattern analysis) generated so far this week'),
+  "limit": zod.number(),
+  "resetsAt": zod.coerce.date().describe('Timestamp when the quota resets (next Monday 00:00 UTC)')
 })
 
 

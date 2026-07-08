@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, desc, and, gte } from "drizzle-orm";
+import { eq, desc, and, gte, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   tradesTable,
@@ -41,6 +41,40 @@ function getPeriodStart(days: number): Date {
   d.setDate(d.getDate() - days);
   return d;
 }
+
+const WEEKLY_AI_REPORT_LIMIT = 2;
+const QUOTA_REPORT_TYPES = ["weekly_report", "pattern_analysis"] as const;
+
+/** Most recent Monday 00:00:00 UTC, used as the weekly quota window start. */
+function getWeekStart(): Date {
+  const now = new Date();
+  const day = now.getUTCDay(); // 0 = Sunday, 1 = Monday, ...
+  const daysSinceMonday = (day + 6) % 7;
+  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  monday.setUTCDate(monday.getUTCDate() - daysSinceMonday);
+  return monday;
+}
+
+function getWeekResetAt(): Date {
+  const start = getWeekStart();
+  const next = new Date(start);
+  next.setUTCDate(next.getUTCDate() + 7);
+  return next;
+}
+
+async function getWeeklyAiReportUsage(userId: number): Promise<number> {
+  const weekStart = getWeekStart();
+  const rows = await db.select({ id: aiReviewsTable.id }).from(aiReviewsTable).where(
+    and(
+      eq(aiReviewsTable.userId, userId),
+      inArray(aiReviewsTable.reportType, QUOTA_REPORT_TYPES),
+      gte(aiReviewsTable.createdAt, weekStart),
+    ),
+  );
+  return rows.length;
+}
+
+const WEEKLY_QUOTA_MESSAGE = "You've used both AI reports this week. Resets Monday.";
 
 router.get("/ai/status", requireAuth, (_req, res): void => {
   res.json({
@@ -182,6 +216,16 @@ Provide your review in exactly this format:
   }
 });
 
+router.get("/ai/quota", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.user!.id;
+  const used = await getWeeklyAiReportUsage(userId);
+  res.json({
+    used,
+    limit: WEEKLY_AI_REPORT_LIMIT,
+    resetsAt: getWeekResetAt().toISOString(),
+  });
+});
+
 router.post("/ai/weekly-report", requireAuth, async (req, res): Promise<void> => {
   if (!AI_AVAILABLE) {
     res.status(503).json({ error: "AI features require ANTHROPIC_API_KEY. Add it to your secrets." });
@@ -189,6 +233,12 @@ router.post("/ai/weekly-report", requireAuth, async (req, res): Promise<void> =>
   }
 
   const userId = req.user!.id;
+
+  if ((await getWeeklyAiReportUsage(userId)) >= WEEKLY_AI_REPORT_LIMIT) {
+    res.status(429).json({ error: WEEKLY_QUOTA_MESSAGE });
+    return;
+  }
+
   const since = getPeriodStart(7);
 
   const trades = await db.select().from(tradesTable)
@@ -298,6 +348,11 @@ router.post("/ai/patterns", requireAuth, async (req, res): Promise<void> => {
   }
 
   const userId = req.user!.id;
+
+  if ((await getWeeklyAiReportUsage(userId)) >= WEEKLY_AI_REPORT_LIMIT) {
+    res.status(429).json({ error: WEEKLY_QUOTA_MESSAGE });
+    return;
+  }
 
   const trades = await db.select().from(tradesTable)
     .where(eq(tradesTable.userId, userId))

@@ -18,6 +18,7 @@ import {
   ArrowRight,
   ChevronDown,
   Menu,
+  Clock,
 } from "lucide-react";
 
 function useScrollReveal() {
@@ -69,7 +70,8 @@ const features = [
     title: "Live MT4/MT5 Sync",
     description:
       "Connect your broker account once. Every closed trade syncs instantly — no manual entry, no CSV exports, no delays.",
-    badge: "Auto-sync every 3 min",
+    badge: "Coming Soon",
+    comingSoon: true,
   },
   {
     icon: Brain,
@@ -131,10 +133,11 @@ const comparisonRows = [
 const pricingTiers = [
   {
     name: "Free",
-    price: "₹0",
+    price: "$0",
     period: "/forever",
     description: "Perfect for getting started",
     popular: false,
+    comingSoon: false,
     features: [
       "Manual trade entry",
       "CSV import",
@@ -147,10 +150,11 @@ const pricingTiers = [
   },
   {
     name: "Pro",
-    price: "₹1,499",
+    price: "$9",
     period: "/month",
     description: "For active traders serious about growth",
     popular: true,
+    comingSoon: false,
     features: [
       "Everything in Free",
       "1 MT4/MT5 broker account",
@@ -165,10 +169,11 @@ const pricingTiers = [
   },
   {
     name: "Elite",
-    price: "₹1,999",
+    price: "$22.99",
     period: "/month",
     description: "For professional traders & prop firms",
     popular: false,
+    comingSoon: true,
     features: [
       "Everything in Pro",
       "Unlimited MT accounts",
@@ -178,7 +183,7 @@ const pricingTiers = [
       "CSV/PDF export",
       "Dedicated support",
     ],
-    cta: "Start Elite Trial",
+    cta: "Coming Soon",
     variant: "outline" as const,
   },
 ];
@@ -218,7 +223,7 @@ function HeroSection({ onRegister, onLogin }: { onRegister: () => void; onLogin:
       <div className="relative z-10 max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-sm text-primary mb-8 animate-fade-in">
           <Zap className="h-3.5 w-3.5" />
-          AI-powered · Live MT4/MT5 sync · No manual entry
+          AI-powered · Live MT4/MT5 sync (Coming Soon) · No manual entry
         </div>
 
         <h1
@@ -345,8 +350,15 @@ function FeaturesSection({ theme }: { theme: string }) {
               <RevealDiv
                 key={feature.title}
                 delay={i * 80}
-                className="group relative p-6 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1"
+                className={`group relative p-6 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1 ${
+                  feature.comingSoon ? "opacity-70" : ""
+                }`}
               >
+                {feature.comingSoon && (
+                  <div className="absolute top-4 right-4 bg-amber-500 text-black text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                    Coming Soon
+                  </div>
+                )}
                 <div className={`inline-flex p-3 rounded-xl ${feature.bg} mb-4`}>
                   <Icon className={`h-6 w-6 ${feature.color}`} />
                 </div>
@@ -355,7 +367,11 @@ function FeaturesSection({ theme }: { theme: string }) {
                   {feature.description}
                 </p>
                 <div className="inline-flex items-center gap-1.5 bg-muted/60 rounded-full px-3 py-1 text-xs text-muted-foreground">
-                  <Check className="h-3 w-3 text-emerald-400" />
+                  {feature.comingSoon ? (
+                    <Clock className="h-3 w-3 text-amber-400" />
+                  ) : (
+                    <Check className="h-3 w-3 text-emerald-400" />
+                  )}
                   {feature.badge}
                 </div>
               </RevealDiv>
@@ -439,6 +455,8 @@ function PricingSection({ onRegister }: { onRegister: () => void }) {
               key={tier.name}
               delay={i * 100}
               className={`relative rounded-lg border p-6 flex flex-col transition-all duration-300 hover:-translate-y-1 ${
+                tier.comingSoon ? "opacity-75" : ""
+              } ${
                 tier.popular
                   ? "border-[#3b82f6] bg-card"
                   : "border-[#222] bg-card hover:border-white/20"
@@ -448,6 +466,13 @@ function PricingSection({ onRegister }: { onRegister: () => void }) {
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <div className="bg-[#3b82f6] text-white text-xs font-semibold px-4 py-1 rounded-lg">
                     Most Popular
+                  </div>
+                </div>
+              )}
+              {tier.comingSoon && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <div className="bg-amber-500 text-black text-xs font-semibold px-4 py-1 rounded-lg">
+                    Coming Soon
                   </div>
                 </div>
               )}
@@ -471,6 +496,7 @@ function PricingSection({ onRegister }: { onRegister: () => void }) {
                 variant={tier.popular ? "default" : "secondary"}
                 className="w-full"
                 onClick={onRegister}
+                disabled={tier.comingSoon}
               >
                 {tier.cta}
               </Button>

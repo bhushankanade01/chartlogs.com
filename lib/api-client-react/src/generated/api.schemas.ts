@@ -567,6 +567,11 @@ export interface ImportPreviewResponse {
   preview: ImportPreviewRow[];
   rawHeaders: string[];
   rawRows: string[][];
+  /**
+     * Warning message if the file's broker/symbol format doesn't match the target account's existing trades
+     * @nullable
+     */
+  accountMismatch?: string | null;
 }
 
 export type ImportTradesResponseFormat = typeof ImportTradesResponseFormat[keyof typeof ImportTradesResponseFormat];
@@ -587,6 +592,11 @@ export interface ImportTradesResponse {
   invalidRows: number;
   errors: string[];
   format: ImportTradesResponseFormat;
+  /**
+     * Warning message if the file's broker/symbol format doesn't match the target account's existing trades
+     * @nullable
+     */
+  accountMismatch?: string | null;
 }
 
 export interface UploadUrlRequest {
@@ -776,6 +786,14 @@ export interface AiReport {
   reportType: AiReportReportType;
   content: string;
   createdAt: string;
+}
+
+export interface AiQuota {
+  /** AI reports (weekly report + pattern analysis) generated so far this week */
+  used: number;
+  limit: number;
+  /** Timestamp when the quota resets (next Monday 00:00 UTC) */
+  resetsAt: string;
 }
 
 export type BrokerConnectInputBrokerType = typeof BrokerConnectInputBrokerType[keyof typeof BrokerConnectInputBrokerType];

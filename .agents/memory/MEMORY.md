@@ -1,2 +1,3 @@
 - [MetaApi client API URL](metaapi-client-url.md) — correct domain is `agiliumtrade.ai`, regional URL must be used; old `agiliumtrade.agiliumtrade.ai` returns SSL errors or 404.
 - [Landing page & theme system](landing-theme-redesign.md) — ThemeProvider in contexts/ThemeContext.tsx wraps App; dark-forced line removed from main.tsx; Landing.tsx is a full standalone page with IntersectionObserver scroll-reveal animations.
+- [CSV import format type](csv-import-format-type.md) — use the shared `CsvFormat` union from csv-parser.ts, not an inline narrower one, or `tsc` fails on the `"exness"` variant.

@@ -41,6 +41,7 @@ interface ImportPreviewResponse {
   preview: ImportPreviewRow[];
   rawHeaders: string[];
   rawRows: string[][];
+  accountMismatch?: string | null;
 }
 
 interface ImportTradesResponse {
@@ -49,6 +50,7 @@ interface ImportTradesResponse {
   invalidRows: number;
   errors: string[];
   format: string;
+  accountMismatch?: string | null;
 }
 
 interface GenericColumnMap {
@@ -167,6 +169,7 @@ export function ImportTradesModal({ open, onClose }: Props) {
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
   const [result, setResult] = useState<ImportTradesResponse | null>(null);
   const [columnMap, setColumnMap] = useState<Partial<GenericColumnMap>>({});
+  const [mismatchAcknowledged, setMismatchAcknowledged] = useState(false);
 
   const reset = () => {
     setStep("upload");
@@ -176,6 +179,7 @@ export function ImportTradesModal({ open, onClose }: Props) {
     setResult(null);
     setColumnMap({});
     setLoading(false);
+    setMismatchAcknowledged(false);
   };
 
   const handleClose = () => {
@@ -199,6 +203,7 @@ export function ImportTradesModal({ open, onClose }: Props) {
           activeAccountId ?? undefined
         );
         setPreview(data);
+        setMismatchAcknowledged(false);
         setStep(data.format === "unknown" ? "mapping" : "preview");
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to parse file");
@@ -229,6 +234,7 @@ export function ImportTradesModal({ open, onClose }: Props) {
       const map = columnMap as GenericColumnMap;
       const data = await callPreview(file, activeAccountId ?? undefined, map);
       setPreview(data);
+      setMismatchAcknowledged(false);
       setStep("preview");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to parse file");
@@ -352,6 +358,29 @@ export function ImportTradesModal({ open, onClose }: Props) {
               </span>
             </div>
 
+            {preview.accountMismatch && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-amber-300">
+                    This file might not match the selected account
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {preview.accountMismatch}
+                  </p>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      className="accent-amber-500"
+                      checked={mismatchAcknowledged}
+                      onChange={(e) => setMismatchAcknowledged(e.target.checked)}
+                    />
+                    Import anyway
+                  </label>
+                </div>
+              </div>
+            )}
+
             <div className="rounded-lg border border-border overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
@@ -463,7 +492,7 @@ export function ImportTradesModal({ open, onClose }: Props) {
               <Button
                 className="flex-1"
                 onClick={handleImport}
-                disabled={loading}
+                disabled={loading || (!!preview.accountMismatch && !mismatchAcknowledged)}
               >
                 {loading ? (
                   <>
@@ -624,8 +653,24 @@ export function ImportTradesModal({ open, onClose }: Props) {
                     {FORMAT_LABELS[result.format] ?? result.format}
                   </span>
                 </p>
+                <p className="text-sm mt-3">
+                  ✅ {result.imported} new trade{result.imported !== 1 ? "s" : ""} added.
+                  {result.skipped > 0 && (
+                    <>
+                      {" "}⚠️ {result.skipped} already existed and{" "}
+                      {result.skipped !== 1 ? "were" : "was"} skipped.
+                    </>
+                  )}
+                </p>
               </div>
             </div>
+
+            {result.accountMismatch && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-300">{result.accountMismatch}</p>
+              </div>
+            )}
 
             <div className="grid grid-cols-4 gap-3">
               <div className="rounded-lg border border-border p-4 text-center">

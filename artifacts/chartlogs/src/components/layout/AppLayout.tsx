@@ -22,6 +22,7 @@ import {
   Plus,
   Sun,
   Moon,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -41,6 +42,7 @@ const navItems = [
   { href: "/trades", label: "Trades", icon: List },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/analytics", label: "Analytics", icon: LineChart },
+  { href: "/ai-report", label: "AI Report", icon: Sparkles },
   { href: "/market", label: "Market", icon: Calendar },
   { href: "/tools", label: "Tools", icon: Calculator },
   { href: "/settings", label: "Settings", icon: Settings },

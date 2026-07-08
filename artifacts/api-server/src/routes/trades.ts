@@ -17,7 +17,7 @@ import {
   calculateRR,
   determineOutcome,
 } from "../lib/trade-calculations";
-import { parseTradesCsv, type GenericColumnMap } from "../lib/csv-parser";
+import { parseTradesCsv, type GenericColumnMap, type CsvFormat } from "../lib/csv-parser";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -32,6 +32,56 @@ const upload = multer({
 });
 
 const router: IRouter = Router();
+
+function normalizeSymbol(s: string): string {
+  return s.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+}
+
+/**
+ * Warns when an imported file's symbols/format don't line up with the trades
+ * already recorded for the target account — a signal the file may be from a
+ * different broker or account than intended.
+ */
+async function detectAccountMismatch(
+  userId: number,
+  accountId: number | null,
+  format: CsvFormat,
+  rows: { symbol: string }[],
+): Promise<string | null> {
+  if (rows.length === 0) return null;
+
+  const scopeCondition = accountId
+    ? and(eq(tradesTable.userId, userId), eq(tradesTable.accountId, accountId))
+    : and(eq(tradesTable.userId, userId), sql`${tradesTable.accountId} IS NULL`);
+
+  const existing = await db
+    .select({ symbol: tradesTable.symbol })
+    .from(tradesTable)
+    .where(scopeCondition)
+    .limit(200);
+
+  if (existing.length === 0) return null;
+
+  const newSymbols = new Set(rows.map((r) => normalizeSymbol(r.symbol)));
+  const existingSymbols = new Set(existing.map((t) => normalizeSymbol(t.symbol)));
+  const overlap = [...newSymbols].filter((s) => existingSymbols.has(s)).length;
+
+  if (overlap === 0) {
+    return `None of the symbols in this file (e.g. ${rows[0]!.symbol}) match symbols already in this account (e.g. ${existing[0]!.symbol}). This file may be from a different broker or account — double-check before importing.`;
+  }
+
+  if (accountId && (format === "mt4" || format === "mt5")) {
+    const [acct] = await db
+      .select({ platform: tradingAccountsTable.platform })
+      .from(tradingAccountsTable)
+      .where(eq(tradingAccountsTable.id, accountId));
+    if (acct && (acct.platform === "mt4" || acct.platform === "mt5") && acct.platform !== format) {
+      return `This file looks like an ${format.toUpperCase()} export, but this account is set up as ${acct.platform.toUpperCase()}. Make sure you're importing into the right account.`;
+    }
+  }
+
+  return null;
+}
 
 function detectSession(openTime: Date): "London" | "NewYork" | "Asian" | "Sydney" | "OffHours" {
   const hour = openTime.getUTCHours();
@@ -331,7 +381,18 @@ router.post(
       }
     }
 
+    const rawAccountId = req.query["accountId"];
+    const accountId = rawAccountId ? parseInt(String(rawAccountId), 10) : null;
+
     const result = parseTradesCsv(content, columnMap);
+
+    const validRows = result.rows.filter((r) => !r.warning);
+    const accountMismatch = await detectAccountMismatch(
+      req.user!.id,
+      accountId && !isNaN(accountId) ? accountId : null,
+      result.format,
+      validRows,
+    );
 
     res.json({
       format: result.format,
@@ -339,6 +400,7 @@ router.post(
       preview: result.rows.slice(0, 20),
       rawHeaders: result.rawHeaders,
       rawRows: result.rawRows.slice(0, 5),
+      accountMismatch,
     });
   }
 );
@@ -402,6 +464,13 @@ router.post(
       });
       return;
     }
+
+    const accountMismatch = await detectAccountMismatch(
+      userId,
+      accountId && !isNaN(accountId) ? accountId : null,
+      parseResult.format,
+      parseResult.rows.filter((r) => !r.warning),
+    );
 
     // Deduplicate: load existing trade fingerprints scoped to same account context.
     // If importing into a specific account, only dedupe against that account's trades.
@@ -511,7 +580,7 @@ router.post(
       }
     }
 
-    res.json({ imported, skipped, invalidRows, errors, format: parseResult.format });
+    res.json({ imported, skipped, invalidRows, errors, format: parseResult.format, accountMismatch });
   }
 );
 
