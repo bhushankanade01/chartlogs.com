@@ -230,27 +230,25 @@ function PatternInsightsSection({
                 Add ANTHROPIC_API_KEY to enable
               </div>
             )}
-            {!latestReport && (
-              <Button
-                size="sm"
-                variant="default"
-                className="h-7 text-xs gap-1.5"
-                disabled={!canAnalyze || patternMutation.isPending}
-                onClick={() => patternMutation.mutate()}
-              >
-                {patternMutation.isPending ? (
-                  <><Spinner className="h-3 w-3" /> Analyzing…</>
-                ) : (
-                  <><TrendingUp className="h-3 w-3" /> Analyze Patterns</>
-                )}
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant={latestReport ? "outline" : "default"}
+              className="h-7 text-xs gap-1.5"
+              disabled={!canAnalyze || patternMutation.isPending}
+              onClick={() => patternMutation.mutate()}
+            >
+              {patternMutation.isPending ? (
+                <><Spinner className="h-3 w-3" /> Analyzing…</>
+              ) : (
+                <><TrendingUp className="h-3 w-3" /> {latestReport ? "Regenerate Analysis" : "Analyze Patterns"}</>
+              )}
+            </Button>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {aiAvailable && !unlimited && quotaExhausted && !latestReport && (
+        {aiAvailable && !unlimited && quotaExhausted && (
           <p className="text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
             You've used your weekly AI report quota. Try again after it resets.
           </p>
